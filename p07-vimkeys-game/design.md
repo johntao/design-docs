@@ -72,15 +72,104 @@ The goal is to let players learn what keybindings and gameplay work best for the
   - Spamming the same obvious strategy to beat every level will significantly decrease the gaming experience
   - e.g., a "go back" shortcut that allows the player to navigate back to the previous view anytime and anywhere
 
-## Tech Stack
+## Game Flow
 
-- Standalone HTML/CSS/JS
-- Zero frameworks and libraries
+### State Machine
+
+```
+┌──────────┐     ┌──────────┐     ┌───────────┐
+│   Menu   │────▶│ Playing  │────▶│ Game Over │
+└──────────┘     └──────────┘     └───────────┘
+     ▲                │                  │
+     │                ▼                  │
+     │           ┌──────────┐            │
+     │           │ Settings │            │
+     │           └──────────┘            │
+     └───────────────────────────────────┘
+```
+
+### States
+
+- **Menu**
+  - Select game mode (Picker or Filler)
+  - Select level (for fixed levels) or configure random generation
+  - Access settings
+  - View high scores / leaderboard
+
+- **Playing**
+  - Active gameplay state
+  - HUD displays current score, timer (if applicable), and combo status
+  - Player can pause (optional, may conflict with fast-paced design principle)
+  - Transitions to Game Over when win/loss condition is met
+
+- **Settings**
+  - Configure keybindings
+  - Configure gameplay options
+  - Manage save slots
+  - Accessible from Menu or during gameplay (pauses the game)
+
+- **Game Over**
+  - Display final score
+  - Display time taken (for speed-based modes)
+  - Compare with previous best / high score
+  - Options: Retry same level, Return to Menu
+
+### Transitions
+
+| From | To | Trigger |
+|------|-----|---------|
+| Menu | Playing | Player starts a game |
+| Menu | Settings | Player opens settings |
+| Playing | Game Over | Win condition met (all collectables cleared, timer ends, or pattern matched) |
+| Playing | Settings | Player opens settings (optional pause) |
+| Settings | Menu | Player closes settings from menu |
+| Settings | Playing | Player closes settings during game |
+| Game Over | Menu | Player chooses to return |
+| Game Over | Playing | Player chooses to retry |
+
+### Win/Loss Conditions Summary
+
+| Mode | Sub-mode | Win Condition | Loss Condition | Score Calculation |
+|------|----------|---------------|----------------|-------------------|
+| Picker | Fixed Collectable (items#200) | All collectables cleared | None | Speed-based (less time = better) |
+| Picker | Fixed Time (items#200) | Timer ends | None | Score-based (more pickups = better) |
+| Filler | - (items#700) | All color-matched collectables cleared | None | Speed-based (less time = better) |
+
+**Notes:**
+- This game currently has no loss conditions; all modes end when the win condition is met
+- Picker mode with `remain_counter` uses speed-based scoring
+- Picker mode with `timer` uses score-based scoring
+- Filler mode is always speed-based (fastest completion time wins)
+- See items#236 for detailed scoring formulas
 
 ## 100: Action-Movement
 
 The basic movement is `hjkl`, which moves the player one cell at a time inside the grid.
 `hjkl` borrows the conventional directions from VIM: left, down, up, right.
+
+### 105: Player Initialization
+
+When a game starts, the player must be initialized with the following properties:
+
+#### Starting Position
+- **Picker Mode (Random Level):** Player spawns at a random unoccupied cell, or at the center of the grid if unoccupied
+- **Picker Mode (Fixed Level):** Player spawns at a predefined position specified in the level data
+- **Filler Mode:** Player spawns at a predefined position specified in the level data
+
+#### Initial State
+| Property | Initial Value | Notes |
+|----------|---------------|-------|
+| Body Length | 1 | Single cell occupied |
+| Active Part | Head | For body length > 1 scenarios |
+| Facing Direction | Right | Affects certain movement calculations |
+| Score | 0 | - |
+| Combo Streak | 0 | If combo system is enabled |
+| Current Color | None | For Filler mode only |
+
+#### Spawn Constraints
+- The spawn cell must not contain an obstacle
+- The spawn cell must not contain a portal (to avoid immediate teleportation)
+- For random levels, ensure at least one collectable is reachable from spawn position
 
 ### 110: Collision
 
@@ -147,9 +236,13 @@ A sigil is an item that is not collidable but is interactable with certain movem
 Props:
 - collidable: false
 
-#### TBD
+#### Item Properties Reference
 
-Need to find a place to define all the properties of foreground items: sigils, collectables, and powerups.
+All foreground item properties are defined in section 500 (Visual-Foreground). See:
+- items#520 for sigil/rune properties
+- items#540 for obstacle properties
+- items#532 for portal properties
+- Collectable properties are defined inline within items#200 (Config-Gameplay)
 
 #### 141: Angle Bracket
 
@@ -317,16 +410,11 @@ Should introduce distinctive visual difference for head and tail parts.
 
 ### Dropped Feature: Search
 
-VIM provides an extraordinary search function.
-However, I suspect a full-fledged search function would slow down the game pace.
-Also, it disobeys the first design principle where a search function requires an extra enter key to activate.
-For now, the find alphabet command from items#142 is good enough.
+See Appendix B.1 for details. Summary: Would slow down game pace; find alphabet command (items#142) is sufficient.
 
 ### Dropped Feature: Scrolling
 
-VIM users are mostly dealing with files that overflow the current viewport.
-However, this is not the case for vimkeys-game.
-Thus, there's no need to implement scrolling features as long as the game doesn't overflow the grids.
+See Appendix B.2 for details. Summary: Not needed for fixed-view gameplay.
 
 ## 200: Config-Gameplay (Picker Mode)
 
@@ -339,10 +427,6 @@ The game ends once all the collectables are picked up; the score is determined b
 **Sub-mode 2 (fixed time, variable collectable):**
 Render collectables dynamically along with the game progress (the render amount is capped at max_display).
 The game ends once the timer ends; the score is determined by how many collectables the player picked.
-
-### TBD
-
-Gameplay of filler mode (refer to items#700)
 
 ### Implementation Proposal 1
 
@@ -404,7 +488,7 @@ e.g., get one more score if surpassing x2 combo; get two more scores if surpassi
 #### 233: Decremental Counter
 
 Make every newly spawned collectable worth an extra score of 5, then reduce the extra score each time the player moves.
-This mode synergizes well with feature #xxx.
+This mode synergizes well with items#232 since both of them keep the player prioritizing the nearest collectables.
 
 #### 234: Ordered Collectables
 
@@ -422,6 +506,80 @@ Randomly drop time-sensitive collectables.
 This one is similar to items#233 except that the collectable disappears automatically if the counter runs below 1.
 Make sure it is configurable.
 
+### 236: Scoring Formulas
+
+This section defines the exact calculations for all scoring mechanisms.
+
+#### Base Score
+
+```
+base_score = collectables_picked × 1
+```
+
+Every collectable picked adds 1 to the base score.
+
+#### Combo Multiplier (items#232)
+
+```
+combo_bonus = floor((combo_streak - 1) / 3)
+combo_bonus = min(combo_bonus, 3)  // Capped at 3
+
+score_per_pickup = 1 + combo_bonus
+```
+
+| Combo Streak | Bonus Points | Total per Pickup |
+|--------------|--------------|------------------|
+| 1 (no combo) | +0 | 1 |
+| 2-4 (×2) | +1 | 2 |
+| 5-7 (×5) | +2 | 3 |
+| 8+ (×9) | +3 | 4 |
+
+#### Decremental Counter (items#233)
+
+```
+counter_bonus = max(0, 5 - steps_since_spawn)
+score_per_pickup = 1 + counter_bonus
+```
+
+Each collectable spawns with a 5-point bonus that decreases by 1 per player step.
+
+#### Ordered Collectables (items#234)
+
+```
+order_bonus = consecutive_correct_pickups
+score_per_pickup = 1 + order_bonus
+
+// On breaking the streak:
+order_bonus = 0
+```
+
+Bonus grows arithmetically: +1 for 1st correct, +2 for 2nd correct, +3 for 3rd, etc.
+
+#### Expiration (items#235)
+
+```
+expiration_bonus = remaining_countdown
+score_per_pickup = 1 + expiration_bonus
+
+// If countdown reaches 0:
+collectable disappears, no score awarded
+```
+
+#### Final Score Calculation (Score-Based Mode)
+
+```
+final_score = sum(score_per_pickup for each pickup)
+```
+
+#### Final Score Calculation (Speed-Based Mode)
+
+```
+time_bonus = max(0, par_time - completion_time)
+final_score = base_score + time_bonus
+
+// Alternative: Pure time ranking (no score, just time)
+```
+
 ### 240: Game Version
 
 The game provides settings for users to configure their keybindings or gameplay.
@@ -435,6 +593,72 @@ Note that saving slots should manage keybinding and gameplay settings separately
 All keybindings should be configurable.
 Keybindings are basically actions to trigger a movement.
 Thus, they should be defined in section items#100.
+
+### 310: Default Keybinding Table
+
+| Action | Default Key | Remappable | Category | Reference |
+|--------|-------------|------------|----------|-----------|
+| Move Left | `h` | Yes | Basic Movement | items#120 |
+| Move Down | `j` | Yes | Basic Movement | items#120 |
+| Move Up | `k` | Yes | Basic Movement | items#120 |
+| Move Right | `l` | Yes | Basic Movement | items#120 |
+| Grid Left | `Ctrl+h` | Yes | Grid Movement | items#130 |
+| Grid Down | `Ctrl+j` | Yes | Grid Movement | items#130 |
+| Grid Up | `Ctrl+k` | Yes | Grid Movement | items#130 |
+| Grid Right | `Ctrl+l` | Yes | Grid Movement | items#130 |
+| Find Angle '<' Forward | `e` | Yes | Sigil Movement | items#141 |
+| Find Angle '>' Forward | `r` | Yes | Sigil Movement | items#141 |
+| Find Angle '<' Backward | `w` | Yes | Sigil Movement | items#141 |
+| Find Angle '>' Backward | `q` | Yes | Sigil Movement | items#141 |
+| Find Alphabet | `f` + char | Yes | Sigil Movement | items#142 |
+| Repeat Backward | `m` | Yes | Repeater | items#170 |
+| Repeat Last Direction | `,` | Yes | Repeater | items#170 |
+| Repeat Opposite | `<` | Yes | Repeater | items#170 |
+| Repeat Forward | `.` | Yes | Repeater | items#170 |
+| Toggle Head/Tail | `z` | Yes | Body Control | items#181 |
+| Toggle Variable/Fixed | `x` | Yes | Body Control | items#181 |
+| Switch to Head | `z` | Yes | Body Control (Alt) | items#182 |
+| Switch to Body | `x` | Yes | Body Control (Alt) | items#182 |
+| Switch to Tail | `c` | Yes | Body Control (Alt) | items#182 |
+
+### 320: Keybinding Constraints
+
+1. **Reserved Keys (Cannot Be Remapped)**
+   - `Escape` - Always opens/closes settings menu
+   - `Enter` - Confirms selections in menus
+
+2. **Conflict Resolution**
+   - If a user tries to assign a key already in use, show a warning
+   - Offer to swap the bindings or cancel the change
+   - Macros cannot use keys already bound to other actions
+
+3. **Key Combinations**
+   - Support modifier keys: `Ctrl`, `Shift`, `Alt`
+   - Maximum one modifier per binding
+   - `Ctrl+letter` combinations are allowed
+   - `Shift+letter` produces uppercase (treated as different key)
+
+### 330: Keybinding Storage
+
+Keybindings are stored per save slot:
+
+```json
+{
+  "slot_id": 1,
+  "keybindings": {
+    "move_left": "h",
+    "move_down": "j",
+    "move_up": "k",
+    "move_right": "l",
+    "grid_left": "ctrl+h",
+    "find_alphabet": "f",
+    "macros": {
+      "macro_1": "hhhjjj",
+      "macro_2": "llllk"
+    }
+  }
+}
+```
 
 ## 400: Visual-Background
 
@@ -509,20 +733,9 @@ Similarly, a keystroke to bring the player back to the previous view like how "g
 
 #### 531: Hyperlink-Like (Dropped)
 
-**This feature has been dropped.**
+**This feature has been dropped.** See Appendix B.3 for details.
 
-Reason: This design violates the first design principle which states that "the gameplay should eliminate non-movement actions if possible." Requiring the player to hit a key (e.g., `t`) to enter a link is a non-movement action that would slow down the fast-paced gameplay.
-
-Original proposal:
-An HTML anchor where the player uses a keystroke to enter and then teleport to somewhere else on the view:
-1. Teleport to another grid cell in the current view
-  - Similar to how an anchor links to an element on the same page via `href="#id-of-an-elem"`
-2. Teleport to another view
-  - Similar to how an anchor links to another page
-  - The player may use a keystroke to navigate back to the previous view
-  - Or the player may use another anchor link (if presented) to navigate back to the previous view
-
-Default keybinding to enter a link: `t`
+Summary: Violates first design principle (non-movement actions).
 
 #### 532: Portal-Like
 
@@ -539,17 +752,87 @@ The game engine should not render an obstacle and any other item in the same cel
 
 ## 600: Visual-HUD
 
-Information about score and configuration modal popup.
+Information about score, game status, and configuration modal popup.
 
 ### 610: Score Board
 
-While in-game: display current score.
-While not in-game: display previous game score, best score of all time.
+#### 611: In-Game Display
 
-### 620: Modal Popup
+While in-game, the HUD displays:
 
-Two simple buttons: the first configures gameplay, the second configures keybindings.
-Should also place saving slots somewhere on the screen, and make sure the player can click to apply the configuration.
+| Element | Position | Description |
+|---------|----------|-------------|
+| Current Score | Top-left | Running score total |
+| Combo Counter | Top-left (below score) | Current combo multiplier (if active) |
+| Timer | Top-right | Elapsed time or countdown (mode-dependent) |
+| Collectable Count | Top-right (below timer) | Remaining collectables (Picker) or progress indicator (Filler) |
+| Current Color | Bottom-left | Active track color (Filler mode only) |
+
+#### 612: Out-of-Game Display
+
+While not in-game (menu/game over screens):
+
+| Element | Description |
+|---------|-------------|
+| Previous Game Score | Score from the most recent game session |
+| Best Score (All Time) | Highest score ever achieved |
+| Best Time (Filler) | Fastest completion time per level |
+| Level Progress | Which levels have been completed |
+
+### 620: Settings Modal
+
+#### 621: Modal Structure
+
+The settings modal contains two main tabs accessed via toggle buttons:
+
+```
+┌─────────────────────────────────────────┐
+│  [Gameplay] [Keybindings]               │
+├─────────────────────────────────────────┤
+│                                         │
+│  (Tab content area)                     │
+│                                         │
+├─────────────────────────────────────────┤
+│  Save Slot: [1] [2] [3]                 │
+│  [Apply] [Reset to Default] [Cancel]    │
+└─────────────────────────────────────────┘
+```
+
+#### 622: Gameplay Tab Contents
+
+| Setting | Type | Options | Reference |
+|---------|------|---------|-----------|
+| Game Mode | Radio | Picker / Filler | items#200, items#700 |
+| Score Mode | Radio | Score-based / Speed-based | items#220, items#230 |
+| Grid Size | Dropdown | Small (8×8) / Medium (12×12) / Large (16×16) | items#810 |
+| Collectable Density | Slider | Low / Medium / High | items#820 |
+| Body Length Mode | Radio | Variable / Fixed | items#180, items#181 |
+| Fog of War | Toggle | On / Off | items#510 |
+
+#### 623: Keybindings Tab Contents
+
+Displays the keybinding table from items#310 in an editable format:
+- Click on a key cell to rebind
+- Visual indicator for conflicts
+- "Reset" button per row to restore default
+
+#### 624: Save Slots
+
+- Three save slots for storing different configurations
+- Each slot stores both gameplay settings and keybindings
+- Visual indicator showing which slot is currently active
+- Slot format defined in items#330
+
+### 630: In-Game Notifications
+
+Brief, non-intrusive notifications for game events:
+
+| Event | Notification | Duration |
+|-------|-------------|----------|
+| Combo Achieved | "x2 Combo!" / "x5 Combo!" | 1 second |
+| Power-up Collected | Icon + brief description | 1.5 seconds |
+| Level Complete | "Level Clear!" + time/score | Until dismissed |
+| New High Score | "New Record!" | 2 seconds |
 
 ## 700: Config-Gameplay (Filler Mode)
 
@@ -596,35 +879,15 @@ Data:
 
 ### Dropped Feature: Explicit Fill-Up Command
 
-Originally, I tried to let the player hit space to fill up a cell.
-Additionally, I also wanted to make the player feel as if they were actually filling up the glyph provided by the level.
-
-Thus, I made the player fill in the tracks for visited cells.
-This would make the screen look messy if the player visited every cell.
-Then, I introduced hitting "space" to toggle the filling tracks behavior.
-
-However, at this point I've already found out the fact that:
-- Both making the player explicitly hit space to fill up a cell
-- And hitting space to let the player toggle filling up visited cells
-- Violate the first design principle because it makes players hit extra spaces to complete the game
-
-Besides the space issue, I also introduced a concept of threshold:
-- The player cannot beat the level if there are too many unrelated cells colored
-- Thus, if the player clears all the collectables, they still need to un-color cells that were colored by the visited cells behavior
-
-The threshold feature also feels tedious after a few playthroughs.
+See Appendix B.4 for details. Summary: Violates first design principle (extra keypresses).
 
 ### Dropped Feature: Stroke Width
 
-A feature to fill in multiple cells at once; it can be done by implementing items#180.
-However, it would over-complicate the gameplay, so just drop it.
+See Appendix B.5 for details. Summary: Over-complicates gameplay.
 
 ### Dropped Feature: Stroke Depth
 
-A feature to make different levels of the filling colors.
-It happens when a collectable appears twice in the same cell.
-After the second fill-up, the color should be brighter or darker.
-However, filler mode renders all collectables on starting the game; respawning collectables introduces unnecessary complexity to the game without actually improving the gaming experience.
+See Appendix B.6 for details. Summary: Unnecessary complexity.
 
 ### The Final Design
 
@@ -635,3 +898,162 @@ A color item respawns automatically after the player moves a few steps, which en
 Picking up a new color item would replace the previous color directly.
 
 Coloring visited cells is still a viable option; however, it should provide only visual feedback without changing the gameplay.
+
+## 800: Level Design
+
+This section defines how levels are structured, generated, and stored.
+
+### 810: Grid Dimensions
+
+| Parameter | Min | Max | Default | Notes |
+|-----------|-----|-----|---------|-------|
+| Rows | 5 | 20 | 10 | Number of rows in the grid |
+| Columns | 5 | 30 | 15 | Number of columns in the grid |
+| Cell Size | 20px | 50px | 30px | Visual size of each cell |
+
+For multi-grid views:
+- Maximum grids per view: 9 (3×3 layout)
+- Grid margin: 10px between grids
+
+### 820: Random Level Generation
+
+For Picker mode with random generation:
+
+#### Algorithm Outline
+1. Create empty grid of specified dimensions
+2. Place player spawn point (see items#105)
+3. Place obstacles (density: 5-15% of cells, configurable)
+   - Ensure obstacles don't block all paths
+4. Place collectables (count based on `remain_counter`)
+   - Ensure all collectables are reachable from spawn
+5. Place sigils (optional, based on config)
+6. Place portals (optional, in pairs)
+
+#### Generation Parameters
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| obstacle_density | float | 0.10 | Percentage of cells with obstacles (0.0 - 0.20) |
+| collectable_count | int | 9 | Number of collectables to place |
+| sigil_count | int | 0 | Number of sigils to place |
+| portal_pairs | int | 0 | Number of portal pairs to place |
+| seed | int? | null | Random seed for reproducibility (null = random) |
+
+### 830: Fixed Level Format
+
+Fixed levels are stored as JSON with the following structure:
+
+```json
+{
+  "id": "level_001",
+  "name": "Tutorial 1",
+  "mode": "picker",
+  "grid": {
+    "rows": 10,
+    "cols": 15
+  },
+  "player_spawn": { "row": 5, "col": 7 },
+  "items": [
+    { "type": "collectable", "row": 2, "col": 3 },
+    { "type": "collectable", "row": 8, "col": 12 },
+    { "type": "obstacle", "row": 4, "col": 5 },
+    { "type": "sigil", "subtype": "angle_left", "row": 3, "col": 10 },
+    { "type": "portal", "pair_id": 1, "row": 1, "col": 1 },
+    { "type": "portal", "pair_id": 1, "row": 9, "col": 14 }
+  ],
+  "filler_config": {
+    "colors": [
+      { "row": 0, "col": 0, "color": "red" }
+    ],
+    "collectables": [
+      { "row": 5, "col": 5, "required_color": "red" }
+    ]
+  },
+  "metadata": {
+    "author": "designer_name",
+    "difficulty": "easy",
+    "par_time_seconds": 30
+  }
+}
+```
+
+### 840: Level Validation Rules
+
+Before a level can be played, validate:
+1. Player spawn position is within grid bounds
+2. Player spawn position does not overlap with obstacles or portals
+3. All collectables are reachable from player spawn (pathfinding check)
+4. Portal pairs are complete (no orphan portals)
+5. For Filler mode: all color sources are reachable
+6. Grid dimensions are within allowed range
+
+### 850: Difficulty Guidelines
+
+| Difficulty | Grid Size | Obstacles | Collectables | Time Target |
+|------------|-----------|-----------|--------------|-------------|
+| Easy | 8×8 | 5% | 5-7 | 60s |
+| Medium | 12×12 | 10% | 9-12 | 45s |
+| Hard | 15×15 | 15% | 15-20 | 30s |
+| Expert | 20×20 | 15% | 25+ | 20s |
+
+---
+
+## Appendix A: Technical Requirements
+
+### Tech Stack
+
+- Standalone HTML/CSS/JS
+- Zero frameworks and libraries
+
+### Browser Compatibility
+
+- Target: Modern evergreen browsers (Chrome, Firefox, Safari, Edge)
+- Minimum viewport: 800×600
+- No mobile support required for MVP
+
+### Performance Targets
+
+- Input latency: < 16ms (one frame at 60fps)
+- Frame rate: 60fps minimum
+- Load time: < 2 seconds on broadband
+
+---
+
+## Appendix B: Dropped Features
+
+This appendix consolidates all features that were considered but dropped during the design process. These are preserved for historical context and to document design decisions.
+
+### B.1: Search (from items#100)
+
+**Reason for dropping:** Would slow down game pace and violates the first design principle.
+
+VIM provides an extraordinary search function. However, a full-fledged search function would slow down the game pace. Also, it disobeys the first design principle where a search function requires an extra enter key to activate. For now, the find alphabet command from items#142 is good enough.
+
+### B.2: Scrolling (from items#100)
+
+**Reason for dropping:** Not applicable to fixed-view gameplay.
+
+VIM users are mostly dealing with files that overflow the current viewport. However, this is not the case for vimkeys-game. Thus, there's no need to implement scrolling features as long as the game doesn't overflow the grids.
+
+### B.3: Hyperlink-Like Navigation (from items#531)
+
+**Reason for dropping:** Violates the first design principle (non-movement actions).
+
+An HTML anchor where the player uses a keystroke to enter and then teleport to somewhere else on the view. Requiring the player to hit a key (e.g., `t`) to enter a link is a non-movement action that would slow down the fast-paced gameplay.
+
+### B.4: Explicit Fill-Up Command (from items#700)
+
+**Reason for dropping:** Violates the first design principle (extra keypresses).
+
+Originally tried to let the player hit space to fill up a cell. Both making the player explicitly hit space to fill up a cell and hitting space to toggle filling behavior violate the first design principle because it makes players hit extra spaces to complete the game. The threshold feature (requiring un-coloring of unrelated cells) also felt tedious after playthroughs.
+
+### B.5: Stroke Width (from items#700)
+
+**Reason for dropping:** Over-complicates gameplay.
+
+A feature to fill in multiple cells at once; could be done by implementing items#180. However, it would over-complicate the gameplay.
+
+### B.6: Stroke Depth (from items#700)
+
+**Reason for dropping:** Unnecessary complexity.
+
+A feature to make different levels of filling colors when a collectable appears twice in the same cell. However, filler mode renders all collectables on game start; respawning collectables introduces unnecessary complexity without improving the gaming experience.
