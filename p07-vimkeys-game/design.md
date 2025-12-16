@@ -5,7 +5,7 @@ This game is a combination of VIM keybindings and Snake-like gameplay.
 
 ### The Basic Gameplay:
 The player uses VIM keybindings to move in a grid-like map.
-The game scatters collectables at fixed (or random) positions across the map.
+The game scatters collectables at fixed (or random) positions across the view.
 If a timer is used, the game ends when the timer hits zero.
 Otherwise, the game ends when the last collectable is picked up.
 
@@ -35,16 +35,18 @@ The goal is to let players learn what keybindings and gameplay work best for the
 - **item** => anything rendered inside a cell is an item (visual foreground)
   - e.g. collectable items, sigils with special functions
     - hyperlinks, portals, obstacles (the player cannot step onto an obstacle)
-- **cell** => the smallest unit of the visual background where the player may step
+- **cell** => the smallest unit of the visual background
+  - The player may step onto a cell unless it contains an obstacle
   - A cell may contain one to many ASCII printable characters as items
+  - Note: If a cell contains an obstacle, it cannot contain any other items
 - **collectable or droppable** => an item that is cleared once the player steps onto it
   - The player gains score whenever they clear a collectable
-- **picker or pickup mode** => the player moves inside the map and picks up all the collectables
+- **picker or pickup mode** => the player moves inside the view and picks up all the collectables
   - Win the game once all the collectables are cleared
-- **filler or fill-up mode** => the player moves inside the map; player movement leaves tracks on the map
+- **filler or fill-up mode** => the player moves inside the view; player movement leaves tracks on the view
   - Win the game once the track of the movement matches the given pattern of the level
   - There is a threshold for each level; the player wins the game once the "match ratio" passes the threshold
-- **view or map** => the entire area that is visible and actionable to the player
+- **view** => the entire area that is visible and actionable to the player
   - A view may contain one or many grids at a time
   - There should be margins between two different grids
 - **grid** => a grid consists of N×M cells
@@ -68,7 +70,7 @@ The goal is to let players learn what keybindings and gameplay work best for the
 - **An obvious shortcut doesn't improve the gameplay experience**
   - Do not introduce universally well-rounded functions to the player
   - Spamming the same obvious strategy to beat every level will significantly decrease the gaming experience
-  - e.g., a "go back" shortcut that allows the player to navigate back to the previous map anytime and anywhere
+  - e.g., a "go back" shortcut that allows the player to navigate back to the previous view anytime and anywhere
 
 ## Tech Stack
 
@@ -91,9 +93,9 @@ Let's expand on this statement:
   - If the movement action is teleportable, then only the destination cell is considered collidable
   - i.e., all collisions between cell A and cell B are ignored
 - **113**: It is possible to set an item as non-collidable, which means it doesn't trigger a collision event even if the collision occurs
-  - The player is always considered collidable
   - Collectables and obstacles are collidable
   - Sigils are non-collidable
+  - If multiple collidable items occupy the same cell, all collision events for that cell are triggered
 - **114**: Collisions are basically events defined by the engine
   - When a player collides with a collectable: the player picks up the collectable
     - Remove the collectable from the screen, score + 1
@@ -125,7 +127,7 @@ Define what happens when the player hits the boundary of a grid:
 
 ### 130: Grid Movement
 
-A map may contain multiple grids.
+A view may contain multiple grids.
 A grid movement means the player teleports from grid A to grid B.
 
 Props:
@@ -154,7 +156,7 @@ Need to find a place to define all the properties of foreground items: sigils, c
 Render angle brackets '<' and '>' directly in the cell.
 This is somewhat similar to the classic VIM "word boundary" feature, except that the word boundary is now visualized and rendered as a character directly in a cell.
 (On the other hand, VIM word boundary is a zero-width assertion.)
-Players may use `qwer` to teleport to the existing angle brackets on the map:
+Players may use `qwer` to teleport to the existing angle brackets on the view:
 - `e` teleports to the nearest left angle bracket '<' in forward direction (from 0,0 to n,n)
 - `r` teleports to the nearest right angle bracket '>' in forward direction (from 0,0 to n,n)
 - `w` teleports to the nearest left angle bracket '<' in backward direction (from n,n to 0,0)
@@ -180,9 +182,14 @@ It is mostly equivalent to how macros work in VIM, except:
   1. Define it in the keybinding configuration menu (with limitations)
   2. By picking up powerups while playing the game
 
-#### TBD
+#### Limitations
 
 Macros are so powerful that they should have some "limitations" to ensure they don't break the gameplay (i.e., make the game extremely easy).
+
+For macros defined in the keybinding configuration menu:
+- The configuration popup should allow the player to define a maximum of 6 basic movements in a single macro
+- This limitation ensures macros remain balanced and don't trivialize the gameplay
+
 Some possible macros:
 - Move left 5 times (i.e., hhhhh)
 - Move left 3 times, then down 3 times (i.e., hhhjjj)
@@ -214,8 +221,9 @@ Again, it would over-complicate the gameplay to introduce these features.
 
 ### 170: Repeater
 
-This feature is a group of four keys:
+This feature is a group of three keystrokes:
 e.g., `m,<.`
+Note: On a QWERTY keyboard, `,` and `<` share the same key, so this uses three keystrokes (m, ,/<, .) rather than four keys.
 - Press `m` to allow the player to repeat the last used non-basic movement in backward direction (from n,n to 0,0)
 - Press `,` to allow the player to repeat the last used non-basic movement in the last used direction
 - Press `<` to allow the player to repeat the last used non-basic movement in the opposite of the last used direction
@@ -251,19 +259,22 @@ Note that increasing the body length of the player will make the gameplay look v
 1. There's no loss condition if the head of the player collides with their body
 2. Vimkeys-game will allow the user to switch the active part of the player: head, tail, or body
   - While activating either head or tail, it means the player is in variable-length mode
-    - The body length increases by 1 (capped at max length) if the player steps on cells that don't contain the body
-    - The body length decreases by 1 (capped at min length) if the player steps on cells containing their body
+    - The body length increases by 1 (capped at max length) when the player moves to a cell that is unoccupied by the body
+    - The body length decreases by 1 (capped at min length) when the player moves to a cell already occupied by their own body
   - While activating body mode, it means the player is in fixed-length mode
-    - The player moves their entire body at once on the map, thus it is possible to trigger multiple collision events at once in a single movement action
+    - The player moves their entire body at once on the view, thus it is possible to trigger multiple collision events at once in a single movement action
 
 Methods to handle maximum player length:
 - min: 1; max: 5
 - The level may drop random powerups to increase the value of maximum length
 
 Note that the player will lose some interactive functions when the body length is longer than 1:
-- The player cannot trigger portals
+- The player cannot trigger portals when body length > 1
+  - Reason: To maintain game balance and prevent overly easy traversal with extended body
 - The player cannot use sigil movement if body length > 1 AND activating the body part
   - i.e., sigil movement still works if the player is activating either the head or tail part
+  - Reason 1: Maintaining sigil movement for head/tail modes makes the game more versatile and fun
+  - Reason 2: Sigil movement requires a specific cursor position to calculate the target; while activating the body part, there's no obvious way to determine which part should be the active cursor
 
 #### 181: Keybindings Proposal 1
 
@@ -309,7 +320,7 @@ Should introduce distinctive visual difference for head and tail parts.
 VIM provides an extraordinary search function.
 However, I suspect a full-fledged search function would slow down the game pace.
 Also, it disobeys the first design principle where a search function requires an extra enter key to activate.
-For now, the find alphabet command from item #142 is good enough.
+For now, the find alphabet command from items#142 is good enough.
 
 ### Dropped Feature: Scrolling
 
@@ -319,7 +330,7 @@ Thus, there's no need to implement scrolling features as long as the game doesn'
 
 ## 200: Config-Gameplay (Picker Mode)
 
-Picker (or pick-up) mode is the basic game mode where the game drops collectables at random or fixed positions on the map.
+Picker (or pick-up) mode is the basic game mode where the game drops collectables at random or fixed positions on the view.
 
 **Sub-mode 1 (fixed collectable, variable time):**
 Render all collectables at once on game start.
@@ -331,13 +342,15 @@ The game ends once the timer ends; the score is determined by how many collectab
 
 ### TBD
 
-Gameplay of filler mode (refer to items #700)
+Gameplay of filler mode (refer to items#700)
 
 ### Implementation Proposal 1
 
+**Core Rule:** Only one of `timer` or `remain_counter` can be non-null at a time. They are mutually exclusive parameters that determine the game mode.
+
 Data:
 - `int? timer` - timer (defaults to null, which means sub-mode 1)
-  - Setting to a non-nullable integer will also set remain_counter to null
+  - When set to a non-nullable integer, `remain_counter` must be null
   - Setting to 10 will create a 10-second timer (which means sub-mode 2)
     - Game ends once the timer hits zero seconds
   - Generate collectables dynamically along with the game progress
@@ -348,10 +361,10 @@ Data:
   - Null value means render all remaining collectables at once
   - Defaults to 9 if timer is non-null
 - `int? remain_counter` - number of collectables to be spawned (defaults to 9)
-  - Setting to a non-nullable integer will also set timer to null
+  - When set to a non-nullable integer, `timer` must be null
   - Setting to 10 will create a remain_counter of 10
     - Game ends once the counter hits zero
-  - If remain_counter > positions.Count, the game should generate new collectables at random positions automatically until the counter hits zero
+  - If remain_counter gt positions.Count, the game should generate new collectables at random positions automatically until the counter hits zero
     - Newly generated positions should be added back to prev_positions
 - `List<(int, int)> prev_positions` - previous collectable positions (defaults to xxx)
 - `bool` - replace the previous positions, i.e., randomly spawn (defaults to false)
@@ -380,9 +393,9 @@ Note that all these rules should be configurable.
 
 #### 232: Combo Streak
 
-A combo streak state: refresh the state if the player picks up a collectable within 4 steps.
+A combo streak state: the streak refreshes if the player picks up a collectable within 4 steps (i.e., within steps 1, 2, 3, or 4).
 
-i.e., if the player makes 5 steps without picking up a collectable, the player will lose the combo streak.
+The player loses the combo streak if they make 5 or more consecutive steps without picking up a collectable.
 
 The player will gain extra scores picking up a collectable while maintaining the streak.
 
@@ -406,7 +419,7 @@ The extra score grows arithmetically (e.g., +1, +2, +3...).
 #### 235: Expiration
 
 Randomly drop time-sensitive collectables.
-This one is similar to item #233 except that the collectable disappears automatically if the counter runs below 1.
+This one is similar to items#233 except that the collectable disappears automatically if the counter runs below 1.
 Make sure it is configurable.
 
 ### 240: Game Version
@@ -421,7 +434,7 @@ Note that saving slots should manage keybinding and gameplay settings separately
 
 All keybindings should be configurable.
 Keybindings are basically actions to trigger a movement.
-Thus, they should be defined in section item #100.
+Thus, they should be defined in section items#100.
 
 ## 400: Visual-Background
 
@@ -453,9 +466,9 @@ Player pressing HJKL (capitalized) would expect the following results:
 
 ### 510: Fog of War
 
-The current gameplay displays the whole map entirely.
+The current gameplay displays the whole view entirely.
 
-This item would implement a feature to make the player only discover droppables in a small area, which is the sight vision of the player.
+This item would implement a feature to make the player only discover collectables in a small area, which is the sight vision of the player.
 
 Make sure the radius of the sight vision is configurable.
 
@@ -468,7 +481,7 @@ The reason is that playing a static level in speed-based mode means the game sho
 
 ### 520: Sigil/Rune
 
-I would like to spread a few random printable ASCII characters across the map.
+I would like to spread a few random printable ASCII characters across the view.
 First, render these printable characters into different cells.
 Then, attach different functions based on these characters.
 NO need to implement all the features at this moment; we will leave these features to the next phase.
@@ -492,12 +505,17 @@ Two proposals available:
 Originally, I was trying to make links identical to how anchors work in a browser.
 Thus, it would require the player to hit some key to trigger the link.
 However, this design contradicts the first design principle where the game should eliminate non-movement actions if possible.
-Similarly, a keystroke to bring the player back to the previous map like how "go back" works in a browser also disobeys the third design principle.
+Similarly, a keystroke to bring the player back to the previous view like how "go back" works in a browser also disobeys the third design principle.
 
-#### 531: Hyperlink-Like
+#### 531: Hyperlink-Like (Dropped)
 
-An HTML anchor where the player uses a keystroke to enter and then teleport to somewhere else on the map:
-1. Teleport to another grid cell in the current view of the map
+**This feature has been dropped.**
+
+Reason: This design violates the first design principle which states that "the gameplay should eliminate non-movement actions if possible." Requiring the player to hit a key (e.g., `t`) to enter a link is a non-movement action that would slow down the fast-paced gameplay.
+
+Original proposal:
+An HTML anchor where the player uses a keystroke to enter and then teleport to somewhere else on the view:
+1. Teleport to another grid cell in the current view
   - Similar to how an anchor links to an element on the same page via `href="#id-of-an-elem"`
 2. Teleport to another view
   - Similar to how an anchor links to another page
@@ -515,7 +533,9 @@ A pair of portals that teleports the player on collision.
 
 The player cannot step onto a cell that contains an obstacle.
 
-The game engine should not render an obstacle and a collectable in the same cell at the same time.
+The game engine should not render an obstacle and any other item in the same cell at the same time.
+- If a cell contains an obstacle, it cannot contain collectables, sigils, portals, or any other items
+- This ensures clear collision behavior and prevents ambiguous game states
 
 ## 600: Visual-HUD
 
@@ -548,17 +568,17 @@ Filler mode is an alternative game mode with the following features:
   - e.g., a collectable may have condition "red"; then the player must pick up a "red color" first before they can pick up red collectables
     - Colors are special collectables that don't give extra score, and they will keep respawning in a few steps (configurable)
 
-All the levels in filler mode are pre-defined; thus, there's no score-based gameplay. The only endgame condition is to clear the level in fewer seconds.
+All the levels in filler mode are pre-defined; thus, there's no score-based gameplay. The only endgame condition is to clear the level in as few seconds as possible (i.e., the shortest time possible).
 
 ### Exclusion
 
-- Filler mode should disable items #180
+- Filler mode should disable items#180
   - The reason is that filler mode introduces more collectable interaction
   - Allowing the player to extend body length will make the game over-complicated
 - All maps are statically generated; doesn't support randomly generated maps
   - Thus, there will be no score-based gameplay available
   - Only speed-based gameplay is available
-- No need to implement items #510
+- No need to implement items#510
   - The reason is that fog of war works best with randomly generated maps
   - No need to handicap players for speed-based mode
 
@@ -596,7 +616,7 @@ The threshold feature also feels tedious after a few playthroughs.
 
 ### Dropped Feature: Stroke Width
 
-A feature to fill in multiple cells at once; it can be done by implementing items #180.
+A feature to fill in multiple cells at once; it can be done by implementing items#180.
 However, it would over-complicate the gameplay, so just drop it.
 
 ### Dropped Feature: Stroke Depth
