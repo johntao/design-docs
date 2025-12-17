@@ -74,58 +74,79 @@ The goal is to let players learn what keybindings and gameplay work best for the
 
 ## Game Flow
 
+### Game Mode Selector
+
+Before gameplay begins, the player selects a game mode. This is a higher-order switch that replaces the entire game configuration:
+
+| Mode   | Description                                      | Reference  |
+| ------ | ------------------------------------------------ | ---------- |
+| Picker | Default mode. Pick up collectables on the view.  | items#200  |
+| Filler | Match colors to clear collectables.              | items#700  |
+
 ### State Machine
 
 ```
-┌──────────┐     ┌──────────┐     ┌───────────┐
-│   Menu   │────▶│ Playing  │────▶│ Game Over │
-└──────────┘     └──────────┘     └───────────┘
-     ▲                │                  │
-     │                ▼                  │
-     │           ┌──────────┐            │
-     │           │ Settings │            │
-     │           └──────────┘            │
-     └───────────────────────────────────┘
+┌─────────────┐     \     ┌─────────────┐
+│  Out-Game   │◀─────────▶│   In-Game   │
+└─────────────┘           └─────────────┘
 ```
 
-### States
+Only two game states exist:
 
-- **Menu**
-  - Select game mode (Picker or Filler)
-  - Select level (for fixed levels) or configure random generation
-  - Access settings
-  - View high scores / leaderboard
-
-- **Playing**
+- **In-Game**
   - Active gameplay state
-  - HUD displays current score, timer (if applicable), and combo status
-  - Player can pause (optional, may conflict with fast-paced design principle)
-  - Transitions to Game Over when win/loss condition is met
+  - Press `\` to stop the game and return to out-of-game state
+  - HUD displays:
+    - Current score
+    - Timer or collectables remaining (mode-dependent)
+    - Combo status (if active)
 
-- **Settings**
-  - Configure keybindings
-  - Configure gameplay options
-  - Manage save slots
-  - Accessible from Menu or during gameplay (pauses the game)
+- **Out-of-Game**
+  - Press `\` to start the game
+  - HUD displays:
+    - Game mode selector (Picker / Filler)
+    - Previous game score
+    - Highest score (all time)
+    - Configuration modal popup (access keybindings and gameplay settings)
+    - Level switch
 
-- **Game Over**
-  - Display final score
-  - Display time taken (for speed-based modes)
-  - Compare with previous best / high score
-  - Options: Retry same level, Return to Menu
+### Reserved Keybindings
+
+These keybindings are always active and cannot be remapped:
+
+| Key           | Action                                              |
+| ------------- | --------------------------------------------------- |
+| `\`           | Start game (out-of-game) / Stop game (in-game)      |
+| `=`           | Switch to next level                                |
+| `<backspace>` | Switch to previous level                            |
+| `]`           | Randomize level (only for dynamic generated levels) |
+
+### Level Switch
+
+Players can cycle through levels using `=` and `<backspace>`:
+
+| Level                    | Description                                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------------------------- |
+| Demo Level               | Special endless level for free movement practice. Cannot be started. See details below.        |
+| Predefined Level 1       | Fixed level with preset layout.                                                                 |
+| Predefined Level 2       | Fixed level with preset layout.                                                                 |
+| Predefined Level 3       | Fixed level with preset layout.                                                                 |
+| Dynamic Generated Level  | Randomly generated level. Press `]` to regenerate.                                              |
+
+#### Demo Level Details
+
+The demo level is a special sandbox mode:
+- **Cannot be started** (the `\` key has no effect)
+- **Endless gameplay**: Collectables respawn once all are cleared
+- **Supported features**: Pick up collectables, obstacles, portals, all movement actions
+- **Unsupported features**: Combo system, score calculation, win/loss conditions
 
 ### Transitions
 
-| From      | To        | Trigger                                                                      |
-| --------- | --------- | ---------------------------------------------------------------------------- |
-| Menu      | Playing   | Player starts a game                                                         |
-| Menu      | Settings  | Player opens settings                                                        |
-| Playing   | Game Over | Win condition met (all collectables cleared, timer ends, or pattern matched) |
-| Playing   | Settings  | Player opens settings (optional pause)                                       |
-| Settings  | Menu      | Player closes settings from menu                                             |
-| Settings  | Playing   | Player closes settings during game                                           |
-| Game Over | Menu      | Player chooses to return                                                     |
-| Game Over | Playing   | Player chooses to retry                                                      |
+| From       | To         | Trigger              |
+| ---------- | ---------- | -------------------- |
+| Out-of-Game | In-Game   | Player presses `\`   |
+| In-Game    | Out-of-Game | Player presses `\` or win condition met |
 
 ### Win/Loss Conditions Summary
 
@@ -653,6 +674,10 @@ Thus, they should be defined in section items#100.
 ### 320: Keybinding Constraints
 
 1. **Reserved Keys (Cannot Be Remapped)**
+   - `\` - Start/stop game (see Game Flow)
+   - `=` - Switch to next level
+   - `<backspace>` - Switch to previous level
+   - `]` - Randomize level (dynamic levels only)
    - `Escape` - Always opens/closes settings menu
    - `Enter` - Confirms selections in menus
 
@@ -800,17 +825,20 @@ While in-game, the HUD displays:
 | Timer             | Top-right               | Elapsed time or countdown (mode-dependent)                     |
 | Collectable Count | Top-right (below timer) | Remaining collectables (Picker) or progress indicator (Filler) |
 | Current Color     | Bottom-left             | Active track color (Filler mode only)                          |
+| Stop Hint         | Bottom-right            | "Press `\` to stop"                                            |
 
 #### 612: Out-of-Game Display
 
-While not in-game (menu/game over screens):
+While out-of-game:
 
-| Element               | Description                             |
-| --------------------- | --------------------------------------- |
-| Previous Game Score   | Score from the most recent game session |
-| Best Score (All Time) | Highest score ever achieved             |
-| Best Time (Filler)    | Fastest completion time per level       |
-| Level Progress        | Which levels have been completed        |
+| Element               | Description                                                |
+| --------------------- | ---------------------------------------------------------- |
+| Game Mode Selector    | Toggle between Picker and Filler modes                     |
+| Previous Game Score   | Score from the most recent game session                    |
+| Highest Score         | Highest score ever achieved (per level)                    |
+| Level Switch          | Current level name with navigation hints (`=` / `<backspace>`) |
+| Configuration Access  | Button/link to open settings modal                         |
+| Start Hint            | "Press `\` to start"                                       |
 
 ### 620: Settings Modal
 
