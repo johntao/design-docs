@@ -250,10 +250,10 @@ Render angle brackets '<' and '>' directly in the cell.
 This is somewhat similar to the classic VIM "word boundary" feature, except that the word boundary is now visualized and rendered as a character directly in a cell.
 (On the other hand, VIM word boundary is a zero-width assertion.)
 Players may use `qwer` to teleport to the existing angle brackets on the view:
+- `q` teleports to the nearest right angle bracket '<' in backward direction (from n,n to 0,0)
+- `w` teleports to the nearest left angle bracket '>' in backward direction (from n,n to 0,0)
 - `e` teleports to the nearest left angle bracket '<' in forward direction (from 0,0 to n,n)
 - `r` teleports to the nearest right angle bracket '>' in forward direction (from 0,0 to n,n)
-- `w` teleports to the nearest left angle bracket '<' in backward direction (from n,n to 0,0)
-- `q` teleports to the nearest right angle bracket '>' in backward direction (from n,n to 0,0)
 
 #### 142: Alphabets
 
@@ -314,6 +314,23 @@ Again, it would over-complicate the gameplay to introduce these features.
 
 ### 170: Repeater
 
+#### design notes
+
+this one is inspired by VIM `;,` to repeat the last inline command and `np` to repeat the last find command
+here, I tamper the design by introducing two more concepts:
+1. make the repeater adapt to any types of movement action beside basic movement (in VIM, repeater only works for inline find and search command)
+2. the VIM version used register only two keystrokes and the repeater repeat both the "direction" and the movement
+  - I suggest the repeater should only repeat the movement, and let the keystroke itself to determine the direction
+  - the change would make the direction of a keystroke deterministic, which seems to reduce the cognitive load for the player
+there are currently two proposals available
+
+Available non-basic movements:
+- Grid movement items#130
+- Sigil: angle bracket items#141
+- Sigil: alphabet items#142
+
+#### 171: proposal 1
+
 This feature is a group of three keystrokes:
 e.g., `m,<.`
 Note: On a QWERTY keyboard, `,` and `<` share the same key, so this uses three keystrokes (m, ,/<, .) rather than four keys.
@@ -322,7 +339,7 @@ Note: On a QWERTY keyboard, `,` and `<` share the same key, so this uses three k
 - Press `<` to allow the player to repeat the last used non-basic movement in the opposite of the last used direction
 - Press `.` to allow the player to repeat the last used non-basic movement in forward direction (from 0,0 to n,n)
 
-#### 171: Sub-movement Modal Mode
+#### 172: proposal 2
 
 Alternatively, implement `nm,.` as below:
 - Press `n` to allow the player to repeat the last used non-basic movement in backward direction (from n,n to 0,0)
@@ -337,11 +354,6 @@ Alternatively, implement `nm,.` as below:
   - Then repeat the last used non-basic movement similar to how `#` works in VIM
   - Keep the player in the same cell if the non-basic movement fails
 - Press `.` to allow the player to repeat the last used non-basic movement in forward direction (from 0,0 to n,n)
-
-Possible non-basic movements:
-- Grid movement
-- Sigil: angle bracket
-- Sigil: alphabet
 
 ### 180: Expand/Shrink the Body
 
@@ -369,7 +381,7 @@ Note that the player will lose some interactive functions when the body length i
   - Reason 1: Maintaining sigil movement for head/tail modes makes the game more versatile and fun
   - Reason 2: Sigil movement requires a specific cursor position to calculate the target; while activating the body part, there's no obvious way to determine which part should be the active cursor
 
-#### 181: Keybindings Proposal 1
+#### 181: Keybindings Proposal 1 (dropped)
 
 Register two keystrokes: `zx`
 - `z` switches between head or tail (variable mode)
@@ -391,7 +403,7 @@ Should have visual difference between variable-length and fixed-length mode.
 Should introduce visual marker for active head/tail part.
 Should introduce visual marker for previous active head/tail part (if currently activating body part).
 
-#### 182: Keybindings Proposal 2
+#### 182: Keybindings Proposal 2 (dropped)
 
 Register three keystrokes: `zxc`
 - `z` switches to head part (variable mode)
@@ -407,6 +419,26 @@ Pros and cons:
 
 Should have visual difference between variable-length and fixed-length mode.
 Should introduce distinctive visual difference for head and tail parts.
+
+#### 183: Keybindings Proposal 3
+
+Register three keystrokes: `zxc`
+- `z` switches to tail part (variable mode); trigger `z` would also trigger a basic movement `h`
+- `x` switches to body part (fixed mode)
+- `c` switches to head part (variable mode); trigger `c` would also trigger a basic movement `l`
+
+This version aims to comply to the first design principle
+Thus, only 'x' action would violate the first desgin principle which is permitted for the better gaming experience
+
+Additionally, this implementation mark head/ tail as end/ start of the grid cells
+i.e. the body part that is closest to cell 0,0 is considered as tail; the body part that is closest to cell n,n is considered as head
+This change would eliminate the problem where the player might swap head/ tail part potentially
+
+Pros and cons:
+- Pros:
+  - Less "toggling" cognitive load
+- Cons:
+  - Requires more keystrokes
 
 ### Dropped Feature: Search
 
@@ -483,7 +515,7 @@ The player loses the combo streak if they make 5 or more consecutive steps witho
 
 The player will gain extra scores picking up a collectable while maintaining the streak.
 
-e.g., get one more score if surpassing x2 combo; get two more scores if surpassing x5 combo; get three more scores if surpassing x9 combo; capped extra scores at three.
+e.g., get one more score if surpassing x2 combo; get two more scores if surpassing x5 combo; get three more scores if surpassing x8 combo; capped extra scores at three.
 
 #### 233: Decremental Counter
 
@@ -521,7 +553,7 @@ Every collectable picked adds 1 to the base score.
 #### Combo Multiplier (items#232)
 
 ```
-combo_bonus = floor((combo_streak - 1) / 3)
+combo_bonus = floor(combo_streak / 3)
 combo_bonus = min(combo_bonus, 3)  // Capped at 3
 
 score_per_pickup = 1 + combo_bonus
@@ -529,10 +561,10 @@ score_per_pickup = 1 + combo_bonus
 
 | Combo Streak | Bonus Points | Total per Pickup |
 |--------------|--------------|------------------|
-| 1 (no combo) | +0 | 1 |
-| 2-4 (×2) | +1 | 2 |
-| 5-7 (×5) | +2 | 3 |
-| 8+ (×9) | +3 | 4 |
+| 1-2 (no combo) | +0 | 1 |
+| 3-5 (x3..5+1) | +1 | 2 |
+| 6-8 (×6..8+2) | +2 | 3 |
+|  9+ (×9..+3) | +3 | 4 |
 
 #### Decremental Counter (items#233)
 
@@ -574,10 +606,7 @@ final_score = sum(score_per_pickup for each pickup)
 #### Final Score Calculation (Speed-Based Mode)
 
 ```
-time_bonus = max(0, par_time - completion_time)
-final_score = base_score + time_bonus
-
-// Alternative: Pure time ranking (no score, just time)
+Pure time ranking (no score, just time)
 ```
 
 ### 240: Game Version
@@ -606,20 +635,18 @@ Thus, they should be defined in section items#100.
 | Grid Down | `Ctrl+j` | Yes | Grid Movement | items#130 |
 | Grid Up | `Ctrl+k` | Yes | Grid Movement | items#130 |
 | Grid Right | `Ctrl+l` | Yes | Grid Movement | items#130 |
+| Find Angle '<' Backward | `q` | Yes | Sigil Movement | items#141 |
+| Find Angle '>' Backward | `w` | Yes | Sigil Movement | items#141 |
 | Find Angle '<' Forward | `e` | Yes | Sigil Movement | items#141 |
 | Find Angle '>' Forward | `r` | Yes | Sigil Movement | items#141 |
-| Find Angle '<' Backward | `w` | Yes | Sigil Movement | items#141 |
-| Find Angle '>' Backward | `q` | Yes | Sigil Movement | items#141 |
 | Find Alphabet | `f` + char | Yes | Sigil Movement | items#142 |
-| Repeat Backward | `m` | Yes | Repeater | items#170 |
-| Repeat Last Direction | `,` | Yes | Repeater | items#170 |
-| Repeat Opposite | `<` | Yes | Repeater | items#170 |
-| Repeat Forward | `.` | Yes | Repeater | items#170 |
-| Toggle Head/Tail | `z` | Yes | Body Control | items#181 |
-| Toggle Variable/Fixed | `x` | Yes | Body Control | items#181 |
-| Switch to Head | `z` | Yes | Body Control (Alt) | items#182 |
-| Switch to Body | `x` | Yes | Body Control (Alt) | items#182 |
-| Switch to Tail | `c` | Yes | Body Control (Alt) | items#182 |
+| Repeat Backward | `n` | Yes | Repeater | items#172 |
+| Repeat Forward Skip Same Line | `m` | Yes | Repeater | items#172 |
+| Repeat Backward Skip Same Line | `,` | Yes | Repeater | items#172 |
+| Repeat Forward | `.` | Yes | Repeater | items#172 |
+| Switch to Tail | `z` | Yes | Body Control | items#183 |
+| Switch to Body | `x` | Yes | Body Control | items#183 |
+| Switch to Head | `c` | Yes | Body Control | items#183 |
 
 ### 320: Keybinding Constraints
 
