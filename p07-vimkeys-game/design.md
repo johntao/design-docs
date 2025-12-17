@@ -464,11 +464,15 @@ Pros and cons:
 
 ### Dropped Feature: Search
 
-See Appendix B.1 for details. Summary: Would slow down game pace; find alphabet command (items#142) is sufficient.
+**Reason for dropping:** Would slow down game pace and violates the first design principle.
+
+VIM provides an extraordinary search function. However, a full-fledged search function would slow down the game pace. Also, it disobeys the first design principle where a search function requires an extra enter key to activate. For now, the find alphabet command from items#142 is good enough.
 
 ### Dropped Feature: Scrolling
 
-See Appendix B.2 for details. Summary: Not needed for fixed-view gameplay.
+**Reason for dropping:** Not applicable to fixed-view gameplay.
+
+VIM users are mostly dealing with files that overflow the current viewport. However, this is not the case for vimkeys-game. Thus, there's no need to implement scrolling features as long as the game doesn't overflow the grids.
 
 ## 200: Config-Gameplay (Picker Mode)
 
@@ -791,9 +795,9 @@ Similarly, a keystroke to bring the player back to the previous view like how "g
 
 #### 531: Hyperlink-Like (Dropped)
 
-**This feature has been dropped.** See Appendix B.3 for details.
+**Reason for dropping:** Violates the first design principle (non-movement actions).
 
-Summary: Violates first design principle (non-movement actions).
+An HTML anchor where the player uses a keystroke to enter and then teleport to somewhere else on the view. Requiring the player to hit a key (e.g., `t`) to enter a link is a non-movement action that would slow down the fast-paced gameplay.
 
 #### 532: Portal-Like
 
@@ -928,15 +932,21 @@ Data:
 
 ### Dropped Feature: Explicit Fill-Up Command
 
-See Appendix B.4 for details. Summary: Violates first design principle (extra keypresses).
+**Reason for dropping:** Violates the first design principle (extra keypresses).
+
+Originally tried to let the player hit space to fill up a cell. Both making the player explicitly hit space to fill up a cell and hitting space to toggle filling behavior violate the first design principle because it makes players hit extra spaces to complete the game. The threshold feature (requiring un-coloring of unrelated cells) also felt tedious after playthroughs.
 
 ### Dropped Feature: Stroke Width
 
-See Appendix B.5 for details. Summary: Over-complicates gameplay.
+**Reason for dropping:** Over-complicates gameplay.
+
+A feature to fill in multiple cells at once; could be done by implementing items#180. However, it would over-complicate the gameplay.
 
 ### Dropped Feature: Stroke Depth
 
-See Appendix B.6 for details. Summary: Unnecessary complexity.
+**Reason for dropping:** Unnecessary complexity.
+
+A feature to make different levels of filling colors when a collectable appears twice in the same cell. However, filler mode renders all collectables on game start; respawning collectables introduces unnecessary complexity without improving the gaming experience.
 
 ### The Final Design
 
@@ -1052,44 +1062,3 @@ Before a level can be played, validate:
 - Frame rate: 60fps minimum
 - Load time: < 2 seconds on broadband
 
----
-
-## Appendix B: Dropped Features
-
-This appendix consolidates all features that were considered but dropped during the design process. These are preserved for historical context and to document design decisions.
-
-### B.1: Search (from items#100)
-
-**Reason for dropping:** Would slow down game pace and violates the first design principle.
-
-VIM provides an extraordinary search function. However, a full-fledged search function would slow down the game pace. Also, it disobeys the first design principle where a search function requires an extra enter key to activate. For now, the find alphabet command from items#142 is good enough.
-
-### B.2: Scrolling (from items#100)
-
-**Reason for dropping:** Not applicable to fixed-view gameplay.
-
-VIM users are mostly dealing with files that overflow the current viewport. However, this is not the case for vimkeys-game. Thus, there's no need to implement scrolling features as long as the game doesn't overflow the grids.
-
-### B.3: Hyperlink-Like Navigation (from items#531)
-
-**Reason for dropping:** Violates the first design principle (non-movement actions).
-
-An HTML anchor where the player uses a keystroke to enter and then teleport to somewhere else on the view. Requiring the player to hit a key (e.g., `t`) to enter a link is a non-movement action that would slow down the fast-paced gameplay.
-
-### B.4: Explicit Fill-Up Command (from items#700)
-
-**Reason for dropping:** Violates the first design principle (extra keypresses).
-
-Originally tried to let the player hit space to fill up a cell. Both making the player explicitly hit space to fill up a cell and hitting space to toggle filling behavior violate the first design principle because it makes players hit extra spaces to complete the game. The threshold feature (requiring un-coloring of unrelated cells) also felt tedious after playthroughs.
-
-### B.5: Stroke Width (from items#700)
-
-**Reason for dropping:** Over-complicates gameplay.
-
-A feature to fill in multiple cells at once; could be done by implementing items#180. However, it would over-complicate the gameplay.
-
-### B.6: Stroke Depth (from items#700)
-
-**Reason for dropping:** Unnecessary complexity.
-
-A feature to make different levels of filling colors when a collectable appears twice in the same cell. However, filler mode renders all collectables on game start; respawning collectables introduces unnecessary complexity without improving the gaming experience.
