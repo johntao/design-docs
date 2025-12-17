@@ -120,6 +120,8 @@ These keybindings are always active and cannot be remapped:
 | `=`           | Switch to next level                                |
 | `<backspace>` | Switch to previous level                            |
 | `]`           | Randomize level (only for dynamic generated levels) |
+| `Escape`      | Open/close settings menu                            |
+| `Enter`       | Confirm selections in menus                         |
 
 ### Level Switch
 
@@ -136,8 +138,8 @@ Players can cycle through levels using `=` and `<backspace>`:
 #### Demo Level Details
 
 The demo level is a special sandbox mode:
-- **Cannot be started** (the `\` key has no effect)
-- **Endless gameplay**: Collectables respawn once all are cleared
+- **Cannot be started** (the `\` key has no effect; the level is always in a playable state without entering formal In-Game mode)
+- **Endless gameplay**: Collectables respawn automatically once all are cleared
 - **Supported features**: Pick up collectables, obstacles, portals, all movement actions
 - **Unsupported features**: Combo system, score calculation, win/loss conditions
 
@@ -271,8 +273,8 @@ Render angle brackets '<' and '>' directly in the cell.
 This is somewhat similar to the classic VIM "word boundary" feature, except that the word boundary is now visualized and rendered as a character directly in a cell.
 (On the other hand, VIM word boundary is a zero-width assertion.)
 Players may use `qwer` to teleport to the existing angle brackets on the view:
-- `q` teleports to the nearest right angle bracket '<' in backward direction (from n,n to 0,0)
-- `w` teleports to the nearest left angle bracket '>' in backward direction (from n,n to 0,0)
+- `q` teleports to the nearest left angle bracket '<' in backward direction (from n,n to 0,0)
+- `w` teleports to the nearest right angle bracket '>' in backward direction (from n,n to 0,0)
 - `e` teleports to the nearest left angle bracket '<' in forward direction (from 0,0 to n,n)
 - `r` teleports to the nearest right angle bracket '>' in forward direction (from 0,0 to n,n)
 
@@ -351,7 +353,7 @@ Available non-basic movements:
 - Sigil: angle bracket items#141
 - Sigil: alphabet items#142
 
-#### 171: proposal 1
+#### 171: proposal 1 (dropped)
 
 This feature is a group of three keystrokes:
 e.g., `m,<.`
@@ -361,7 +363,9 @@ Note: On a QWERTY keyboard, `,` and `<` share the same key, so this uses three k
 - Press `<` to allow the player to repeat the last used non-basic movement in the opposite of the last used direction
 - Press `.` to allow the player to repeat the last used non-basic movement in forward direction (from 0,0 to n,n)
 
-#### 172: proposal 2
+Dropped reason: indeterministic direction increase cognitive load
+
+#### 172: proposal 2 (adopted)
 
 Alternatively, implement `nm,.` as below:
 - Press `n` to allow the player to repeat the last used non-basic movement in backward direction (from n,n to 0,0)
@@ -508,7 +512,7 @@ Data:
     - Game ends once the counter hits zero
   - If remain_counter gt positions.Count, the game should generate new collectables at random positions automatically until the counter hits zero
     - Newly generated positions should be added back to prev_positions
-- `List<(int, int)> prev_positions` - previous collectable positions (defaults to xxx)
+- `List<(int, int)> prev_positions` - previous collectable positions (defined in level data)
 - `bool` - replace the previous positions, i.e., randomly spawn (defaults to false)
   - Reuse the previous positions if set to false
 
@@ -541,7 +545,7 @@ The player loses the combo streak if they make 5 or more consecutive steps witho
 
 The player will gain extra scores picking up a collectable while maintaining the streak.
 
-e.g., get one more score if surpassing x2 combo; get two more scores if surpassing x5 combo; get three more scores if surpassing x8 combo; capped extra scores at three.
+e.g., get one more score if surpassing x2 combo (i.e., x3+); get two more scores if surpassing x5 combo (i.e., x6+); get three more scores if surpassing x8 combo (i.e., x9+); capped extra scores at three.
 
 #### 233: Decremental Counter
 
@@ -671,9 +675,9 @@ Thus, they should be defined in section items#100.
 | Repeat Forward Skip Same Line  | `m`         | Yes        | Repeater       | items#172 |
 | Repeat Backward Skip Same Line | `,`         | Yes        | Repeater       | items#172 |
 | Repeat Forward                 | `.`         | Yes        | Repeater       | items#172 |
-| Switch to Tail                 | `z`         | Yes        | Body Control   | items#183 |
+| Switch to Tail (+ move left)   | `z`         | Yes        | Body Control   | items#183 |
 | Switch to Body                 | `x`         | Yes        | Body Control   | items#183 |
-| Switch to Head                 | `c`         | Yes        | Body Control   | items#183 |
+| Switch to Head (+ move right)  | `c`         | Yes        | Body Control   | items#183 |
 
 ### 320: Keybinding Constraints
 
@@ -864,14 +868,27 @@ The settings modal contains two main tabs accessed via toggle buttons:
 
 #### 622: Gameplay Tab Contents
 
+The Gameplay tab displays different options depending on the selected game mode. Picker mode and Filler mode each have their own set of configurable settings.
+
+**Picker Mode Settings:**
+
 | Setting             | Type     | Options                                      | Reference            |
 | ------------------- | -------- | -------------------------------------------- | -------------------- |
 | Game Mode           | Radio    | Picker / Filler                              | items#200, items#700 |
 | Score Mode          | Radio    | Score-based / Speed-based                    | items#220, items#230 |
 | Grid Size           | Dropdown | Small (8×8) / Medium (12×12) / Large (16×16) | items#810            |
 | Collectable Density | Slider   | Low / Medium / High                          | items#820            |
-| Body Length Mode    | Radio    | Variable / Fixed                             | items#180, items#181 |
+| Body Length Mode    | Radio    | Variable / Fixed                             | items#180, items#183 |
 | Fog of War          | Toggle   | On / Off                                     | items#510            |
+
+**Filler Mode Settings:**
+
+| Setting             | Type     | Options                                      | Reference            |
+| ------------------- | -------- | -------------------------------------------- | -------------------- |
+| Game Mode           | Radio    | Picker / Filler                              | items#200, items#700 |
+| Grid Size           | Dropdown | Small (8×8) / Medium (12×12) / Large (16×16) | items#810            |
+
+Note: Filler mode excludes Score Mode (always speed-based), Body Length Mode (disabled per items#700), and Fog of War (not applicable to static levels).
 
 #### 623: Keybindings Tab Contents
 
@@ -1003,8 +1020,8 @@ Fixed levels are stored as JSON with the following structure:
   "name": "Tutorial 1",
   "mode": "picker",
   "grid": {
-    "rows": 10,
-    "cols": 10
+    "rows": 15,
+    "cols": 15
   },
   "player_spawn": { "row": 5, "col": 7 },
   "items": [
