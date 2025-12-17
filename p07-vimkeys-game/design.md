@@ -116,24 +116,24 @@ The goal is to let players learn what keybindings and gameplay work best for the
 
 ### Transitions
 
-| From | To | Trigger |
-|------|-----|---------|
-| Menu | Playing | Player starts a game |
-| Menu | Settings | Player opens settings |
-| Playing | Game Over | Win condition met (all collectables cleared, timer ends, or pattern matched) |
-| Playing | Settings | Player opens settings (optional pause) |
-| Settings | Menu | Player closes settings from menu |
-| Settings | Playing | Player closes settings during game |
-| Game Over | Menu | Player chooses to return |
-| Game Over | Playing | Player chooses to retry |
+| From      | To        | Trigger                                                                      |
+| --------- | --------- | ---------------------------------------------------------------------------- |
+| Menu      | Playing   | Player starts a game                                                         |
+| Menu      | Settings  | Player opens settings                                                        |
+| Playing   | Game Over | Win condition met (all collectables cleared, timer ends, or pattern matched) |
+| Playing   | Settings  | Player opens settings (optional pause)                                       |
+| Settings  | Menu      | Player closes settings from menu                                             |
+| Settings  | Playing   | Player closes settings during game                                           |
+| Game Over | Menu      | Player chooses to return                                                     |
+| Game Over | Playing   | Player chooses to retry                                                      |
 
 ### Win/Loss Conditions Summary
 
-| Mode | Sub-mode | Win Condition | Loss Condition | Score Calculation |
-|------|----------|---------------|----------------|-------------------|
-| Picker | Fixed Collectable (items#200) | All collectables cleared | None | Speed-based (less time = better) |
-| Picker | Fixed Time (items#200) | Timer ends | None | Score-based (more pickups = better) |
-| Filler | - (items#700) | All color-matched collectables cleared | None | Speed-based (less time = better) |
+| Mode   | Sub-mode                      | Win Condition                          | Loss Condition | Score Calculation                   |
+| ------ | ----------------------------- | -------------------------------------- | -------------- | ----------------------------------- |
+| Picker | Fixed Collectable (items#200) | All collectables cleared               | None           | Speed-based (less time = better)    |
+| Picker | Fixed Time (items#200)        | Timer ends                             | None           | Score-based (more pickups = better) |
+| Filler | - (items#700)                 | All color-matched collectables cleared | None           | Speed-based (less time = better)    |
 
 **Notes:**
 - This game currently has no loss conditions; all modes end when the win condition is met
@@ -157,14 +157,14 @@ When a game starts, the player must be initialized with the following properties
 - **Filler Mode:** Player spawns at a predefined position specified in the level data
 
 #### Initial State
-| Property | Initial Value | Notes |
-|----------|---------------|-------|
-| Body Length | 1 | Single cell occupied |
-| Active Part | Head | For body length > 1 scenarios |
-| Facing Direction | Right | Affects certain movement calculations |
-| Score | 0 | - |
-| Combo Streak | 0 | If combo system is enabled |
-| Current Color | None | For Filler mode only |
+| Property         | Initial Value | Notes                                 |
+| ---------------- | ------------- | ------------------------------------- |
+| Body Length      | 1             | Single cell occupied                  |
+| Active Part      | Head          | For body length > 1 scenarios         |
+| Facing Direction | Right         | Affects certain movement calculations |
+| Score            | 0             | -                                     |
+| Combo Streak     | 0             | If combo system is enabled            |
+| Current Color    | None          | For Filler mode only                  |
 
 #### Spawn Constraints
 - The spawn cell must not contain an obstacle
@@ -263,7 +263,8 @@ Basically, the player can use a find command followed by a character to jump to 
 The only difference is that in VIM, alphabets are normally rendered everywhere in a text file, and the concept of word boundary is built on top of it.
 Here in the game, alphabets are rendered sparsely, and they have nothing to do with word boundaries since word boundaries are represented by angle brackets explicitly.
 
-Players may use `f` to search for an alphabet, press the key that represents the alphabet, then teleport to the cell directly.
+Players may use `f` to search for an alphabet in the forward direction (use `d` to search backward), press the key that represents the alphabet, then teleport to the cell (the first occurence of the alphabet) directly.
+Note that `f` works differently comparing to the implementation in VIM, here the function search across multiple lines, whereas VIM search only in the same line.
 
 ### 150: Macro
 
@@ -559,12 +560,12 @@ combo_bonus = min(combo_bonus, 3)  // Capped at 3
 score_per_pickup = 1 + combo_bonus
 ```
 
-| Combo Streak | Bonus Points | Total per Pickup |
-|--------------|--------------|------------------|
-| 1-2 (no combo) | +0 | 1 |
-| 3-5 (x3..5+1) | +1 | 2 |
-| 6-8 (×6..8+2) | +2 | 3 |
-|  9+ (×9..+3) | +3 | 4 |
+| Combo Streak   | Bonus Points | Total per Pickup |
+| -------------- | ------------ | ---------------- |
+| 1-2 (no combo) | +0           | 1                |
+| 3-5 (x3..5+1)  | +1           | 2                |
+| 6-8 (×6..8+2)  | +2           | 3                |
+| 9+ (×9..+3)    | +3           | 4                |
 
 #### Decremental Counter (items#233)
 
@@ -625,28 +626,29 @@ Thus, they should be defined in section items#100.
 
 ### 310: Default Keybinding Table
 
-| Action | Default Key | Remappable | Category | Reference |
-|--------|-------------|------------|----------|-----------|
-| Move Left | `h` | Yes | Basic Movement | items#120 |
-| Move Down | `j` | Yes | Basic Movement | items#120 |
-| Move Up | `k` | Yes | Basic Movement | items#120 |
-| Move Right | `l` | Yes | Basic Movement | items#120 |
-| Grid Left | `Ctrl+h` | Yes | Grid Movement | items#130 |
-| Grid Down | `Ctrl+j` | Yes | Grid Movement | items#130 |
-| Grid Up | `Ctrl+k` | Yes | Grid Movement | items#130 |
-| Grid Right | `Ctrl+l` | Yes | Grid Movement | items#130 |
-| Find Angle '<' Backward | `q` | Yes | Sigil Movement | items#141 |
-| Find Angle '>' Backward | `w` | Yes | Sigil Movement | items#141 |
-| Find Angle '<' Forward | `e` | Yes | Sigil Movement | items#141 |
-| Find Angle '>' Forward | `r` | Yes | Sigil Movement | items#141 |
-| Find Alphabet | `f` + char | Yes | Sigil Movement | items#142 |
-| Repeat Backward | `n` | Yes | Repeater | items#172 |
-| Repeat Forward Skip Same Line | `m` | Yes | Repeater | items#172 |
-| Repeat Backward Skip Same Line | `,` | Yes | Repeater | items#172 |
-| Repeat Forward | `.` | Yes | Repeater | items#172 |
-| Switch to Tail | `z` | Yes | Body Control | items#183 |
-| Switch to Body | `x` | Yes | Body Control | items#183 |
-| Switch to Head | `c` | Yes | Body Control | items#183 |
+| Action                         | Default Key | Remappable | Category       | Reference |
+| ------------------------------ | ----------- | ---------- | -------------- | --------- |
+| Move Left                      | `h`         | Yes        | Basic Movement | items#120 |
+| Move Down                      | `j`         | Yes        | Basic Movement | items#120 |
+| Move Up                        | `k`         | Yes        | Basic Movement | items#120 |
+| Move Right                     | `l`         | Yes        | Basic Movement | items#120 |
+| Grid Left                      | `Ctrl+h`    | Yes        | Grid Movement  | items#130 |
+| Grid Down                      | `Ctrl+j`    | Yes        | Grid Movement  | items#130 |
+| Grid Up                        | `Ctrl+k`    | Yes        | Grid Movement  | items#130 |
+| Grid Right                     | `Ctrl+l`    | Yes        | Grid Movement  | items#130 |
+| Find Angle '<' Backward        | `q`         | Yes        | Sigil Movement | items#141 |
+| Find Angle '>' Backward        | `w`         | Yes        | Sigil Movement | items#141 |
+| Find Angle '<' Forward         | `e`         | Yes        | Sigil Movement | items#141 |
+| Find Angle '>' Forward         | `r`         | Yes        | Sigil Movement | items#141 |
+| Find Alphabet Backward         | `d` + char  | Yes        | Sigil Movement | items#142 |
+| Find Alphabet Forward          | `f` + char  | Yes        | Sigil Movement | items#142 |
+| Repeat Backward                | `n`         | Yes        | Repeater       | items#172 |
+| Repeat Forward Skip Same Line  | `m`         | Yes        | Repeater       | items#172 |
+| Repeat Backward Skip Same Line | `,`         | Yes        | Repeater       | items#172 |
+| Repeat Forward                 | `.`         | Yes        | Repeater       | items#172 |
+| Switch to Tail                 | `z`         | Yes        | Body Control   | items#183 |
+| Switch to Body                 | `x`         | Yes        | Body Control   | items#183 |
+| Switch to Head                 | `c`         | Yes        | Body Control   | items#183 |
 
 ### 320: Keybinding Constraints
 
@@ -686,6 +688,10 @@ Keybindings are stored per save slot:
   }
 }
 ```
+
+#### design notes
+
+only the user-defined part are saved (i.e. no need to store the settings if it is identical to the system default)
 
 ## 400: Visual-Background
 
@@ -787,24 +793,24 @@ Information about score, game status, and configuration modal popup.
 
 While in-game, the HUD displays:
 
-| Element | Position | Description |
-|---------|----------|-------------|
-| Current Score | Top-left | Running score total |
-| Combo Counter | Top-left (below score) | Current combo multiplier (if active) |
-| Timer | Top-right | Elapsed time or countdown (mode-dependent) |
+| Element           | Position                | Description                                                    |
+| ----------------- | ----------------------- | -------------------------------------------------------------- |
+| Current Score     | Top-left                | Running score total                                            |
+| Combo Counter     | Top-left (below score)  | Current combo multiplier (if active)                           |
+| Timer             | Top-right               | Elapsed time or countdown (mode-dependent)                     |
 | Collectable Count | Top-right (below timer) | Remaining collectables (Picker) or progress indicator (Filler) |
-| Current Color | Bottom-left | Active track color (Filler mode only) |
+| Current Color     | Bottom-left             | Active track color (Filler mode only)                          |
 
 #### 612: Out-of-Game Display
 
 While not in-game (menu/game over screens):
 
-| Element | Description |
-|---------|-------------|
-| Previous Game Score | Score from the most recent game session |
-| Best Score (All Time) | Highest score ever achieved |
-| Best Time (Filler) | Fastest completion time per level |
-| Level Progress | Which levels have been completed |
+| Element               | Description                             |
+| --------------------- | --------------------------------------- |
+| Previous Game Score   | Score from the most recent game session |
+| Best Score (All Time) | Highest score ever achieved             |
+| Best Time (Filler)    | Fastest completion time per level       |
+| Level Progress        | Which levels have been completed        |
 
 ### 620: Settings Modal
 
@@ -818,23 +824,22 @@ The settings modal contains two main tabs accessed via toggle buttons:
 ├─────────────────────────────────────────┤
 │                                         │
 │  (Tab content area)                     │
-│                                         │
-├─────────────────────────────────────────┤
 │  Save Slot: [1] [2] [3]                 │
+├─────────────────────────────────────────┤
 │  [Apply] [Reset to Default] [Cancel]    │
 └─────────────────────────────────────────┘
 ```
 
 #### 622: Gameplay Tab Contents
 
-| Setting | Type | Options | Reference |
-|---------|------|---------|-----------|
-| Game Mode | Radio | Picker / Filler | items#200, items#700 |
-| Score Mode | Radio | Score-based / Speed-based | items#220, items#230 |
-| Grid Size | Dropdown | Small (8×8) / Medium (12×12) / Large (16×16) | items#810 |
-| Collectable Density | Slider | Low / Medium / High | items#820 |
-| Body Length Mode | Radio | Variable / Fixed | items#180, items#181 |
-| Fog of War | Toggle | On / Off | items#510 |
+| Setting             | Type     | Options                                      | Reference            |
+| ------------------- | -------- | -------------------------------------------- | -------------------- |
+| Game Mode           | Radio    | Picker / Filler                              | items#200, items#700 |
+| Score Mode          | Radio    | Score-based / Speed-based                    | items#220, items#230 |
+| Grid Size           | Dropdown | Small (8×8) / Medium (12×12) / Large (16×16) | items#810            |
+| Collectable Density | Slider   | Low / Medium / High                          | items#820            |
+| Body Length Mode    | Radio    | Variable / Fixed                             | items#180, items#181 |
+| Fog of War          | Toggle   | On / Off                                     | items#510            |
 
 #### 623: Keybindings Tab Contents
 
@@ -846,20 +851,9 @@ Displays the keybinding table from items#310 in an editable format:
 #### 624: Save Slots
 
 - Three save slots for storing different configurations
-- Each slot stores both gameplay settings and keybindings
+- Gameplay settings and keybindings are saved into separate slots
 - Visual indicator showing which slot is currently active
 - Slot format defined in items#330
-
-### 630: In-Game Notifications
-
-Brief, non-intrusive notifications for game events:
-
-| Event | Notification | Duration |
-|-------|-------------|----------|
-| Combo Achieved | "x2 Combo!" / "x5 Combo!" | 1 second |
-| Power-up Collected | Icon + brief description | 1.5 seconds |
-| Level Complete | "Level Clear!" + time/score | Until dismissed |
-| New High Score | "New Record!" | 2 seconds |
 
 ## 700: Config-Gameplay (Filler Mode)
 
@@ -932,11 +926,7 @@ This section defines how levels are structured, generated, and stored.
 
 ### 810: Grid Dimensions
 
-| Parameter | Min | Max | Default | Notes |
-|-----------|-----|-----|---------|-------|
-| Rows | 5 | 20 | 10 | Number of rows in the grid |
-| Columns | 5 | 30 | 15 | Number of columns in the grid |
-| Cell Size | 20px | 50px | 30px | Visual size of each cell |
+Default grid dimension: 10x10
 
 For multi-grid views:
 - Maximum grids per view: 9 (3×3 layout)
@@ -948,22 +938,22 @@ For Picker mode with random generation:
 
 #### Algorithm Outline
 1. Create empty grid of specified dimensions
-2. Place player spawn point (see items#105)
-3. Place obstacles (density: 5-15% of cells, configurable)
+2. Place player spawn point
+3. Place obstacles (density: 0-20% of cells, configurable)
    - Ensure obstacles don't block all paths
-4. Place collectables (count based on `remain_counter`)
+4. Place collectables
    - Ensure all collectables are reachable from spawn
 5. Place sigils (optional, based on config)
 6. Place portals (optional, in pairs)
 
 #### Generation Parameters
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| obstacle_density | float | 0.10 | Percentage of cells with obstacles (0.0 - 0.20) |
-| collectable_count | int | 9 | Number of collectables to place |
-| sigil_count | int | 0 | Number of sigils to place |
-| portal_pairs | int | 0 | Number of portal pairs to place |
-| seed | int? | null | Random seed for reproducibility (null = random) |
+| Parameter         | Type  | Default | Description                                     |
+| ----------------- | ----- | ------- | ----------------------------------------------- |
+| obstacle_density  | float | 0.10    | Percentage of cells with obstacles (0.0 - 0.20) |
+| collectable_count | int   | 9       | Number of collectables to place                 |
+| sigil_count       | int   | 0       | Number of sigils to place                       |
+| portal_pairs      | int   | 0       | Number of portal pairs to place                 |
+| seed              | int?  | null    | Random seed for reproducibility (null = random) |
 
 ### 830: Fixed Level Format
 
@@ -976,7 +966,7 @@ Fixed levels are stored as JSON with the following structure:
   "mode": "picker",
   "grid": {
     "rows": 10,
-    "cols": 15
+    "cols": 10
   },
   "player_spawn": { "row": 5, "col": 7 },
   "items": [
@@ -1012,15 +1002,6 @@ Before a level can be played, validate:
 4. Portal pairs are complete (no orphan portals)
 5. For Filler mode: all color sources are reachable
 6. Grid dimensions are within allowed range
-
-### 850: Difficulty Guidelines
-
-| Difficulty | Grid Size | Obstacles | Collectables | Time Target |
-|------------|-----------|-----------|--------------|-------------|
-| Easy | 8×8 | 5% | 5-7 | 60s |
-| Medium | 12×12 | 10% | 9-12 | 45s |
-| Hard | 15×15 | 15% | 15-20 | 30s |
-| Expert | 20×20 | 15% | 25+ | 20s |
 
 ---
 
