@@ -33,6 +33,19 @@
       gap: 40px;
       margin-bottom: 20px;
       font-size: 14px;
+      align-items: center;
+    }
+
+    .hud-in-game,
+    .hud-out-of-game {
+      display: none;
+      gap: 40px;
+      align-items: center;
+    }
+
+    .hud-in-game.active,
+    .hud-out-of-game.active {
+      display: flex;
     }
 
     .hud-item {
@@ -111,22 +124,20 @@
 
     /* Settings Button */
     .settings-btn {
-      display: none;
-      /* position: absolute;
-      top: -40px;
-      right: 0;
-      background: #333;
-      border: 1px solid #555;
-      color: #eee;
-      padding: 5px 15px;
+      background: #00d9ff;
+      border: none;
+      color: #1a1a2e;
+      padding: 8px 20px;
       cursor: pointer;
       font-family: inherit;
-      font-size: 14px; */
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 3px;
     }
 
-    /* .settings-btn:hover {
-      background: #444;
-    } */
+    .settings-btn:hover {
+      background: #00b8d9;
+    }
 
     /* Modal */
     .modal-overlay {
@@ -252,27 +263,34 @@
 
   <!-- HUD -->
   <div class="hud">
-    <div class="hud-item">
-      <div class="hud-label">TIMER</div>
-      <div class="hud-value" id="timer">0.0s</div>
+    <!-- In-game HUD: TIMER, REMAINING -->
+    <div class="hud-in-game" id="hud-in-game">
+      <div class="hud-item">
+        <div class="hud-label">TIMER</div>
+        <div class="hud-value" id="timer">0.0s</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">REMAINING</div>
+        <div class="hud-value" id="remaining">9</div>
+      </div>
     </div>
-    <div class="hud-item">
-      <div class="hud-label">PREVIOUS</div>
-      <div class="hud-value" id="prev-time">-</div>
-    </div>
-    <div class="hud-item">
-      <div class="hud-label">BEST</div>
-      <div class="hud-value" id="best-time">-</div>
-    </div>
-    <div class="hud-item">
-      <div class="hud-label">REMAINING</div>
-      <div class="hud-value" id="remaining">9</div>
+
+    <!-- Out-of-game HUD: PREVIOUS, BEST, SETTINGS -->
+    <div class="hud-out-of-game active" id="hud-out-of-game">
+      <div class="hud-item">
+        <div class="hud-label">PREVIOUS</div>
+        <div class="hud-value" id="prev-time">-</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">BEST</div>
+        <div class="hud-value" id="best-time">-</div>
+      </div>
+      <button class="settings-btn" id="settings-btn">SETTINGS</button>
     </div>
   </div>
 
   <!-- Game Container -->
   <div class="game-container" id="game-container">
-    <button class="settings-btn" id="settings-btn">Settings</button>
     <div class="grid" id="grid"></div>
   </div>
 
@@ -404,6 +422,8 @@
     const modalOverlayEl = document.getElementById('modal-overlay');
     const settingsBtnEl = document.getElementById('settings-btn');
     const modalCloseEl = document.getElementById('modal-close');
+    const hudInGameEl = document.getElementById('hud-in-game');
+    const hudOutOfGameEl = document.getElementById('hud-out-of-game');
 
     // Settings input elements
     const keyLeftInput = document.getElementById('key-left');
@@ -497,11 +517,15 @@
       // Update remaining
       remainingEl.textContent = state.allCollectables.length;
 
-      // Update game state indicator
+      // Toggle HUD display based on game state
       if (state.gameState === 'in-game') {
+        hudInGameEl.classList.add('active');
+        hudOutOfGameEl.classList.remove('active');
         gameContainerEl.classList.add('in-game');
         statusTextEl.textContent = 'IN GAME';
       } else {
+        hudInGameEl.classList.remove('active');
+        hudOutOfGameEl.classList.add('active');
         gameContainerEl.classList.remove('in-game');
         statusTextEl.textContent = 'OUT OF GAME';
       }
@@ -669,10 +693,19 @@
     function handleKeyDown(event) {
       const key = event.key;
 
-      // Handle settings toggle (works in any state)
+      // Handle ESC: stop game if in-game, then open settings
       if (key === state.keybindings.SETTINGS) {
         event.preventDefault();
-        toggleSettings();
+
+        // Stop game if currently playing
+        if (state.gameState === 'in-game') {
+          stopGame();
+        }
+
+        // Open settings
+        if (!state.settingsOpen) {
+          openSettings();
+        }
         return;
       }
 

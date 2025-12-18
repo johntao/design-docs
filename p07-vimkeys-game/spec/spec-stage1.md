@@ -358,26 +358,57 @@ function clearGrid():
 
 ### HUD (Timer-based Mode 2)
 
+The HUD has two versions that switch based on game state:
+
+**In-game HUD:**
 ```
-function updateHUD():
+function updateInGameHUD():
   // Display incremental timer
   displayTimer(elapsedTime)
-
-  // Display previous and best times (lower is better)
-  displayPreviousTime(previousTime)
-  displayBestTime(bestTime)
 
   // Display remaining collectables
   displayRemaining(allCollectables.length)
 
-  // Display game state
-  displayGameState(state)
-
-// HUD displays:
+// In-game HUD displays:
 // - TIMER: current elapsed time (e.g., "12.3s")
+// - REMAINING: number of collectables left
+```
+
+**Out-of-game HUD:**
+```
+function updateOutOfGameHUD():
+  // Display previous and best times (lower is better)
+  displayPreviousTime(previousTime)
+  displayBestTime(bestTime)
+
+  // Display settings button
+  displaySettingsButton()
+
+// Out-of-game HUD displays:
 // - PREVIOUS: previous game time (e.g., "15.8s" or "-")
 // - BEST: best (lowest) time (e.g., "10.2s" or "-")
-// - REMAINING: number of collectables left
+// - SETTINGS: button to open settings modal
+```
+
+**HUD Toggle Logic:**
+```
+function updateHUD():
+  // Update all values
+  updateTimerValue(elapsedTime)
+  updatePreviousValue(previousTime)
+  updateBestValue(bestTime)
+  updateRemainingValue(allCollectables.length)
+
+  // Toggle display based on game state
+  if state == GameState.IN_GAME:
+    showInGameHUD()
+    hideOutOfGameHUD()
+  else:
+    hideInGameHUD()
+    showOutOfGameHUD()
+
+  // Update game state indicator
+  displayGameState(state)
 ```
 
 ---
@@ -446,9 +477,15 @@ function toggleSettings():
 function handleKeyDown(event: KeyboardEvent):
   key = event.key
 
-  // Settings toggle (works in any state)
+  // ESC: Stop game if in-game, then open settings
   if key == keybindings.SETTINGS:
-    toggleSettings()
+    // Stop game if currently playing
+    if state == GameState.IN_GAME:
+      stopGame()
+
+    // Open settings (if not already open)
+    if not settingsOpen:
+      openSettings()
     return
 
   // Ignore other keys if settings open
@@ -471,6 +508,8 @@ function handleKeyDown(event: KeyboardEvent):
     else if key == keybindings.MOVE_RIGHT:
       movePlayer(Direction.RIGHT)
 
-// Note: All movement keybindings (hjkl) are now customizable
-// through the settings modal
+// Notes:
+// - All movement keybindings (hjkl) are customizable through the settings modal
+// - ESC key stops the game if in-game, then opens settings
+// - Settings button is visible in out-of-game HUD
 ```

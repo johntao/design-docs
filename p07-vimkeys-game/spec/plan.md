@@ -19,8 +19,9 @@ Implement the game spec incrementally across 5 stages, building from basic funct
 | 1.6 | Game state toggle (`\` key) | Done |
 | 1.7 | Basic movement (customizable keybindings) | Done |
 | 1.8 | Collision detection (pickup) | Done |
-| 1.9 | HUD: timer, previous, best (timer-based mode 2) | Done |
+| 1.9 | Split HUD: in-game (timer, remaining) / out-of-game (previous, best, settings) | Done |
 | 1.10 | Settings modal with input fields | Done |
+| 1.11 | ESC stops game and opens settings | Done |
 
 ---
 
@@ -104,7 +105,7 @@ Implement the game spec incrementally across 5 stages, building from basic funct
 ## Task Reference Index
 
 ### Stage 1: Core Foundation
-- `1.1` - `1.10`: Basic game structure and rendering
+- `1.1` - `1.11`: Basic game structure and rendering
 
 ### Stage 2: Levels & Items
 - `2.1` - `2.2`: Win/timer mechanics
