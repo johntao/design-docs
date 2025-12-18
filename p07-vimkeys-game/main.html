@@ -206,6 +206,37 @@
       background: #00b8d9;
     }
 
+    /* Input Fields */
+    .config-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: #16213e;
+      margin-bottom: 10px;
+    }
+
+    .config-item label {
+      color: #eee;
+      font-size: 14px;
+    }
+
+    .config-item input {
+      background: #1a1a2e;
+      border: 1px solid #555;
+      color: #00d9ff;
+      padding: 5px 10px;
+      font-family: inherit;
+      font-size: 14px;
+      width: 60px;
+      text-align: center;
+    }
+
+    .config-item input:focus {
+      outline: none;
+      border-color: #00d9ff;
+    }
+
     /* In-game indicator */
     .in-game .grid {
       border-color: #00ff88;
@@ -222,16 +253,16 @@
   <!-- HUD -->
   <div class="hud">
     <div class="hud-item">
-      <div class="hud-label">SCORE</div>
-      <div class="hud-value" id="score">0</div>
+      <div class="hud-label">TIMER</div>
+      <div class="hud-value" id="timer">0.0s</div>
     </div>
     <div class="hud-item">
       <div class="hud-label">PREVIOUS</div>
-      <div class="hud-value" id="prev-score">-</div>
+      <div class="hud-value" id="prev-time">-</div>
     </div>
     <div class="hud-item">
-      <div class="hud-label">HIGHEST</div>
-      <div class="hud-value" id="high-score">0</div>
+      <div class="hud-label">BEST</div>
+      <div class="hud-value" id="best-time">-</div>
     </div>
     <div class="hud-item">
       <div class="hud-label">REMAINING</div>
@@ -259,29 +290,35 @@
       <h2>Settings</h2>
 
       <div class="modal-section">
-        <h3>Keybindings</h3>
-        <div class="keybinding-list">
-          <div class="keybinding-item">
-            <span>Move Left</span>
-            <kbd>h</kbd>
-          </div>
-          <div class="keybinding-item">
-            <span>Move Down</span>
-            <kbd>j</kbd>
-          </div>
-          <div class="keybinding-item">
-            <span>Move Up</span>
-            <kbd>k</kbd>
-          </div>
-          <div class="keybinding-item">
-            <span>Move Right</span>
-            <kbd>l</kbd>
-          </div>
+        <h3>Keybindings (Customizable)</h3>
+        <div class="config-item">
+          <label>Move Left:</label>
+          <input type="text" id="key-left" maxlength="1" value="h">
+        </div>
+        <div class="config-item">
+          <label>Move Down:</label>
+          <input type="text" id="key-down" maxlength="1" value="j">
+        </div>
+        <div class="config-item">
+          <label>Move Up:</label>
+          <input type="text" id="key-up" maxlength="1" value="k">
+        </div>
+        <div class="config-item">
+          <label>Move Right:</label>
+          <input type="text" id="key-right" maxlength="1" value="l">
         </div>
       </div>
 
       <div class="modal-section">
-        <h3>Reserved Keys</h3>
+        <h3>Gameplay Settings</h3>
+        <div class="config-item">
+          <label>Max Display (0 = show all):</label>
+          <input type="number" id="max-display" min="0" value="5">
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <h3>Reserved Keys (Not Changeable)</h3>
         <div class="keybinding-list">
           <div class="keybinding-item">
             <span>Start/Stop</span>
@@ -294,7 +331,7 @@
         </div>
       </div>
 
-      <button class="modal-close" id="modal-close">Close</button>
+      <button class="modal-close" id="modal-close">Apply & Close</button>
     </div>
   </div>
 
@@ -306,24 +343,26 @@
     const GRID_COLS = 10;
     const PLAYER_CHAR = '\u25A2';  // ▢
     const COLLECTABLE_CHAR = '\u2022';  // •
-    const MAX_DISPLAY = 5;
-    const TOTAL_COLLECTABLES = 9;
     const PLAYER_START = { row: 2, col: 3 };
+
+    // Fixed collectable positions
+    const FIXED_COLLECTABLES = [
+      { row: 1, col: 5 },
+      { row: 3, col: 7 },
+      { row: 5, col: 2 },
+      { row: 6, col: 8 },
+      { row: 7, col: 4 },
+      { row: 8, col: 1 },
+      { row: 2, col: 9 },
+      { row: 4, col: 4 },
+      { row: 9, col: 6 }
+    ];
 
     const DIRECTION_VECTORS = {
       LEFT:  { row: 0,  col: -1 },
       DOWN:  { row: 1,  col: 0  },
       UP:    { row: -1, col: 0  },
       RIGHT: { row: 0,  col: 1  }
-    };
-
-    const KEYBINDINGS = {
-      MOVE_LEFT: 'h',
-      MOVE_DOWN: 'j',
-      MOVE_UP: 'k',
-      MOVE_RIGHT: 'l',
-      TOGGLE_GAME: '\\',
-      SETTINGS: 'Escape'
     };
 
     // ===================
@@ -333,26 +372,45 @@
       gameState: 'out-of-game',  // 'out-of-game' | 'in-game'
       player: { ...PLAYER_START },
       allCollectables: [],       // All 9 collectables
-      visibleCollectables: [],   // Currently displayed (max 5)
-      score: 0,
-      previousScore: null,
-      highestScore: 0,
-      settingsOpen: false
+      visibleCollectables: [],   // Currently displayed
+      elapsedTime: 0,            // Timer in seconds
+      previousTime: null,
+      bestTime: null,
+      settingsOpen: false,
+      lastFrameTime: null,
+
+      // Configurable settings
+      keybindings: {
+        MOVE_LEFT: 'h',
+        MOVE_DOWN: 'j',
+        MOVE_UP: 'k',
+        MOVE_RIGHT: 'l',
+        TOGGLE_GAME: '\\',
+        SETTINGS: 'Escape'
+      },
+      maxDisplay: 5  // 0 or falsy = show all
     };
 
     // ===================
     // DOM ELEMENTS
     // ===================
     const gridEl = document.getElementById('grid');
-    const scoreEl = document.getElementById('score');
-    const prevScoreEl = document.getElementById('prev-score');
-    const highScoreEl = document.getElementById('high-score');
+    const timerEl = document.getElementById('timer');
+    const prevTimeEl = document.getElementById('prev-time');
+    const bestTimeEl = document.getElementById('best-time');
     const remainingEl = document.getElementById('remaining');
     const statusTextEl = document.getElementById('status-text');
     const gameContainerEl = document.getElementById('game-container');
     const modalOverlayEl = document.getElementById('modal-overlay');
     const settingsBtnEl = document.getElementById('settings-btn');
     const modalCloseEl = document.getElementById('modal-close');
+
+    // Settings input elements
+    const keyLeftInput = document.getElementById('key-left');
+    const keyDownInput = document.getElementById('key-down');
+    const keyUpInput = document.getElementById('key-up');
+    const keyRightInput = document.getElementById('key-right');
+    const maxDisplayInput = document.getElementById('max-display');
 
     // ===================
     // INITIALIZATION
@@ -379,25 +437,17 @@
     }
 
     function generateCollectables() {
-      state.allCollectables = [];
-      const occupied = new Set();
-      occupied.add(`${state.player.row},${state.player.col}`);
-
-      while (state.allCollectables.length < TOTAL_COLLECTABLES) {
-        const row = Math.floor(Math.random() * GRID_ROWS);
-        const col = Math.floor(Math.random() * GRID_COLS);
-        const key = `${row},${col}`;
-
-        if (!occupied.has(key)) {
-          occupied.add(key);
-          state.allCollectables.push({ row, col });
-        }
-      }
+      // Use fixed collectable positions
+      state.allCollectables = FIXED_COLLECTABLES.map(pos => ({ ...pos }));
     }
 
     function updateVisibleCollectables() {
-      // Show up to MAX_DISPLAY collectables
-      state.visibleCollectables = state.allCollectables.slice(0, MAX_DISPLAY);
+      // Show up to maxDisplay collectables (0 or falsy = show all)
+      if (state.maxDisplay > 0) {
+        state.visibleCollectables = state.allCollectables.slice(0, state.maxDisplay);
+      } else {
+        state.visibleCollectables = [...state.allCollectables];
+      }
     }
 
     // ===================
@@ -437,9 +487,14 @@
     }
 
     function updateHUD() {
-      scoreEl.textContent = state.score;
-      prevScoreEl.textContent = state.previousScore !== null ? state.previousScore : '-';
-      highScoreEl.textContent = state.highestScore;
+      // Update timer
+      timerEl.textContent = state.elapsedTime.toFixed(1) + 's';
+
+      // Update previous/best times
+      prevTimeEl.textContent = state.previousTime !== null ? state.previousTime.toFixed(1) + 's' : '-';
+      bestTimeEl.textContent = state.bestTime !== null ? state.bestTime.toFixed(1) + 's' : '-';
+
+      // Update remaining
       remainingEl.textContent = state.allCollectables.length;
 
       // Update game state indicator
@@ -466,22 +521,37 @@
     function startGame() {
       state.gameState = 'in-game';
       state.player = { ...PLAYER_START };
-      state.score = 0;
+      state.elapsedTime = 0;
+      state.lastFrameTime = performance.now();
       generateCollectables();
       updateVisibleCollectables();
       render();
+      gameLoop();
     }
 
     function stopGame() {
       state.gameState = 'out-of-game';
 
-      // Save scores
-      state.previousScore = state.score;
-      if (state.score > state.highestScore) {
-        state.highestScore = state.score;
+      // Save times (lower is better)
+      state.previousTime = state.elapsedTime;
+      if (state.bestTime === null || state.elapsedTime < state.bestTime) {
+        state.bestTime = state.elapsedTime;
       }
 
       render();
+    }
+
+    function gameLoop() {
+      if (state.gameState !== 'in-game') return;
+
+      const now = performance.now();
+      const deltaTime = (now - state.lastFrameTime) / 1000; // Convert to seconds
+      state.lastFrameTime = now;
+
+      state.elapsedTime += deltaTime;
+      updateHUD();
+
+      requestAnimationFrame(gameLoop);
     }
 
     function movePlayer(direction) {
@@ -512,8 +582,6 @@
     }
 
     function checkCollision() {
-      const playerPos = `${state.player.row},${state.player.col}`;
-
       // Check visible collectables first
       const visibleIndex = state.visibleCollectables.findIndex(
         c => c.row === state.player.row && c.col === state.player.col
@@ -531,9 +599,6 @@
           state.allCollectables.splice(allIndex, 1);
         }
 
-        // Increase score
-        state.score++;
-
         // Update visible collectables (show next one if available)
         updateVisibleCollectables();
       }
@@ -543,6 +608,13 @@
     // SETTINGS MODAL
     // ===================
     function openSettings() {
+      // Load current settings into input fields
+      keyLeftInput.value = state.keybindings.MOVE_LEFT;
+      keyDownInput.value = state.keybindings.MOVE_DOWN;
+      keyUpInput.value = state.keybindings.MOVE_UP;
+      keyRightInput.value = state.keybindings.MOVE_RIGHT;
+      maxDisplayInput.value = state.maxDisplay;
+
       state.settingsOpen = true;
       modalOverlayEl.classList.add('open');
     }
@@ -550,6 +622,26 @@
     function closeSettings() {
       state.settingsOpen = false;
       modalOverlayEl.classList.remove('open');
+    }
+
+    function applySettings() {
+      // Save keybindings from input fields
+      state.keybindings.MOVE_LEFT = keyLeftInput.value || 'h';
+      state.keybindings.MOVE_DOWN = keyDownInput.value || 'j';
+      state.keybindings.MOVE_UP = keyUpInput.value || 'k';
+      state.keybindings.MOVE_RIGHT = keyRightInput.value || 'l';
+
+      // Save max display
+      const maxDisplayValue = parseInt(maxDisplayInput.value, 10);
+      state.maxDisplay = isNaN(maxDisplayValue) ? 0 : maxDisplayValue;
+
+      // Update visible collectables if game is running
+      if (state.gameState === 'in-game') {
+        updateVisibleCollectables();
+        render();
+      }
+
+      closeSettings();
     }
 
     function toggleSettings() {
@@ -566,7 +658,7 @@
     function setupEventListeners() {
       document.addEventListener('keydown', handleKeyDown);
       settingsBtnEl.addEventListener('click', openSettings);
-      modalCloseEl.addEventListener('click', closeSettings);
+      modalCloseEl.addEventListener('click', applySettings);
       modalOverlayEl.addEventListener('click', (e) => {
         if (e.target === modalOverlayEl) {
           closeSettings();
@@ -578,7 +670,7 @@
       const key = event.key;
 
       // Handle settings toggle (works in any state)
-      if (key === KEYBINDINGS.SETTINGS) {
+      if (key === state.keybindings.SETTINGS) {
         event.preventDefault();
         toggleSettings();
         return;
@@ -590,7 +682,7 @@
       }
 
       // Handle game toggle
-      if (key === KEYBINDINGS.TOGGLE_GAME) {
+      if (key === state.keybindings.TOGGLE_GAME) {
         event.preventDefault();
         toggleGame();
         return;
@@ -598,23 +690,18 @@
 
       // Handle movement (only in-game)
       if (state.gameState === 'in-game') {
-        switch (key) {
-          case KEYBINDINGS.MOVE_LEFT:
-            event.preventDefault();
-            movePlayer('LEFT');
-            break;
-          case KEYBINDINGS.MOVE_DOWN:
-            event.preventDefault();
-            movePlayer('DOWN');
-            break;
-          case KEYBINDINGS.MOVE_UP:
-            event.preventDefault();
-            movePlayer('UP');
-            break;
-          case KEYBINDINGS.MOVE_RIGHT:
-            event.preventDefault();
-            movePlayer('RIGHT');
-            break;
+        if (key === state.keybindings.MOVE_LEFT) {
+          event.preventDefault();
+          movePlayer('LEFT');
+        } else if (key === state.keybindings.MOVE_DOWN) {
+          event.preventDefault();
+          movePlayer('DOWN');
+        } else if (key === state.keybindings.MOVE_UP) {
+          event.preventDefault();
+          movePlayer('UP');
+        } else if (key === state.keybindings.MOVE_RIGHT) {
+          event.preventDefault();
+          movePlayer('RIGHT');
         }
       }
     }

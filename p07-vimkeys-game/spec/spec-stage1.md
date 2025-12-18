@@ -37,10 +37,24 @@ DEFAULT_GRID_COLS = 10
 
 ```
 PLAYER_START = { row: 2, col: 3 }
-TOTAL_COLLECTABLES = 9
-MAX_DISPLAY = 5
 PLAYER_CHAR = '\u25A2'  // ▢
 COLLECTABLE_CHAR = '\u2022'  // •
+
+// Fixed collectable positions (not random)
+FIXED_COLLECTABLES = [
+  { row: 1, col: 5 },
+  { row: 3, col: 7 },
+  { row: 5, col: 2 },
+  { row: 6, col: 8 },
+  { row: 7, col: 4 },
+  { row: 8, col: 1 },
+  { row: 2, col: 9 },
+  { row: 4, col: 4 },
+  { row: 9, col: 6 }
+]
+
+// Configurable at runtime
+DEFAULT_MAX_DISPLAY = 5  // 0 or falsy = show all
 ```
 
 ---
@@ -128,12 +142,10 @@ function Grid.getCell(pos: Position) -> Cell?:
 ```
 struct Player {
   Position position
-  int score
 }
 
 DEFAULT_PLAYER = {
-  position: PLAYER_START,
-  score: 0
+  position: PLAYER_START
 }
 ```
 
@@ -153,11 +165,37 @@ struct GameState {
   Grid grid
   Player player
   List<Collectable> allCollectables
-  List<Collectable> visibleCollectables  // Max MAX_DISPLAY
+  List<Collectable> visibleCollectables
 
-  int previousScore
-  int highestScore
+  // Timer-based (Mode 2)
+  float elapsedTime       // Incremental timer in seconds
+  float? previousTime     // Previous game time
+  float? bestTime         // Best (lowest) time
+  float? lastFrameTime    // For delta time calculation
+
   bool settingsOpen
+
+  // Configurable settings
+  KeybindingConfig keybindings
+  int maxDisplay          // 0 or falsy = show all
+}
+
+struct KeybindingConfig {
+  string MOVE_LEFT
+  string MOVE_DOWN
+  string MOVE_UP
+  string MOVE_RIGHT
+  string TOGGLE_GAME
+  string SETTINGS
+}
+
+DEFAULT_KEYBINDINGS = {
+  MOVE_LEFT: "h",
+  MOVE_DOWN: "j",
+  MOVE_UP: "k",
+  MOVE_RIGHT: "l",
+  TOGGLE_GAME: "\\",
+  SETTINGS: "Escape"
 }
 ```
 
@@ -181,21 +219,15 @@ function createGrid():
       grid.cells[row][col] = Cell(position: Position(row, col))
 
 function generateCollectables():
-  allCollectables = []
-  occupied = Set()
-  occupied.add(player.position)
-
-  while allCollectables.length < TOTAL_COLLECTABLES:
-    row = random(0, grid.rows - 1)
-    col = random(0, grid.cols - 1)
-    pos = Position(row, col)
-
-    if not occupied.has(pos):
-      occupied.add(pos)
-      allCollectables.push(Collectable(position: pos))
+  // Use fixed collectable positions (not random)
+  allCollectables = FIXED_COLLECTABLES.map(pos => Collectable(position: pos))
 
 function updateVisibleCollectables():
-  visibleCollectables = allCollectables.slice(0, MAX_DISPLAY)
+  // Show up to maxDisplay collectables (0 or falsy = show all)
+  if maxDisplay > 0:
+    visibleCollectables = allCollectables.slice(0, maxDisplay)
+  else:
+    visibleCollectables = allCollectables.copy()
 ```
 
 ### Game State Machine
@@ -210,17 +242,33 @@ function toggleGame():
 function startGame():
   state = GameState.IN_GAME
   player = DEFAULT_PLAYER
-  score = 0
+  elapsedTime = 0
+  lastFrameTime = getCurrentTime()
   generateCollectables()
   updateVisibleCollectables()
   render()
+  gameLoop()  // Start timer loop
 
 function stopGame():
   state = GameState.OUT_OF_GAME
-  previousScore = player.score
-  if player.score > highestScore:
-    highestScore = player.score
+  previousTime = elapsedTime
+  // Best time is lowest time
+  if bestTime == null OR elapsedTime < bestTime:
+    bestTime = elapsedTime
   render()
+
+function gameLoop():
+  if state != GameState.IN_GAME:
+    return
+
+  now = getCurrentTime()
+  deltaTime = (now - lastFrameTime) / 1000  // Convert to seconds
+  lastFrameTime = now
+
+  elapsedTime += deltaTime
+  updateHUD()
+
+  requestNextFrame(gameLoop)  // Continue loop
 ```
 
 ### Movement
@@ -273,10 +321,7 @@ function checkCollision():
     if allIndex != -1:
       allCollectables.removeAt(allIndex)
 
-    // Increase score
-    player.score += 1
-
-    // Update visible collectables
+    // Update visible collectables (show next one if available)
     updateVisibleCollectables()
 ```
 
@@ -311,15 +356,28 @@ function clearGrid():
       cell.hasCollectable = false
 ```
 
-### HUD
+### HUD (Timer-based Mode 2)
 
 ```
 function updateHUD():
-  displayScore(player.score)
-  displayPreviousScore(previousScore)
-  displayHighestScore(highestScore)
+  // Display incremental timer
+  displayTimer(elapsedTime)
+
+  // Display previous and best times (lower is better)
+  displayPreviousTime(previousTime)
+  displayBestTime(bestTime)
+
+  // Display remaining collectables
   displayRemaining(allCollectables.length)
+
+  // Display game state
   displayGameState(state)
+
+// HUD displays:
+// - TIMER: current elapsed time (e.g., "12.3s")
+// - PREVIOUS: previous game time (e.g., "15.8s" or "-")
+// - BEST: best (lowest) time (e.g., "10.2s" or "-")
+// - REMAINING: number of collectables left
 ```
 
 ---
@@ -332,16 +390,52 @@ struct SettingsModal {
 }
 
 function openSettings():
+  // Load current settings into input fields
+  loadKeybindingsToInputs()
+  loadMaxDisplayToInput()
   settingsOpen = true
 
 function closeSettings():
   settingsOpen = false
+
+function applySettings():
+  // Save keybindings from input fields
+  keybindings.MOVE_LEFT = getInputValue('key-left') OR 'h'
+  keybindings.MOVE_DOWN = getInputValue('key-down') OR 'j'
+  keybindings.MOVE_UP = getInputValue('key-up') OR 'k'
+  keybindings.MOVE_RIGHT = getInputValue('key-right') OR 'l'
+
+  // Save max display (0 = show all)
+  maxDisplay = parseInt(getInputValue('max-display')) OR 0
+
+  // Update visible collectables if game is running
+  if state == GameState.IN_GAME:
+    updateVisibleCollectables()
+    render()
+
+  closeSettings()
 
 function toggleSettings():
   if settingsOpen:
     closeSettings()
   else:
     openSettings()
+
+// Settings Modal UI:
+// Section 1: Keybindings (Customizable)
+//   - Move Left: [input field] (default: h)
+//   - Move Down: [input field] (default: j)
+//   - Move Up: [input field] (default: k)
+//   - Move Right: [input field] (default: l)
+//
+// Section 2: Gameplay Settings
+//   - Max Display: [number input] (0 = show all, default: 5)
+//
+// Section 3: Reserved Keys (Not Changeable)
+//   - Start/Stop: \
+//   - Settings: Esc
+//
+// Button: "Apply & Close"
 ```
 
 ---
@@ -353,7 +447,7 @@ function handleKeyDown(event: KeyboardEvent):
   key = event.key
 
   // Settings toggle (works in any state)
-  if key == RESERVED_KEYS.SETTINGS:
+  if key == keybindings.SETTINGS:
     toggleSettings()
     return
 
@@ -362,18 +456,21 @@ function handleKeyDown(event: KeyboardEvent):
     return
 
   // Game toggle
-  if key == RESERVED_KEYS.TOGGLE_GAME:
+  if key == keybindings.TOGGLE_GAME:
     toggleGame()
     return
 
-  // Movement (only in-game)
+  // Movement (only in-game) - uses configurable keybindings
   if state == GameState.IN_GAME:
-    if key == BASIC_KEYBINDINGS.MOVE_LEFT:
+    if key == keybindings.MOVE_LEFT:
       movePlayer(Direction.LEFT)
-    else if key == BASIC_KEYBINDINGS.MOVE_DOWN:
+    else if key == keybindings.MOVE_DOWN:
       movePlayer(Direction.DOWN)
-    else if key == BASIC_KEYBINDINGS.MOVE_UP:
+    else if key == keybindings.MOVE_UP:
       movePlayer(Direction.UP)
-    else if key == BASIC_KEYBINDINGS.MOVE_RIGHT:
+    else if key == keybindings.MOVE_RIGHT:
       movePlayer(Direction.RIGHT)
+
+// Note: All movement keybindings (hjkl) are now customizable
+// through the settings modal
 ```
