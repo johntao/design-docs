@@ -1,6 +1,8 @@
 /*
 !/.gitignore
 !/p07-vimkeys-game/
-/p07-vimkeys-game/*
-!/p07-vimkeys-game/design.md
-!/p07-vimkeys-game/design-tw.md
+/p07-vimkeys-game/material/
+_*
+# /p07-vimkeys-game/*
+# !/p07-vimkeys-game/design.md
+# !/p07-vimkeys-game/design-tw.md

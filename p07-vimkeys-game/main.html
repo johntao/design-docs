@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vimkeys Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      color: #00d9ff;
+    }
+
+    /* HUD */
+    .hud {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .hud-item {
+      text-align: center;
+    }
+
+    .hud-label {
+      color: #888;
+      font-size: 12px;
+    }
+
+    .hud-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #00d9ff;
+    }
+
+    /* Game Container */
+    .game-container {
+      position: relative;
+    }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(10, 40px);
+      grid-template-rows: repeat(10, 40px);
+      gap: 1px;
+      background: #333;
+      border: 2px solid #00d9ff;
+      padding: 1px;
+    }
+
+    .cell {
+      width: 40px;
+      height: 40px;
+      background: #16213e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      user-select: none;
+    }
+
+    .cell.player {
+      color: #00d9ff;
+    }
+
+    .cell.collectable {
+      color: #ffd700;
+    }
+
+    /* Game Status */
+    .status {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .status-text {
+      font-size: 16px;
+      color: #888;
+    }
+
+    .status-hint {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .status-hint kbd {
+      background: #333;
+      padding: 2px 8px;
+      border-radius: 3px;
+      border: 1px solid #555;
+    }
+
+    /* Settings Button */
+    .settings-btn {
+      display: none;
+      /* position: absolute;
+      top: -40px;
+      right: 0;
+      background: #333;
+      border: 1px solid #555;
+      color: #eee;
+      padding: 5px 15px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px; */
+    }
+
+    /* .settings-btn:hover {
+      background: #444;
+    } */
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: #1a1a2e;
+      border: 2px solid #00d9ff;
+      padding: 30px;
+      min-width: 400px;
+      max-width: 500px;
+    }
+
+    .modal h2 {
+      margin-bottom: 20px;
+      color: #00d9ff;
+    }
+
+    .modal-section {
+      margin-bottom: 20px;
+    }
+
+    .modal-section h3 {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    .keybinding-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .keybinding-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 10px;
+      background: #16213e;
+    }
+
+    .keybinding-item kbd {
+      background: #333;
+      padding: 2px 8px;
+      border-radius: 3px;
+      border: 1px solid #555;
+    }
+
+    .modal-close {
+      background: #00d9ff;
+      border: none;
+      color: #1a1a2e;
+      padding: 10px 30px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .modal-close:hover {
+      background: #00b8d9;
+    }
+
+    /* In-game indicator */
+    .in-game .grid {
+      border-color: #00ff88;
+    }
+
+    .in-game .hud-value {
+      color: #00ff88;
+    }
+  </style>
+</head>
+<body>
+  <h1>Vimkeys Game</h1>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-item">
+      <div class="hud-label">SCORE</div>
+      <div class="hud-value" id="score">0</div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">PREVIOUS</div>
+      <div class="hud-value" id="prev-score">-</div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">HIGHEST</div>
+      <div class="hud-value" id="high-score">0</div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">REMAINING</div>
+      <div class="hud-value" id="remaining">9</div>
+    </div>
+  </div>
+
+  <!-- Game Container -->
+  <div class="game-container" id="game-container">
+    <button class="settings-btn" id="settings-btn">Settings</button>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- Status -->
+  <div class="status">
+    <div class="status-text" id="status-text">OUT OF GAME</div>
+    <div class="status-hint">
+      Press <kbd>\</kbd> to start | <kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> to move | <kbd>Esc</kbd> settings
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <h2>Settings</h2>
+
+      <div class="modal-section">
+        <h3>Keybindings</h3>
+        <div class="keybinding-list">
+          <div class="keybinding-item">
+            <span>Move Left</span>
+            <kbd>h</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Move Down</span>
+            <kbd>j</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Move Up</span>
+            <kbd>k</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Move Right</span>
+            <kbd>l</kbd>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <h3>Reserved Keys</h3>
+        <div class="keybinding-list">
+          <div class="keybinding-item">
+            <span>Start/Stop</span>
+            <kbd>\</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Settings</span>
+            <kbd>Esc</kbd>
+          </div>
+        </div>
+      </div>
+
+      <button class="modal-close" id="modal-close">Close</button>
+    </div>
+  </div>
+
+  <script>
+    // ===================
+    // CONSTANTS
+    // ===================
+    const GRID_ROWS = 10;
+    const GRID_COLS = 10;
+    const PLAYER_CHAR = '\u25A2';  // ▢
+    const COLLECTABLE_CHAR = '\u2022';  // •
+    const MAX_DISPLAY = 5;
+    const TOTAL_COLLECTABLES = 9;
+    const PLAYER_START = { row: 2, col: 3 };
+
+    const DIRECTION_VECTORS = {
+      LEFT:  { row: 0,  col: -1 },
+      DOWN:  { row: 1,  col: 0  },
+      UP:    { row: -1, col: 0  },
+      RIGHT: { row: 0,  col: 1  }
+    };
+
+    const KEYBINDINGS = {
+      MOVE_LEFT: 'h',
+      MOVE_DOWN: 'j',
+      MOVE_UP: 'k',
+      MOVE_RIGHT: 'l',
+      TOGGLE_GAME: '\\',
+      SETTINGS: 'Escape'
+    };
+
+    // ===================
+    // STATE
+    // ===================
+    const state = {
+      gameState: 'out-of-game',  // 'out-of-game' | 'in-game'
+      player: { ...PLAYER_START },
+      allCollectables: [],       // All 9 collectables
+      visibleCollectables: [],   // Currently displayed (max 5)
+      score: 0,
+      previousScore: null,
+      highestScore: 0,
+      settingsOpen: false
+    };
+
+    // ===================
+    // DOM ELEMENTS
+    // ===================
+    const gridEl = document.getElementById('grid');
+    const scoreEl = document.getElementById('score');
+    const prevScoreEl = document.getElementById('prev-score');
+    const highScoreEl = document.getElementById('high-score');
+    const remainingEl = document.getElementById('remaining');
+    const statusTextEl = document.getElementById('status-text');
+    const gameContainerEl = document.getElementById('game-container');
+    const modalOverlayEl = document.getElementById('modal-overlay');
+    const settingsBtnEl = document.getElementById('settings-btn');
+    const modalCloseEl = document.getElementById('modal-close');
+
+    // ===================
+    // INITIALIZATION
+    // ===================
+    function init() {
+      createGrid();
+      generateCollectables();
+      updateVisibleCollectables();
+      render();
+      setupEventListeners();
+    }
+
+    function createGrid() {
+      gridEl.innerHTML = '';
+      for (let row = 0; row < GRID_ROWS; row++) {
+        for (let col = 0; col < GRID_COLS; col++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.row = row;
+          cell.dataset.col = col;
+          gridEl.appendChild(cell);
+        }
+      }
+    }
+
+    function generateCollectables() {
+      state.allCollectables = [];
+      const occupied = new Set();
+      occupied.add(`${state.player.row},${state.player.col}`);
+
+      while (state.allCollectables.length < TOTAL_COLLECTABLES) {
+        const row = Math.floor(Math.random() * GRID_ROWS);
+        const col = Math.floor(Math.random() * GRID_COLS);
+        const key = `${row},${col}`;
+
+        if (!occupied.has(key)) {
+          occupied.add(key);
+          state.allCollectables.push({ row, col });
+        }
+      }
+    }
+
+    function updateVisibleCollectables() {
+      // Show up to MAX_DISPLAY collectables
+      state.visibleCollectables = state.allCollectables.slice(0, MAX_DISPLAY);
+    }
+
+    // ===================
+    // RENDERING
+    // ===================
+    function render() {
+      // Clear all cells
+      const cells = gridEl.querySelectorAll('.cell');
+      cells.forEach(cell => {
+        cell.textContent = '';
+        cell.className = 'cell';
+      });
+
+      // Render collectables
+      state.visibleCollectables.forEach(coll => {
+        const cell = getCell(coll.row, coll.col);
+        if (cell) {
+          cell.textContent = COLLECTABLE_CHAR;
+          cell.classList.add('collectable');
+        }
+      });
+
+      // Render player
+      const playerCell = getCell(state.player.row, state.player.col);
+      if (playerCell) {
+        playerCell.textContent = PLAYER_CHAR;
+        playerCell.classList.remove('collectable');
+        playerCell.classList.add('player');
+      }
+
+      // Update HUD
+      updateHUD();
+    }
+
+    function getCell(row, col) {
+      return gridEl.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    }
+
+    function updateHUD() {
+      scoreEl.textContent = state.score;
+      prevScoreEl.textContent = state.previousScore !== null ? state.previousScore : '-';
+      highScoreEl.textContent = state.highestScore;
+      remainingEl.textContent = state.allCollectables.length;
+
+      // Update game state indicator
+      if (state.gameState === 'in-game') {
+        gameContainerEl.classList.add('in-game');
+        statusTextEl.textContent = 'IN GAME';
+      } else {
+        gameContainerEl.classList.remove('in-game');
+        statusTextEl.textContent = 'OUT OF GAME';
+      }
+    }
+
+    // ===================
+    // GAME LOGIC
+    // ===================
+    function toggleGame() {
+      if (state.gameState === 'out-of-game') {
+        startGame();
+      } else {
+        stopGame();
+      }
+    }
+
+    function startGame() {
+      state.gameState = 'in-game';
+      state.player = { ...PLAYER_START };
+      state.score = 0;
+      generateCollectables();
+      updateVisibleCollectables();
+      render();
+    }
+
+    function stopGame() {
+      state.gameState = 'out-of-game';
+
+      // Save scores
+      state.previousScore = state.score;
+      if (state.score > state.highestScore) {
+        state.highestScore = state.score;
+      }
+
+      render();
+    }
+
+    function movePlayer(direction) {
+      if (state.gameState !== 'in-game') return;
+
+      const vec = DIRECTION_VECTORS[direction];
+      const newRow = state.player.row + vec.row;
+      const newCol = state.player.col + vec.col;
+
+      // Boundary check
+      if (newRow < 0 || newRow >= GRID_ROWS || newCol < 0 || newCol >= GRID_COLS) {
+        return;  // Stay in place
+      }
+
+      // Move player
+      state.player.row = newRow;
+      state.player.col = newCol;
+
+      // Check collision with collectables
+      checkCollision();
+
+      render();
+
+      // Check win condition
+      if (state.allCollectables.length === 0) {
+        stopGame();
+      }
+    }
+
+    function checkCollision() {
+      const playerPos = `${state.player.row},${state.player.col}`;
+
+      // Check visible collectables first
+      const visibleIndex = state.visibleCollectables.findIndex(
+        c => c.row === state.player.row && c.col === state.player.col
+      );
+
+      if (visibleIndex !== -1) {
+        // Remove from visible
+        state.visibleCollectables.splice(visibleIndex, 1);
+
+        // Remove from all collectables
+        const allIndex = state.allCollectables.findIndex(
+          c => c.row === state.player.row && c.col === state.player.col
+        );
+        if (allIndex !== -1) {
+          state.allCollectables.splice(allIndex, 1);
+        }
+
+        // Increase score
+        state.score++;
+
+        // Update visible collectables (show next one if available)
+        updateVisibleCollectables();
+      }
+    }
+
+    // ===================
+    // SETTINGS MODAL
+    // ===================
+    function openSettings() {
+      state.settingsOpen = true;
+      modalOverlayEl.classList.add('open');
+    }
+
+    function closeSettings() {
+      state.settingsOpen = false;
+      modalOverlayEl.classList.remove('open');
+    }
+
+    function toggleSettings() {
+      if (state.settingsOpen) {
+        closeSettings();
+      } else {
+        openSettings();
+      }
+    }
+
+    // ===================
+    // EVENT HANDLING
+    // ===================
+    function setupEventListeners() {
+      document.addEventListener('keydown', handleKeyDown);
+      settingsBtnEl.addEventListener('click', openSettings);
+      modalCloseEl.addEventListener('click', closeSettings);
+      modalOverlayEl.addEventListener('click', (e) => {
+        if (e.target === modalOverlayEl) {
+          closeSettings();
+        }
+      });
+    }
+
+    function handleKeyDown(event) {
+      const key = event.key;
+
+      // Handle settings toggle (works in any state)
+      if (key === KEYBINDINGS.SETTINGS) {
+        event.preventDefault();
+        toggleSettings();
+        return;
+      }
+
+      // If settings is open, ignore other keys
+      if (state.settingsOpen) {
+        return;
+      }
+
+      // Handle game toggle
+      if (key === KEYBINDINGS.TOGGLE_GAME) {
+        event.preventDefault();
+        toggleGame();
+        return;
+      }
+
+      // Handle movement (only in-game)
+      if (state.gameState === 'in-game') {
+        switch (key) {
+          case KEYBINDINGS.MOVE_LEFT:
+            event.preventDefault();
+            movePlayer('LEFT');
+            break;
+          case KEYBINDINGS.MOVE_DOWN:
+            event.preventDefault();
+            movePlayer('DOWN');
+            break;
+          case KEYBINDINGS.MOVE_UP:
+            event.preventDefault();
+            movePlayer('UP');
+            break;
+          case KEYBINDINGS.MOVE_RIGHT:
+            event.preventDefault();
+            movePlayer('RIGHT');
+            break;
+        }
+      }
+    }
+
+    // ===================
+    // START
+    // ===================
+    init();
+  </script>
+</body>
+</html>
