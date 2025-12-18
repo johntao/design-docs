@@ -14,13 +14,13 @@ Implement the game spec incrementally across 5 stages, building from basic funct
 | 1.1 | Standalone HTML/CSS/JS structure | Done |
 | 1.2 | 10×10 CSS grid rendering | Done |
 | 1.3 | Player rendering (`▢`) at (2,3) | Done |
-| 1.4 | Collectable rendering (`•`) × 9 | Done |
-| 1.5 | Max display limit (5 at a time) | Done |
+| 1.4 | Collectable rendering (`•`) × 9 (fixed positions) | Done |
+| 1.5 | Max display limit (configurable, default 5) | Done |
 | 1.6 | Game state toggle (`\` key) | Done |
-| 1.7 | Basic movement (`hjkl`) | Done |
+| 1.7 | Basic movement (customizable keybindings) | Done |
 | 1.8 | Collision detection (pickup) | Done |
-| 1.9 | HUD: score, previous, highest | Done |
-| 1.10 | Settings modal placeholder | Done |
+| 1.9 | HUD: timer, previous, best (timer-based mode 2) | Done |
+| 1.10 | Settings modal with input fields | Done |
 
 ---
 
