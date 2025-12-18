@@ -4,6 +4,7 @@
 This game is a combination of VIM keybindings and Snake-like gameplay.
 
 ### The Basic Gameplay:
+
 The player uses VIM keybindings to move in a grid-like map.
 The game scatters collectables at fixed (or random) positions across the view.
 If a timer is used, the game ends when the timer hits zero.
@@ -30,6 +31,7 @@ The goal is to let players learn what keybindings and gameplay work best for the
 - 600: visual-hud
   - keywords: score board, configuration modal
 - 700: config-gameplay (filler mode)
+- 800: level design
 
 ### Keywords and Definitions:
 - **item** => anything rendered inside a cell is an item (visual foreground)
@@ -53,7 +55,6 @@ The goal is to let players learn what keybindings and gameplay work best for the
   
 - **hyperlink** => links to a cell of the current view
   - Or links to another view
-
 
 ## Design Principles
 
@@ -80,7 +81,7 @@ Before gameplay begins, the player selects a game mode. This is a higher-order s
 
 | Mode   | Description                                      | Reference  |
 | ------ | ------------------------------------------------ | ---------- |
-| Picker | Default mode. Pick up collectables on the view.  | items#200  |
+| Picker | Default mode. Pick up collectables on the view.  | [items#200](#200-config-gameplay-picker-mode)  |
 | Filler | Match colors to clear collectables.              | items#700  |
 
 ### State Machine
@@ -184,7 +185,6 @@ When a game starts, the player must be initialized with the following properties
 | ---------------- | ------------- | ------------------------------------- |
 | Body Length      | 1             | Single cell occupied                  |
 | Active Part      | Head          | For body length > 1 scenarios         |
-| Facing Direction | Right         | Affects certain movement calculations |
 | Score            | 0             | -                                     |
 | Combo Streak     | 0             | If combo system is enabled            |
 | Current Color    | None          | For Filler mode only                  |
@@ -406,6 +406,11 @@ Note that the player will lose some interactive functions when the body length i
   - i.e., sigil movement still works if the player is activating either the head or tail part
   - Reason 1: Maintaining sigil movement for head/tail modes makes the game more versatile and fun
   - Reason 2: Sigil movement requires a specific cursor position to calculate the target; while activating the body part, there's no obvious way to determine which part should be the active cursor
+
+### Candidates
+
+- marker command
+- Ggg0^$
 
 #### 181: Keybindings Proposal 1 (dropped)
 
