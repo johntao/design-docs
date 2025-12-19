@@ -27,7 +27,7 @@ Implement the game spec incrementally across 5 stages, building from basic funct
 
 ---
 
-## Stage 2: Levels & Items
+## Stage 2: Levels & Items [DONE]
 
 | ID  | Task                     | Description                              | Status |
 | --- | ------------------------ | ---------------------------------------- | ------ |
@@ -42,24 +42,24 @@ Implement the game spec incrementally across 5 stages, building from basic funct
 
 ---
 
-## Stage 3: Advanced Movement
+## Stage 3: Advanced Movement [DONE]
 
-| ID   | Task                      | Description                               |
-| ---- | ------------------------- | ----------------------------------------- |
-| 3.1  | Angle bracket sigils      | Render `<` and `>` on grid                |
-| 3.2  | Sigil movement `qwer`     | Jump to angle brackets (forward/backward) |
-| 3.3  | Alphabet sigils           | Render a-z on grid                        |
-| 3.4  | Find char `f`/`d`         | Two-key sequence to jump to alphabet      |
-| 3.5  | Pending action state      | Handle two-key input sequences            |
-| 3.6  | Repeater `n.`             | Repeat last non-basic movement            |
-| 3.7  | Repeater `m,`             | Repeat with line skip                     |
-| 3.8  | Track last movement       | Store last non-basic movement type        |
-| 3.9  | Body expansion `zxc`      | Head/body/tail switching                  |
-| 3.10 | Variable length mode      | Extend/shrink body on movement            |
-| 3.11 | Fixed length mode         | Move entire body at once                  |
-| 3.12 | Snake rendering           | Render multi-cell player body             |
-| 3.13 | Grid movement `Ctrl+hjkl` | Teleport between grids                    |
-| 3.14 | Multi-grid layout         | Render multiple grids (3×3 max)           |
+| ID   | Task                      | Description                               | Status |
+| ---- | ------------------------- | ----------------------------------------- | ------ |
+| 3.1  | Angle bracket sigils      | Render `<` and `>` on grid                | Done   |
+| 3.2  | Sigil movement `qwer`     | Jump to angle brackets (forward/backward) | Done   |
+| 3.3  | Alphabet sigils           | Render a-z on grid                        | Done   |
+| 3.4  | Find char `f`/`d`         | Two-key sequence to jump to alphabet      | Done   |
+| 3.5  | Pending action state      | Handle two-key input sequences            | Done   |
+| 3.6  | Repeater `n.`             | Repeat last non-basic movement            | Done   |
+| 3.7  | Repeater `m,`             | Repeat with line skip                     | Done   |
+| 3.8  | Track last movement       | Store last non-basic movement type        | Done   |
+| 3.9  | Body expansion `zxc`      | Head/body/tail switching                  | Done   |
+| 3.10 | Variable length mode      | Extend/shrink body on movement            | Done   |
+| 3.11 | Fixed length mode         | Move entire body at once                  | Done   |
+| 3.12 | Snake rendering           | Render multi-cell player body             | Done   |
+| 3.13 | Grid movement `Ctrl+hjkl` | Teleport between grids                    | -      |
+| 3.14 | Multi-grid layout         | Render multiple grids (3×3 max)           | -      |
 
 ---
 

@@ -106,6 +106,24 @@
       color: #ff00ff;
     }
 
+    .cell.sigil {
+      color: #00ffaa;
+      font-size: 20px;
+    }
+
+    .cell.player-head {
+      color: #00d9ff;
+      font-weight: bold;
+    }
+
+    .cell.player-body {
+      color: #0099cc;
+    }
+
+    .cell.player-tail {
+      color: #006699;
+    }
+
     /* Game Status */
     .status {
       margin-top: 20px;
@@ -310,7 +328,7 @@
   <div class="status">
     <div class="status-text" id="status-text">OUT OF GAME</div>
     <div class="status-hint">
-      Press <kbd>\</kbd> to start | <kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> to move | <kbd>=</kbd><kbd>Backspace</kbd> level | <kbd>Esc</kbd> settings
+      Press <kbd>\</kbd> to start | <kbd>hjkl</kbd> move | <kbd>qwer</kbd> sigils | <kbd>f</kbd>/<kbd>d</kbd>+char | <kbd>zxc</kbd> body | <kbd>Esc</kbd> settings
     </div>
   </div>
 
@@ -344,6 +362,70 @@
         <div class="config-item">
           <label>Max Display (0 = show all):</label>
           <input type="number" id="max-display" min="0" value="5">
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <h3>Advanced Movement (Sigils)</h3>
+        <div class="keybinding-list">
+          <div class="keybinding-item">
+            <span>Find &lt; backward</span>
+            <kbd>q</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Find &gt; backward</span>
+            <kbd>w</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Find &lt; forward</span>
+            <kbd>e</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Find &gt; forward</span>
+            <kbd>r</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Find char back</span>
+            <kbd>d</kbd>+char
+          </div>
+          <div class="keybinding-item">
+            <span>Find char fwd</span>
+            <kbd>f</kbd>+char
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <h3>Repeater & Body Control</h3>
+        <div class="keybinding-list">
+          <div class="keybinding-item">
+            <span>Repeat backward</span>
+            <kbd>n</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Repeat forward</span>
+            <kbd>.</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Rep back skip</span>
+            <kbd>,</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Rep fwd skip</span>
+            <kbd>m</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Switch to tail</span>
+            <kbd>z</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Switch to body</span>
+            <kbd>x</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Switch to head</span>
+            <kbd>c</kbd>
+          </div>
         </div>
       </div>
 
@@ -384,9 +466,18 @@
     const GRID_ROWS = 10;
     const GRID_COLS = 10;
     const PLAYER_CHAR = '\u25A2';  // ▢
+    const PLAYER_HEAD_CHAR = '\u25A3';  // ▣
+    const PLAYER_BODY_CHAR = '\u25A1';  // □
+    const PLAYER_TAIL_CHAR = '\u25AB';  // ▫
     const COLLECTABLE_CHAR = '\u2022';  // •
     const OBSTACLE_CHAR = '\u2588';  // █
     const PORTAL_CHAR = '\u25CB';  // ◯
+    const SIGIL_ANGLE_LEFT = '<';
+    const SIGIL_ANGLE_RIGHT = '>';
+
+    // Body expansion limits
+    const MIN_BODY_LENGTH = 1;
+    const MAX_BODY_LENGTH = 5;
 
     // Item Types
     const ItemType = {
@@ -401,6 +492,28 @@
       DEMO: 'DEMO',
       PREDEFINED: 'PREDEFINED',
       DYNAMIC: 'DYNAMIC'
+    };
+
+    // Sigil Subtypes
+    const SigilSubtype = {
+      ANGLE_LEFT: 'ANGLE_LEFT',
+      ANGLE_RIGHT: 'ANGLE_RIGHT',
+      ALPHABET: 'ALPHABET'
+    };
+
+    // Body Parts
+    const BodyPart = {
+      HEAD: 'HEAD',
+      BODY: 'BODY',
+      TAIL: 'TAIL'
+    };
+
+    // Movement Types
+    const MovementType = {
+      BASIC: 'BASIC',
+      GRID: 'GRID',
+      SIGIL: 'SIGIL',
+      REPEATER: 'REPEATER'
     };
 
     const DIRECTION_VECTORS = {
@@ -456,7 +569,11 @@
           { type: ItemType.COLLECTABLE, position: { row: 4, col: 4 } },
           { type: ItemType.COLLECTABLE, position: { row: 9, col: 6 } },
           { type: ItemType.OBSTACLE, position: { row: 5, col: 5 } },
-          { type: ItemType.OBSTACLE, position: { row: 6, col: 5 } }
+          { type: ItemType.OBSTACLE, position: { row: 6, col: 5 } },
+          { type: ItemType.SIGIL, position: { row: 0, col: 0 }, sigilSubtype: SigilSubtype.ANGLE_LEFT },
+          { type: ItemType.SIGIL, position: { row: 0, col: 9 }, sigilSubtype: SigilSubtype.ANGLE_RIGHT },
+          { type: ItemType.SIGIL, position: { row: 9, col: 0 }, sigilSubtype: SigilSubtype.ANGLE_LEFT },
+          { type: ItemType.SIGIL, position: { row: 9, col: 9 }, sigilSubtype: SigilSubtype.ANGLE_RIGHT }
         ]
       },
       predefined_2: {
@@ -479,7 +596,13 @@
           { type: ItemType.OBSTACLE, position: { row: 5, col: 6 } },
           { type: ItemType.OBSTACLE, position: { row: 5, col: 7 } },
           { type: ItemType.PORTAL, position: { row: 1, col: 1 }, portalPairId: 1 },
-          { type: ItemType.PORTAL, position: { row: 8, col: 8 }, portalPairId: 1 }
+          { type: ItemType.PORTAL, position: { row: 8, col: 8 }, portalPairId: 1 },
+          { type: ItemType.SIGIL, position: { row: 1, col: 5 }, sigilSubtype: SigilSubtype.ANGLE_LEFT },
+          { type: ItemType.SIGIL, position: { row: 8, col: 5 }, sigilSubtype: SigilSubtype.ANGLE_RIGHT },
+          { type: ItemType.SIGIL, position: { row: 3, col: 1 }, sigilSubtype: SigilSubtype.ALPHABET, sigilChar: 'a' },
+          { type: ItemType.SIGIL, position: { row: 3, col: 8 }, sigilSubtype: SigilSubtype.ALPHABET, sigilChar: 'b' },
+          { type: ItemType.SIGIL, position: { row: 6, col: 1 }, sigilSubtype: SigilSubtype.ALPHABET, sigilChar: 'c' },
+          { type: ItemType.SIGIL, position: { row: 6, col: 8 }, sigilSubtype: SigilSubtype.ALPHABET, sigilChar: 'd' }
         ]
       },
       predefined_3: {
@@ -516,7 +639,14 @@
       gameState: 'out-of-game',  // 'out-of-game' | 'in-game'
       currentLevel: null,
       currentLevelId: 'demo',
-      player: { row: 2, col: 3 },
+      player: {
+        body: [{ row: 2, col: 3 }],  // body[0] = tail, body[last] = head
+        activePart: BodyPart.HEAD,
+        score: 0,
+        lastNonBasicMovement: null,
+        lastMovementDirection: null,
+        lastSigilChar: null  // For repeating alphabet searches
+      },
       activeItems: [],           // Items currently in the level
       allCollectables: [],       // All collectables (for tracking)
       visibleCollectables: [],   // Currently displayed collectables
@@ -525,6 +655,7 @@
       bestTime: null,
       settingsOpen: false,
       lastFrameTime: null,
+      pendingAction: null,       // For two-key sequences like f + char
 
       // Configurable settings
       keybindings: {
@@ -536,7 +667,26 @@
         SETTINGS: 'Escape',
         NEXT_LEVEL: '=',
         PREV_LEVEL: 'Backspace',
-        RANDOMIZE: ']'
+        RANDOMIZE: ']',
+
+        // Advanced movement - Sigils
+        FIND_ANGLE_LEFT_BACKWARD: 'q',
+        FIND_ANGLE_RIGHT_BACKWARD: 'w',
+        FIND_ANGLE_LEFT_FORWARD: 'e',
+        FIND_ANGLE_RIGHT_FORWARD: 'r',
+        FIND_CHAR_BACKWARD: 'd',
+        FIND_CHAR_FORWARD: 'f',
+
+        // Repeater
+        REPEAT_BACKWARD: 'n',
+        REPEAT_FORWARD_SKIP_LINE: 'm',
+        REPEAT_BACKWARD_SKIP_LINE: ',',
+        REPEAT_FORWARD: '.',
+
+        // Body control
+        SWITCH_TO_TAIL: 'z',
+        SWITCH_TO_BODY: 'x',
+        SWITCH_TO_HEAD: 'c'
       },
       maxDisplay: 5  // 0 or falsy = show all
     };
@@ -608,13 +758,22 @@
           items: levelTemplate.items.map(item => ({
             type: item.type,
             position: { ...item.position },
-            portalPairId: item.portalPairId
+            portalPairId: item.portalPairId,
+            sigilSubtype: item.sigilSubtype,
+            sigilChar: item.sigilChar
           }))
         };
       }
 
-      // Reset player position
-      state.player = { ...state.currentLevel.playerSpawn };
+      // Reset player state
+      state.player = {
+        body: [{ ...state.currentLevel.playerSpawn }],
+        activePart: BodyPart.HEAD,
+        score: 0,
+        lastNonBasicMovement: null,
+        lastMovementDirection: null,
+        lastSigilChar: null
+      };
 
       // Set active items
       state.activeItems = [...state.currentLevel.items];
@@ -782,6 +941,23 @@
         }
       });
 
+      // Render sigils (always visible)
+      state.activeItems.forEach(item => {
+        if (item.type === ItemType.SIGIL) {
+          const cell = getCell(item.position.row, item.position.col);
+          if (cell) {
+            if (item.sigilSubtype === SigilSubtype.ANGLE_LEFT) {
+              cell.textContent = SIGIL_ANGLE_LEFT;
+            } else if (item.sigilSubtype === SigilSubtype.ANGLE_RIGHT) {
+              cell.textContent = SIGIL_ANGLE_RIGHT;
+            } else if (item.sigilSubtype === SigilSubtype.ALPHABET) {
+              cell.textContent = item.sigilChar;
+            }
+            cell.classList.add('sigil');
+          }
+        }
+      });
+
       // Render visible collectables
       state.visibleCollectables.forEach(item => {
         const cell = getCell(item.position.row, item.position.col);
@@ -791,13 +967,32 @@
         }
       });
 
-      // Render player (always on top)
-      const playerCell = getCell(state.player.row, state.player.col);
-      if (playerCell) {
-        playerCell.textContent = PLAYER_CHAR;
-        playerCell.classList.remove('collectable', 'obstacle', 'portal');
-        playerCell.classList.add('player');
-      }
+      // Render player body (multi-cell snake)
+      state.player.body.forEach((pos, index) => {
+        const cell = getCell(pos.row, pos.col);
+        if (cell) {
+          const isHead = index === state.player.body.length - 1;
+          const isTail = index === 0;
+
+          if (state.player.body.length === 1) {
+            // Single cell - use default player char
+            cell.textContent = PLAYER_CHAR;
+            cell.classList.add('player');
+          } else if (isHead) {
+            cell.textContent = PLAYER_HEAD_CHAR;
+            cell.classList.add('player-head');
+          } else if (isTail) {
+            cell.textContent = PLAYER_TAIL_CHAR;
+            cell.classList.add('player-tail');
+          } else {
+            cell.textContent = PLAYER_BODY_CHAR;
+            cell.classList.add('player-body');
+          }
+
+          // Remove other classes
+          cell.classList.remove('collectable', 'obstacle', 'portal', 'sigil');
+        }
+      });
 
       // Update HUD
       updateHUD();
@@ -855,11 +1050,10 @@
 
     function startGame() {
       state.gameState = 'in-game';
-      state.player = { ...state.currentLevel.playerSpawn };
       state.elapsedTime = 0;
       state.lastFrameTime = performance.now();
 
-      // Reload level to reset items
+      // Reload level to reset items and player
       loadLevel(state.currentLevelId);
 
       gameLoop();
@@ -896,13 +1090,16 @@
       if (state.gameState !== 'in-game' && !isDemo) return;
 
       const vec = DIRECTION_VECTORS[direction];
-      const newRow = state.player.row + vec.row;
-      const newCol = state.player.col + vec.col;
+      const head = state.player.body[state.player.body.length - 1];
+      const newRow = head.row + vec.row;
+      const newCol = head.col + vec.col;
 
       // Boundary check
       if (newRow < 0 || newRow >= GRID_ROWS || newCol < 0 || newCol >= GRID_COLS) {
         return;  // Stay in place
       }
+
+      const newPos = { row: newRow, col: newCol };
 
       // Check for obstacle collision
       const obstacleAtPos = state.activeItems.find(
@@ -914,9 +1111,8 @@
         return;  // Blocked by obstacle
       }
 
-      // Move player
-      state.player.row = newRow;
-      state.player.col = newCol;
+      // Execute movement based on active body part
+      executeMovement(newPos, direction);
 
       // Check collision with items
       checkCollision();
@@ -929,12 +1125,100 @@
       }
     }
 
+    // Execute movement based on active body part
+    function executeMovement(targetPos, direction) {
+      const player = state.player;
+
+      if (player.activePart === BodyPart.HEAD) {
+        executeVariableLengthMove(targetPos, 'head');
+      } else if (player.activePart === BodyPart.TAIL) {
+        executeVariableLengthMove(targetPos, 'tail');
+      } else if (player.activePart === BodyPart.BODY) {
+        executeFixedLengthMove(targetPos, direction);
+      }
+    }
+
+    // Variable length movement (head or tail)
+    function executeVariableLengthMove(targetPos, end) {
+      const player = state.player;
+
+      // Check if target is occupied by own body
+      const isOwnBody = player.body.some(pos =>
+        pos.row === targetPos.row && pos.col === targetPos.col
+      );
+
+      if (isOwnBody) {
+        // Shrink body (min length: 1)
+        if (player.body.length > MIN_BODY_LENGTH) {
+          if (end === 'head') {
+            player.body.pop();  // Remove head
+          } else {
+            player.body.shift();  // Remove tail
+          }
+        }
+      } else {
+        // Extend body (max length: MAX_BODY_LENGTH)
+        if (player.body.length < MAX_BODY_LENGTH) {
+          if (end === 'head') {
+            player.body.push({ ...targetPos });
+          } else {
+            player.body.unshift({ ...targetPos });
+          }
+        } else {
+          // At max length: move without extending
+          if (end === 'head') {
+            player.body.shift();
+            player.body.push({ ...targetPos });
+          } else {
+            player.body.pop();
+            player.body.unshift({ ...targetPos });
+          }
+        }
+      }
+    }
+
+    // Fixed length movement (body)
+    function executeFixedLengthMove(targetPos, direction) {
+      const player = state.player;
+      const vec = DIRECTION_VECTORS[direction];
+      const newBody = [];
+
+      // Move entire body in direction
+      for (let i = 0; i < player.body.length; i++) {
+        const pos = player.body[i];
+        const newPos = { row: pos.row + vec.row, col: pos.col + vec.col };
+
+        // Check bounds for each part
+        if (newPos.row < 0 || newPos.row >= GRID_ROWS ||
+            newPos.col < 0 || newPos.col >= GRID_COLS) {
+          return;  // Cancel movement if any part blocked by boundary
+        }
+
+        // Check obstacles for each part
+        const obstacleAtPos = state.activeItems.find(
+          item => item.type === ItemType.OBSTACLE &&
+                  item.position.row === newPos.row &&
+                  item.position.col === newPos.col
+        );
+        if (obstacleAtPos) {
+          return;  // Cancel movement if any part blocked by obstacle
+        }
+
+        newBody.push(newPos);
+      }
+
+      // All parts can move - apply movement
+      player.body = newBody;
+    }
+
     function checkCollision() {
-      // Check for collectable pickup
+      const head = state.player.body[state.player.body.length - 1];
+
+      // Check for collectable pickup (head only)
       const collectableIndex = state.activeItems.findIndex(
         item => item.type === ItemType.COLLECTABLE &&
-                item.position.row === state.player.row &&
-                item.position.col === state.player.col
+                item.position.row === head.row &&
+                item.position.col === head.col
       );
 
       if (collectableIndex !== -1) {
@@ -950,15 +1234,17 @@
         }
       }
 
-      // Check for portal collision
-      const portalAtPos = state.activeItems.find(
-        item => item.type === ItemType.PORTAL &&
-                item.position.row === state.player.row &&
-                item.position.col === state.player.col
-      );
+      // Check for portal collision (only if body length is 1)
+      if (state.player.body.length === 1) {
+        const portalAtPos = state.activeItems.find(
+          item => item.type === ItemType.PORTAL &&
+                  item.position.row === head.row &&
+                  item.position.col === head.col
+        );
 
-      if (portalAtPos) {
-        teleportThroughPortal(portalAtPos);
+        if (portalAtPos) {
+          teleportThroughPortal(portalAtPos);
+        }
       }
     }
 
@@ -987,8 +1273,174 @@
 
       if (pairedPortal) {
         // Teleport player to paired portal position
-        state.player.row = pairedPortal.position.row;
-        state.player.col = pairedPortal.position.col;
+        state.player.body[0] = { ...pairedPortal.position };
+      }
+    }
+
+    // ===================
+    // SIGIL MOVEMENT
+    // ===================
+    function findAngleBracket(bracketType, searchDirection) {
+      // Sigil movement disabled in body mode when length > 1
+      if (state.player.body.length > 1 && state.player.activePart === BodyPart.BODY) {
+        return null;
+      }
+
+      const head = state.player.body[state.player.body.length - 1];
+      const positions = getAllPositions();
+
+      if (searchDirection === 'backward') {
+        positions.reverse();
+      }
+
+      // Find current position index
+      const startIndex = positions.findIndex(pos =>
+        pos.row === head.row && pos.col === head.col
+      );
+
+      // Search for matching bracket
+      for (let i = startIndex + 1; i < positions.length; i++) {
+        const pos = positions[i];
+        const items = state.activeItems.filter(item =>
+          item.position.row === pos.row && item.position.col === pos.col
+        );
+
+        for (const item of items) {
+          if (item.type === ItemType.SIGIL) {
+            const matchesLeft = item.sigilSubtype === SigilSubtype.ANGLE_LEFT && bracketType === '<';
+            const matchesRight = item.sigilSubtype === SigilSubtype.ANGLE_RIGHT && bracketType === '>';
+            if (matchesLeft || matchesRight) {
+              return pos;
+            }
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function findAlphabet(char, searchDirection) {
+      // Sigil movement disabled in body mode when length > 1
+      if (state.player.body.length > 1 && state.player.activePart === BodyPart.BODY) {
+        return null;
+      }
+
+      const head = state.player.body[state.player.body.length - 1];
+      const positions = getAllPositions();
+
+      if (searchDirection === 'backward') {
+        positions.reverse();
+      }
+
+      const startIndex = positions.findIndex(pos =>
+        pos.row === head.row && pos.col === head.col
+      );
+
+      for (let i = startIndex + 1; i < positions.length; i++) {
+        const pos = positions[i];
+        const items = state.activeItems.filter(item =>
+          item.position.row === pos.row && item.position.col === pos.col
+        );
+
+        for (const item of items) {
+          if (item.type === ItemType.SIGIL &&
+              item.sigilSubtype === SigilSubtype.ALPHABET &&
+              item.sigilChar === char) {
+            return pos;
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function teleportPlayer(targetPos) {
+      if (state.player.body.length === 1) {
+        // Simple teleport for single-cell body
+        state.player.body[0] = { ...targetPos };
+      } else {
+        // For multi-cell body, only teleport head
+        state.player.body[state.player.body.length - 1] = { ...targetPos };
+      }
+    }
+
+    function getAllPositions() {
+      const positions = [];
+      for (let row = 0; row < GRID_ROWS; row++) {
+        for (let col = 0; col < GRID_COLS; col++) {
+          positions.push({ row, col });
+        }
+      }
+      return positions;
+    }
+
+    // ===================
+    // REPEATER SYSTEM
+    // ===================
+    function repeatLastMovement(mode) {
+      if (!state.player.lastNonBasicMovement) {
+        return;
+      }
+
+      let searchDirection;
+
+      switch (mode) {
+        case 'n':  // Backward (n,n to 0,0)
+          searchDirection = 'backward';
+          break;
+
+        case '.':  // Forward (0,0 to n,n)
+          searchDirection = 'forward';
+          break;
+
+        case 'm':  // Forward, skip to next line first
+          moveToNextLineStart();
+          searchDirection = 'forward';
+          break;
+
+        case ',':  // Backward, skip to previous line end
+          moveToPrevLineEnd();
+          searchDirection = 'backward';
+          break;
+      }
+
+      // Re-execute the last non-basic movement
+      if (state.player.lastNonBasicMovement === MovementType.SIGIL) {
+        if (state.player.lastSigilChar) {
+          // Repeat alphabet search
+          const targetPos = findAlphabet(state.player.lastSigilChar, searchDirection);
+          if (targetPos) {
+            teleportPlayer(targetPos);
+            checkCollision();
+            render();
+          }
+        }
+      }
+    }
+
+    function moveToNextLineStart() {
+      const head = state.player.body[state.player.body.length - 1];
+      const newRow = Math.min(head.row + 1, GRID_ROWS - 1);
+      teleportPlayer({ row: newRow, col: 0 });
+    }
+
+    function moveToPrevLineEnd() {
+      const head = state.player.body[state.player.body.length - 1];
+      const newRow = Math.max(head.row - 1, 0);
+      teleportPlayer({ row: newRow, col: GRID_COLS - 1 });
+    }
+
+    // ===================
+    // BODY CONTROL
+    // ===================
+    function switchBodyPart(targetPart) {
+      state.player.activePart = targetPart;
+
+      // According to spec, z and c also trigger movement
+      if (targetPart === BodyPart.TAIL) {
+        movePlayer('LEFT');
+      } else if (targetPart === BodyPart.HEAD) {
+        movePlayer('RIGHT');
       }
     }
 
@@ -1102,9 +1554,38 @@
         return;
       }
 
-      // Handle movement (in-game or demo level)
+      // Handle in-game actions (or demo level)
       const isDemo = state.currentLevel && state.currentLevel.type === LevelType.DEMO;
       if (state.gameState === 'in-game' || isDemo) {
+
+        // Handle pending action (two-key sequences)
+        if (state.pendingAction === 'findCharForward') {
+          event.preventDefault();
+          state.pendingAction = null;
+          const targetPos = findAlphabet(key, 'forward');
+          if (targetPos) {
+            teleportPlayer(targetPos);
+            state.player.lastNonBasicMovement = MovementType.SIGIL;
+            state.player.lastSigilChar = key;
+            checkCollision();
+            render();
+          }
+          return;
+        } else if (state.pendingAction === 'findCharBackward') {
+          event.preventDefault();
+          state.pendingAction = null;
+          const targetPos = findAlphabet(key, 'backward');
+          if (targetPos) {
+            teleportPlayer(targetPos);
+            state.player.lastNonBasicMovement = MovementType.SIGIL;
+            state.player.lastSigilChar = key;
+            checkCollision();
+            render();
+          }
+          return;
+        }
+
+        // Basic movement
         if (key === state.keybindings.MOVE_LEFT) {
           event.preventDefault();
           movePlayer('LEFT');
@@ -1117,6 +1598,81 @@
         } else if (key === state.keybindings.MOVE_RIGHT) {
           event.preventDefault();
           movePlayer('RIGHT');
+        }
+
+        // Sigil movement - angle brackets
+        else if (key === state.keybindings.FIND_ANGLE_LEFT_BACKWARD) {
+          event.preventDefault();
+          const targetPos = findAngleBracket('<', 'backward');
+          if (targetPos) {
+            teleportPlayer(targetPos);
+            state.player.lastNonBasicMovement = MovementType.SIGIL;
+            checkCollision();
+            render();
+          }
+        } else if (key === state.keybindings.FIND_ANGLE_RIGHT_BACKWARD) {
+          event.preventDefault();
+          const targetPos = findAngleBracket('>', 'backward');
+          if (targetPos) {
+            teleportPlayer(targetPos);
+            state.player.lastNonBasicMovement = MovementType.SIGIL;
+            checkCollision();
+            render();
+          }
+        } else if (key === state.keybindings.FIND_ANGLE_LEFT_FORWARD) {
+          event.preventDefault();
+          const targetPos = findAngleBracket('<', 'forward');
+          if (targetPos) {
+            teleportPlayer(targetPos);
+            state.player.lastNonBasicMovement = MovementType.SIGIL;
+            checkCollision();
+            render();
+          }
+        } else if (key === state.keybindings.FIND_ANGLE_RIGHT_FORWARD) {
+          event.preventDefault();
+          const targetPos = findAngleBracket('>', 'forward');
+          if (targetPos) {
+            teleportPlayer(targetPos);
+            state.player.lastNonBasicMovement = MovementType.SIGIL;
+            checkCollision();
+            render();
+          }
+        }
+
+        // Sigil movement - alphabet (set pending action)
+        else if (key === state.keybindings.FIND_CHAR_FORWARD) {
+          event.preventDefault();
+          state.pendingAction = 'findCharForward';
+        } else if (key === state.keybindings.FIND_CHAR_BACKWARD) {
+          event.preventDefault();
+          state.pendingAction = 'findCharBackward';
+        }
+
+        // Repeater
+        else if (key === state.keybindings.REPEAT_BACKWARD) {
+          event.preventDefault();
+          repeatLastMovement('n');
+        } else if (key === state.keybindings.REPEAT_FORWARD_SKIP_LINE) {
+          event.preventDefault();
+          repeatLastMovement('m');
+        } else if (key === state.keybindings.REPEAT_BACKWARD_SKIP_LINE) {
+          event.preventDefault();
+          repeatLastMovement(',');
+        } else if (key === state.keybindings.REPEAT_FORWARD) {
+          event.preventDefault();
+          repeatLastMovement('.');
+        }
+
+        // Body control
+        else if (key === state.keybindings.SWITCH_TO_TAIL) {
+          event.preventDefault();
+          switchBodyPart(BodyPart.TAIL);
+        } else if (key === state.keybindings.SWITCH_TO_BODY) {
+          event.preventDefault();
+          switchBodyPart(BodyPart.BODY);
+        } else if (key === state.keybindings.SWITCH_TO_HEAD) {
+          event.preventDefault();
+          switchBodyPart(BodyPart.HEAD);
         }
       }
     }
