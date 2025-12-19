@@ -98,6 +98,14 @@
       color: #ffd700;
     }
 
+    .cell.obstacle {
+      color: #ff4444;
+    }
+
+    .cell.portal {
+      color: #ff00ff;
+    }
+
     /* Game Status */
     .status {
       margin-top: 20px;
@@ -278,6 +286,10 @@
     <!-- Out-of-game HUD: PREVIOUS, BEST, SETTINGS -->
     <div class="hud-out-of-game active" id="hud-out-of-game">
       <div class="hud-item">
+        <div class="hud-label">LEVEL</div>
+        <div class="hud-value" id="level-name">Demo Level</div>
+      </div>
+      <div class="hud-item">
         <div class="hud-label">PREVIOUS</div>
         <div class="hud-value" id="prev-time">-</div>
       </div>
@@ -298,7 +310,7 @@
   <div class="status">
     <div class="status-text" id="status-text">OUT OF GAME</div>
     <div class="status-hint">
-      Press <kbd>\</kbd> to start | <kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> to move | <kbd>Esc</kbd> settings
+      Press <kbd>\</kbd> to start | <kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> to move | <kbd>=</kbd><kbd>Backspace</kbd> level | <kbd>Esc</kbd> settings
     </div>
   </div>
 
@@ -346,6 +358,18 @@
             <span>Settings</span>
             <kbd>Esc</kbd>
           </div>
+          <div class="keybinding-item">
+            <span>Next Level</span>
+            <kbd>=</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Prev Level</span>
+            <kbd>Backspace</kbd>
+          </div>
+          <div class="keybinding-item">
+            <span>Randomize</span>
+            <kbd>]</kbd>
+          </div>
         </div>
       </div>
 
@@ -361,20 +385,23 @@
     const GRID_COLS = 10;
     const PLAYER_CHAR = '\u25A2';  // ▢
     const COLLECTABLE_CHAR = '\u2022';  // •
-    const PLAYER_START = { row: 2, col: 3 };
+    const OBSTACLE_CHAR = '\u2588';  // █
+    const PORTAL_CHAR = '\u25CB';  // ◯
 
-    // Fixed collectable positions
-    const FIXED_COLLECTABLES = [
-      { row: 1, col: 5 },
-      { row: 3, col: 7 },
-      { row: 5, col: 2 },
-      { row: 6, col: 8 },
-      { row: 7, col: 4 },
-      { row: 8, col: 1 },
-      { row: 2, col: 9 },
-      { row: 4, col: 4 },
-      { row: 9, col: 6 }
-    ];
+    // Item Types
+    const ItemType = {
+      COLLECTABLE: 'COLLECTABLE',
+      OBSTACLE: 'OBSTACLE',
+      PORTAL: 'PORTAL',
+      SIGIL: 'SIGIL'
+    };
+
+    // Level Types
+    const LevelType = {
+      DEMO: 'DEMO',
+      PREDEFINED: 'PREDEFINED',
+      DYNAMIC: 'DYNAMIC'
+    };
 
     const DIRECTION_VECTORS = {
       LEFT:  { row: 0,  col: -1 },
@@ -383,14 +410,116 @@
       RIGHT: { row: 0,  col: 1  }
     };
 
+    // Level order for switching
+    const LEVEL_ORDER = [
+      'demo',
+      'predefined_1',
+      'predefined_2',
+      'predefined_3',
+      'dynamic'
+    ];
+
+    // ===================
+    // LEVEL DEFINITIONS
+    // ===================
+    const LEVELS = {
+      demo: {
+        id: 'demo',
+        name: 'Demo Level',
+        type: LevelType.DEMO,
+        playerSpawn: { row: 2, col: 3 },
+        items: [
+          { type: ItemType.COLLECTABLE, position: { row: 1, col: 5 } },
+          { type: ItemType.COLLECTABLE, position: { row: 3, col: 7 } },
+          { type: ItemType.COLLECTABLE, position: { row: 5, col: 2 } },
+          { type: ItemType.COLLECTABLE, position: { row: 6, col: 8 } },
+          { type: ItemType.COLLECTABLE, position: { row: 7, col: 4 } },
+          { type: ItemType.COLLECTABLE, position: { row: 8, col: 1 } },
+          { type: ItemType.COLLECTABLE, position: { row: 2, col: 9 } },
+          { type: ItemType.COLLECTABLE, position: { row: 4, col: 4 } },
+          { type: ItemType.COLLECTABLE, position: { row: 9, col: 6 } }
+        ]
+      },
+      predefined_1: {
+        id: 'predefined_1',
+        name: 'Level 1',
+        type: LevelType.PREDEFINED,
+        playerSpawn: { row: 2, col: 3 },
+        items: [
+          { type: ItemType.COLLECTABLE, position: { row: 1, col: 5 } },
+          { type: ItemType.COLLECTABLE, position: { row: 3, col: 7 } },
+          { type: ItemType.COLLECTABLE, position: { row: 5, col: 2 } },
+          { type: ItemType.COLLECTABLE, position: { row: 6, col: 8 } },
+          { type: ItemType.COLLECTABLE, position: { row: 7, col: 4 } },
+          { type: ItemType.COLLECTABLE, position: { row: 8, col: 1 } },
+          { type: ItemType.COLLECTABLE, position: { row: 2, col: 9 } },
+          { type: ItemType.COLLECTABLE, position: { row: 4, col: 4 } },
+          { type: ItemType.COLLECTABLE, position: { row: 9, col: 6 } },
+          { type: ItemType.OBSTACLE, position: { row: 5, col: 5 } },
+          { type: ItemType.OBSTACLE, position: { row: 6, col: 5 } }
+        ]
+      },
+      predefined_2: {
+        id: 'predefined_2',
+        name: 'Level 2',
+        type: LevelType.PREDEFINED,
+        playerSpawn: { row: 5, col: 5 },
+        items: [
+          { type: ItemType.COLLECTABLE, position: { row: 0, col: 0 } },
+          { type: ItemType.COLLECTABLE, position: { row: 0, col: 9 } },
+          { type: ItemType.COLLECTABLE, position: { row: 9, col: 0 } },
+          { type: ItemType.COLLECTABLE, position: { row: 9, col: 9 } },
+          { type: ItemType.COLLECTABLE, position: { row: 2, col: 2 } },
+          { type: ItemType.COLLECTABLE, position: { row: 2, col: 7 } },
+          { type: ItemType.COLLECTABLE, position: { row: 7, col: 2 } },
+          { type: ItemType.COLLECTABLE, position: { row: 7, col: 7 } },
+          { type: ItemType.COLLECTABLE, position: { row: 4, col: 1 } },
+          { type: ItemType.OBSTACLE, position: { row: 5, col: 3 } },
+          { type: ItemType.OBSTACLE, position: { row: 5, col: 4 } },
+          { type: ItemType.OBSTACLE, position: { row: 5, col: 6 } },
+          { type: ItemType.OBSTACLE, position: { row: 5, col: 7 } },
+          { type: ItemType.PORTAL, position: { row: 1, col: 1 }, portalPairId: 1 },
+          { type: ItemType.PORTAL, position: { row: 8, col: 8 }, portalPairId: 1 }
+        ]
+      },
+      predefined_3: {
+        id: 'predefined_3',
+        name: 'Level 3',
+        type: LevelType.PREDEFINED,
+        playerSpawn: { row: 0, col: 0 },
+        items: [
+          { type: ItemType.COLLECTABLE, position: { row: 4, col: 4 } },
+          { type: ItemType.COLLECTABLE, position: { row: 4, col: 5 } },
+          { type: ItemType.COLLECTABLE, position: { row: 5, col: 4 } },
+          { type: ItemType.COLLECTABLE, position: { row: 5, col: 5 } },
+          { type: ItemType.COLLECTABLE, position: { row: 3, col: 3 } },
+          { type: ItemType.COLLECTABLE, position: { row: 3, col: 6 } },
+          { type: ItemType.COLLECTABLE, position: { row: 6, col: 3 } },
+          { type: ItemType.COLLECTABLE, position: { row: 6, col: 6 } },
+          { type: ItemType.COLLECTABLE, position: { row: 9, col: 9 } },
+          { type: ItemType.OBSTACLE, position: { row: 2, col: 2 } },
+          { type: ItemType.OBSTACLE, position: { row: 2, col: 7 } },
+          { type: ItemType.OBSTACLE, position: { row: 7, col: 2 } },
+          { type: ItemType.OBSTACLE, position: { row: 7, col: 7 } },
+          { type: ItemType.PORTAL, position: { row: 0, col: 9 }, portalPairId: 1 },
+          { type: ItemType.PORTAL, position: { row: 9, col: 0 }, portalPairId: 1 },
+          { type: ItemType.PORTAL, position: { row: 1, col: 5 }, portalPairId: 2 },
+          { type: ItemType.PORTAL, position: { row: 8, col: 5 }, portalPairId: 2 }
+        ]
+      }
+    };
+
     // ===================
     // STATE
     // ===================
     const state = {
       gameState: 'out-of-game',  // 'out-of-game' | 'in-game'
-      player: { ...PLAYER_START },
-      allCollectables: [],       // All 9 collectables
-      visibleCollectables: [],   // Currently displayed
+      currentLevel: null,
+      currentLevelId: 'demo',
+      player: { row: 2, col: 3 },
+      activeItems: [],           // Items currently in the level
+      allCollectables: [],       // All collectables (for tracking)
+      visibleCollectables: [],   // Currently displayed collectables
       elapsedTime: 0,            // Timer in seconds
       previousTime: null,
       bestTime: null,
@@ -404,7 +533,10 @@
         MOVE_UP: 'k',
         MOVE_RIGHT: 'l',
         TOGGLE_GAME: '\\',
-        SETTINGS: 'Escape'
+        SETTINGS: 'Escape',
+        NEXT_LEVEL: '=',
+        PREV_LEVEL: 'Backspace',
+        RANDOMIZE: ']'
       },
       maxDisplay: 5  // 0 or falsy = show all
     };
@@ -417,6 +549,7 @@
     const prevTimeEl = document.getElementById('prev-time');
     const bestTimeEl = document.getElementById('best-time');
     const remainingEl = document.getElementById('remaining');
+    const levelNameEl = document.getElementById('level-name');
     const statusTextEl = document.getElementById('status-text');
     const gameContainerEl = document.getElementById('game-container');
     const modalOverlayEl = document.getElementById('modal-overlay');
@@ -437,8 +570,7 @@
     // ===================
     function init() {
       createGrid();
-      generateCollectables();
-      updateVisibleCollectables();
+      loadLevel('demo');
       render();
       setupEventListeners();
     }
@@ -456,18 +588,165 @@
       }
     }
 
-    function generateCollectables() {
-      // Use fixed collectable positions
-      state.allCollectables = FIXED_COLLECTABLES.map(pos => ({ ...pos }));
+    // ===================
+    // LEVEL MANAGEMENT
+    // ===================
+    function loadLevel(levelId) {
+      state.currentLevelId = levelId;
+
+      // Handle dynamic level generation
+      if (levelId === 'dynamic' || (levelId.startsWith('dynamic_'))) {
+        state.currentLevel = generateDynamicLevel();
+      } else {
+        // Clone the level data
+        const levelTemplate = LEVELS[levelId];
+        state.currentLevel = {
+          id: levelTemplate.id,
+          name: levelTemplate.name,
+          type: levelTemplate.type,
+          playerSpawn: { ...levelTemplate.playerSpawn },
+          items: levelTemplate.items.map(item => ({
+            type: item.type,
+            position: { ...item.position },
+            portalPairId: item.portalPairId
+          }))
+        };
+      }
+
+      // Reset player position
+      state.player = { ...state.currentLevel.playerSpawn };
+
+      // Set active items
+      state.activeItems = [...state.currentLevel.items];
+
+      // Update collectables tracking
+      updateCollectablesTracking();
+      render();
+    }
+
+    function updateCollectablesTracking() {
+      // Extract all collectables from active items
+      state.allCollectables = state.activeItems
+        .filter(item => item.type === ItemType.COLLECTABLE)
+        .map(item => ({ ...item.position }));
+
+      updateVisibleCollectables();
     }
 
     function updateVisibleCollectables() {
+      // Get collectable items
+      const collectableItems = state.activeItems.filter(
+        item => item.type === ItemType.COLLECTABLE
+      );
+
       // Show up to maxDisplay collectables (0 or falsy = show all)
       if (state.maxDisplay > 0) {
-        state.visibleCollectables = state.allCollectables.slice(0, state.maxDisplay);
+        state.visibleCollectables = collectableItems.slice(0, state.maxDisplay);
       } else {
-        state.visibleCollectables = [...state.allCollectables];
+        state.visibleCollectables = [...collectableItems];
       }
+    }
+
+    function switchToNextLevel() {
+      const currentIndex = LEVEL_ORDER.indexOf(
+        state.currentLevelId === 'dynamic' || state.currentLevelId.startsWith('dynamic_')
+          ? 'dynamic'
+          : state.currentLevelId
+      );
+      const nextIndex = (currentIndex + 1) % LEVEL_ORDER.length;
+      loadLevel(LEVEL_ORDER[nextIndex]);
+    }
+
+    function switchToPrevLevel() {
+      const currentIndex = LEVEL_ORDER.indexOf(
+        state.currentLevelId === 'dynamic' || state.currentLevelId.startsWith('dynamic_')
+          ? 'dynamic'
+          : state.currentLevelId
+      );
+      const prevIndex = (currentIndex - 1 + LEVEL_ORDER.length) % LEVEL_ORDER.length;
+      loadLevel(LEVEL_ORDER[prevIndex]);
+    }
+
+    function randomizeLevel() {
+      if (state.currentLevel.type === LevelType.DYNAMIC) {
+        loadLevel('dynamic');
+      }
+    }
+
+    function generateDynamicLevel() {
+      const collectableCount = 9;
+      const obstacleDensity = 0.10;
+      const portalPairs = 1;
+
+      const items = [];
+      const usedPositions = new Set();
+
+      // Helper to get random empty position
+      function getRandomPosition() {
+        for (let attempts = 0; attempts < 100; attempts++) {
+          const row = Math.floor(Math.random() * GRID_ROWS);
+          const col = Math.floor(Math.random() * GRID_COLS);
+          const key = `${row},${col}`;
+          if (!usedPositions.has(key)) {
+            usedPositions.add(key);
+            return { row, col };
+          }
+        }
+        return null;
+      }
+
+      // Place player spawn (center)
+      const playerSpawn = { row: Math.floor(GRID_ROWS / 2), col: Math.floor(GRID_COLS / 2) };
+      usedPositions.add(`${playerSpawn.row},${playerSpawn.col}`);
+
+      // Place obstacles
+      const obstacleCount = Math.floor(GRID_ROWS * GRID_COLS * obstacleDensity);
+      for (let i = 0; i < obstacleCount; i++) {
+        const pos = getRandomPosition();
+        if (pos) {
+          items.push({
+            type: ItemType.OBSTACLE,
+            position: pos
+          });
+        }
+      }
+
+      // Place collectables
+      for (let i = 0; i < collectableCount; i++) {
+        const pos = getRandomPosition();
+        if (pos) {
+          items.push({
+            type: ItemType.COLLECTABLE,
+            position: pos
+          });
+        }
+      }
+
+      // Place portal pairs
+      for (let pairId = 1; pairId <= portalPairs; pairId++) {
+        const pos1 = getRandomPosition();
+        const pos2 = getRandomPosition();
+        if (pos1 && pos2) {
+          items.push({
+            type: ItemType.PORTAL,
+            position: pos1,
+            portalPairId: pairId
+          });
+          items.push({
+            type: ItemType.PORTAL,
+            position: pos2,
+            portalPairId: pairId
+          });
+        }
+      }
+
+      return {
+        id: 'dynamic_' + Date.now(),
+        name: 'Random Level',
+        type: LevelType.DYNAMIC,
+        playerSpawn: playerSpawn,
+        items: items
+      };
     }
 
     // ===================
@@ -481,20 +760,42 @@
         cell.className = 'cell';
       });
 
-      // Render collectables
-      state.visibleCollectables.forEach(coll => {
-        const cell = getCell(coll.row, coll.col);
+      // Render obstacles (always visible)
+      state.activeItems.forEach(item => {
+        if (item.type === ItemType.OBSTACLE) {
+          const cell = getCell(item.position.row, item.position.col);
+          if (cell) {
+            cell.textContent = OBSTACLE_CHAR;
+            cell.classList.add('obstacle');
+          }
+        }
+      });
+
+      // Render portals (always visible)
+      state.activeItems.forEach(item => {
+        if (item.type === ItemType.PORTAL) {
+          const cell = getCell(item.position.row, item.position.col);
+          if (cell) {
+            cell.textContent = PORTAL_CHAR;
+            cell.classList.add('portal');
+          }
+        }
+      });
+
+      // Render visible collectables
+      state.visibleCollectables.forEach(item => {
+        const cell = getCell(item.position.row, item.position.col);
         if (cell) {
           cell.textContent = COLLECTABLE_CHAR;
           cell.classList.add('collectable');
         }
       });
 
-      // Render player
+      // Render player (always on top)
       const playerCell = getCell(state.player.row, state.player.col);
       if (playerCell) {
         playerCell.textContent = PLAYER_CHAR;
-        playerCell.classList.remove('collectable');
+        playerCell.classList.remove('collectable', 'obstacle', 'portal');
         playerCell.classList.add('player');
       }
 
@@ -517,6 +818,11 @@
       // Update remaining
       remainingEl.textContent = state.allCollectables.length;
 
+      // Update level name
+      if (state.currentLevel) {
+        levelNameEl.textContent = state.currentLevel.name;
+      }
+
       // Toggle HUD display based on game state
       if (state.gameState === 'in-game') {
         hudInGameEl.classList.add('active');
@@ -535,6 +841,11 @@
     // GAME LOGIC
     // ===================
     function toggleGame() {
+      // Demo level cannot be formally started
+      if (state.currentLevel && state.currentLevel.type === LevelType.DEMO) {
+        return;
+      }
+
       if (state.gameState === 'out-of-game') {
         startGame();
       } else {
@@ -544,12 +855,13 @@
 
     function startGame() {
       state.gameState = 'in-game';
-      state.player = { ...PLAYER_START };
+      state.player = { ...state.currentLevel.playerSpawn };
       state.elapsedTime = 0;
       state.lastFrameTime = performance.now();
-      generateCollectables();
-      updateVisibleCollectables();
-      render();
+
+      // Reload level to reset items
+      loadLevel(state.currentLevelId);
+
       gameLoop();
     }
 
@@ -579,7 +891,9 @@
     }
 
     function movePlayer(direction) {
-      if (state.gameState !== 'in-game') return;
+      // Movement works in both states for demo level
+      const isDemo = state.currentLevel && state.currentLevel.type === LevelType.DEMO;
+      if (state.gameState !== 'in-game' && !isDemo) return;
 
       const vec = DIRECTION_VECTORS[direction];
       const newRow = state.player.row + vec.row;
@@ -590,41 +904,91 @@
         return;  // Stay in place
       }
 
+      // Check for obstacle collision
+      const obstacleAtPos = state.activeItems.find(
+        item => item.type === ItemType.OBSTACLE &&
+                item.position.row === newRow &&
+                item.position.col === newCol
+      );
+      if (obstacleAtPos) {
+        return;  // Blocked by obstacle
+      }
+
       // Move player
       state.player.row = newRow;
       state.player.col = newCol;
 
-      // Check collision with collectables
+      // Check collision with items
       checkCollision();
 
       render();
 
-      // Check win condition
-      if (state.allCollectables.length === 0) {
+      // Check win condition (not for demo level)
+      if (!isDemo && state.allCollectables.length === 0) {
         stopGame();
       }
     }
 
     function checkCollision() {
-      // Check visible collectables first
-      const visibleIndex = state.visibleCollectables.findIndex(
-        c => c.row === state.player.row && c.col === state.player.col
+      // Check for collectable pickup
+      const collectableIndex = state.activeItems.findIndex(
+        item => item.type === ItemType.COLLECTABLE &&
+                item.position.row === state.player.row &&
+                item.position.col === state.player.col
       );
 
-      if (visibleIndex !== -1) {
-        // Remove from visible
-        state.visibleCollectables.splice(visibleIndex, 1);
+      if (collectableIndex !== -1) {
+        // Remove collectable from active items
+        state.activeItems.splice(collectableIndex, 1);
 
-        // Remove from all collectables
-        const allIndex = state.allCollectables.findIndex(
-          c => c.row === state.player.row && c.col === state.player.col
-        );
-        if (allIndex !== -1) {
-          state.allCollectables.splice(allIndex, 1);
+        // Update tracking
+        updateCollectablesTracking();
+
+        // Demo level: auto-respawn collectables
+        if (state.currentLevel.type === LevelType.DEMO && state.allCollectables.length === 0) {
+          respawnDemoCollectables();
         }
+      }
 
-        // Update visible collectables (show next one if available)
-        updateVisibleCollectables();
+      // Check for portal collision
+      const portalAtPos = state.activeItems.find(
+        item => item.type === ItemType.PORTAL &&
+                item.position.row === state.player.row &&
+                item.position.col === state.player.col
+      );
+
+      if (portalAtPos) {
+        teleportThroughPortal(portalAtPos);
+      }
+    }
+
+    function respawnDemoCollectables() {
+      // Re-add all collectables from the demo level template
+      const demoTemplate = LEVELS.demo;
+      const newCollectables = demoTemplate.items
+        .filter(item => item.type === ItemType.COLLECTABLE)
+        .map(item => ({
+          type: item.type,
+          position: { ...item.position }
+        }));
+
+      state.activeItems.push(...newCollectables);
+      updateCollectablesTracking();
+    }
+
+    function teleportThroughPortal(portal) {
+      // Find the paired portal
+      const pairedPortal = state.activeItems.find(
+        item => item.type === ItemType.PORTAL &&
+                item.portalPairId === portal.portalPairId &&
+                !(item.position.row === portal.position.row &&
+                  item.position.col === portal.position.col)
+      );
+
+      if (pairedPortal) {
+        // Teleport player to paired portal position
+        state.player.row = pairedPortal.position.row;
+        state.player.col = pairedPortal.position.col;
       }
     }
 
@@ -714,6 +1078,23 @@
         return;
       }
 
+      // Handle level switching (only when out-of-game)
+      if (state.gameState === 'out-of-game') {
+        if (key === state.keybindings.NEXT_LEVEL) {
+          event.preventDefault();
+          switchToNextLevel();
+          return;
+        } else if (key === state.keybindings.PREV_LEVEL) {
+          event.preventDefault();
+          switchToPrevLevel();
+          return;
+        } else if (key === state.keybindings.RANDOMIZE) {
+          event.preventDefault();
+          randomizeLevel();
+          return;
+        }
+      }
+
       // Handle game toggle
       if (key === state.keybindings.TOGGLE_GAME) {
         event.preventDefault();
@@ -721,8 +1102,9 @@
         return;
       }
 
-      // Handle movement (only in-game)
-      if (state.gameState === 'in-game') {
+      // Handle movement (in-game or demo level)
+      const isDemo = state.currentLevel && state.currentLevel.type === LevelType.DEMO;
+      if (state.gameState === 'in-game' || isDemo) {
         if (key === state.keybindings.MOVE_LEFT) {
           event.preventDefault();
           movePlayer('LEFT');
