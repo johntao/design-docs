@@ -79,7 +79,7 @@ Keybindings are stored per save slot:
 
 only the user-defined part are saved (i.e. no need to store the settings if it is identical to the system default)
 
-## 100:picker
+## 100:score-booster
 
 inherit all features from [core](#000core)
 

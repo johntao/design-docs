@@ -1,5 +1,41 @@
 # config-gameplay
 
+## a00:index
+
+### a10:how game mode works
+
+the [core game mode](#000core) is the base game mode having the following game flow:
+- game start, a stopwatch start
+- coins rendered at once
+- player collect the last coin
+- stopwatch stop, game end
+
+the [score-booster mode](#100score-booster) is a special game mode that introduce several score-boosting rules, and a countdown timer
+here's the game flow:
+- game start, a countdown timer start
+- coins keep rendering
+- player keep collecting coins
+- timer stop, game end
+
+the [filler mode](#200filler) is a special game mode that works very similar to the base gameplay with extra feature set
+game flow is identical to [core game mode](#000core)
+the main feature of this mode: picking up coins would also color the cells
+
+the [snake mode](#300snake) is a special game mode that works very similar to [score-booster](#100score-booster) with a different feature set
+game flow is identical to [score-booster mode](#100score-booster)
+the main feature of this mode: length of the player is increased by 1 each time the player collect a coin
+
+
+### a20:design decision
+
+it is obvious that some of the features may work interchangeably across different modes
+for example:
+- score-booster mode may also use a stopwatch, and rendered limited amount of coins
+- enable snake feature in score-booster mode
+- filler mode may also use a countdown timer, enabling all the score-booster features
+however, this type of freedom or feature mixin might cause significantly negative impact on the game experience
+this is designer's duty to reduce player's cognitive load, and make the opinionated design decisions to maximize the game experience
+
 ## 000:core
 
 Picker (or pick-up) mode is the basic game mode where the game drops collectables at random or fixed positions on the view.
@@ -214,18 +250,6 @@ Filler mode is an alternative game mode with the following features:
     - Colors are special collectables that don't give extra score, and they will keep respawning in a few steps (configurable)
 
 All the levels in filler mode are pre-defined; thus, there's no score-based gameplay. The only endgame condition is to clear the level in as few seconds as possible (i.e., the shortest time possible).
-
-### 210:Exclusion
-
-- Filler mode should disable items#180
-  - The reason is that filler mode introduces more collectable interaction
-  - Allowing the player to extend body length will make the game over-complicated
-- All maps are statically generated; doesn't support randomly generated maps
-  - Thus, there will be no score-based gameplay available
-  - Only speed-based gameplay is available
-- No need to implement items#510
-  - The reason is that fog of war works best with randomly generated maps
-  - No need to handicap players for speed-based mode
 
 ### 220:proposal 1
 
