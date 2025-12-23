@@ -459,6 +459,7 @@
     </div>
   </div>
 
+  <script src="levels.js"></script>
   <script>
     // ===================
     // CONSTANTS
@@ -478,28 +479,6 @@
     // Body expansion limits
     const MIN_BODY_LENGTH = 1;
     const MAX_BODY_LENGTH = 5;
-
-    // Item Types
-    const ItemType = {
-      COLLECTABLE: 'COLLECTABLE',
-      OBSTACLE: 'OBSTACLE',
-      PORTAL: 'PORTAL',
-      SIGIL: 'SIGIL'
-    };
-
-    // Level Types
-    const LevelType = {
-      DEMO: 'DEMO',
-      PREDEFINED: 'PREDEFINED',
-      DYNAMIC: 'DYNAMIC'
-    };
-
-    // Sigil Subtypes
-    const SigilSubtype = {
-      ANGLE_LEFT: 'ANGLE_LEFT',
-      ANGLE_RIGHT: 'ANGLE_RIGHT',
-      ALPHABET: 'ALPHABET'
-    };
 
     // Body Parts
     const BodyPart = {
@@ -521,115 +500,6 @@
       DOWN:  { row: 1,  col: 0  },
       UP:    { row: -1, col: 0  },
       RIGHT: { row: 0,  col: 1  }
-    };
-
-    // Level order for switching
-    const LEVEL_ORDER = [
-      'demo',
-      'predefined_1',
-      'predefined_2',
-      'predefined_3',
-      'dynamic'
-    ];
-
-    // ===================
-    // LEVEL DEFINITIONS
-    // ===================
-    const LEVELS = {
-      demo: {
-        id: 'demo',
-        name: 'Demo Level',
-        type: LevelType.DEMO,
-        playerSpawn: { row: 2, col: 3 },
-        items: [
-          { type: ItemType.COLLECTABLE, position: { row: 1, col: 5 } },
-          { type: ItemType.COLLECTABLE, position: { row: 3, col: 7 } },
-          { type: ItemType.COLLECTABLE, position: { row: 5, col: 2 } },
-          { type: ItemType.COLLECTABLE, position: { row: 6, col: 8 } },
-          { type: ItemType.COLLECTABLE, position: { row: 7, col: 4 } },
-          { type: ItemType.COLLECTABLE, position: { row: 8, col: 1 } },
-          { type: ItemType.COLLECTABLE, position: { row: 2, col: 9 } },
-          { type: ItemType.COLLECTABLE, position: { row: 4, col: 4 } },
-          { type: ItemType.COLLECTABLE, position: { row: 9, col: 6 } }
-        ]
-      },
-      predefined_1: {
-        id: 'predefined_1',
-        name: 'Level 1',
-        type: LevelType.PREDEFINED,
-        playerSpawn: { row: 2, col: 3 },
-        items: [
-          { type: ItemType.COLLECTABLE, position: { row: 1, col: 5 } },
-          { type: ItemType.COLLECTABLE, position: { row: 3, col: 7 } },
-          { type: ItemType.COLLECTABLE, position: { row: 5, col: 2 } },
-          { type: ItemType.COLLECTABLE, position: { row: 6, col: 8 } },
-          { type: ItemType.COLLECTABLE, position: { row: 7, col: 4 } },
-          { type: ItemType.COLLECTABLE, position: { row: 8, col: 1 } },
-          { type: ItemType.COLLECTABLE, position: { row: 2, col: 9 } },
-          { type: ItemType.COLLECTABLE, position: { row: 4, col: 4 } },
-          { type: ItemType.COLLECTABLE, position: { row: 9, col: 6 } },
-          { type: ItemType.OBSTACLE, position: { row: 5, col: 5 } },
-          { type: ItemType.OBSTACLE, position: { row: 6, col: 5 } },
-          { type: ItemType.SIGIL, position: { row: 0, col: 0 }, sigilSubtype: SigilSubtype.ANGLE_LEFT },
-          { type: ItemType.SIGIL, position: { row: 0, col: 9 }, sigilSubtype: SigilSubtype.ANGLE_RIGHT },
-          { type: ItemType.SIGIL, position: { row: 9, col: 0 }, sigilSubtype: SigilSubtype.ANGLE_LEFT },
-          { type: ItemType.SIGIL, position: { row: 9, col: 9 }, sigilSubtype: SigilSubtype.ANGLE_RIGHT }
-        ]
-      },
-      predefined_2: {
-        id: 'predefined_2',
-        name: 'Level 2',
-        type: LevelType.PREDEFINED,
-        playerSpawn: { row: 5, col: 5 },
-        items: [
-          { type: ItemType.COLLECTABLE, position: { row: 0, col: 0 } },
-          { type: ItemType.COLLECTABLE, position: { row: 0, col: 9 } },
-          { type: ItemType.COLLECTABLE, position: { row: 9, col: 0 } },
-          { type: ItemType.COLLECTABLE, position: { row: 9, col: 9 } },
-          { type: ItemType.COLLECTABLE, position: { row: 2, col: 2 } },
-          { type: ItemType.COLLECTABLE, position: { row: 2, col: 7 } },
-          { type: ItemType.COLLECTABLE, position: { row: 7, col: 2 } },
-          { type: ItemType.COLLECTABLE, position: { row: 7, col: 7 } },
-          { type: ItemType.COLLECTABLE, position: { row: 4, col: 1 } },
-          { type: ItemType.OBSTACLE, position: { row: 5, col: 3 } },
-          { type: ItemType.OBSTACLE, position: { row: 5, col: 4 } },
-          { type: ItemType.OBSTACLE, position: { row: 5, col: 6 } },
-          { type: ItemType.OBSTACLE, position: { row: 5, col: 7 } },
-          { type: ItemType.PORTAL, position: { row: 1, col: 1 }, portalPairId: 1 },
-          { type: ItemType.PORTAL, position: { row: 8, col: 8 }, portalPairId: 1 },
-          { type: ItemType.SIGIL, position: { row: 1, col: 5 }, sigilSubtype: SigilSubtype.ANGLE_LEFT },
-          { type: ItemType.SIGIL, position: { row: 8, col: 5 }, sigilSubtype: SigilSubtype.ANGLE_RIGHT },
-          { type: ItemType.SIGIL, position: { row: 3, col: 1 }, sigilSubtype: SigilSubtype.ALPHABET, sigilChar: 'a' },
-          { type: ItemType.SIGIL, position: { row: 3, col: 8 }, sigilSubtype: SigilSubtype.ALPHABET, sigilChar: 'b' },
-          { type: ItemType.SIGIL, position: { row: 6, col: 1 }, sigilSubtype: SigilSubtype.ALPHABET, sigilChar: 'c' },
-          { type: ItemType.SIGIL, position: { row: 6, col: 8 }, sigilSubtype: SigilSubtype.ALPHABET, sigilChar: 'd' }
-        ]
-      },
-      predefined_3: {
-        id: 'predefined_3',
-        name: 'Level 3',
-        type: LevelType.PREDEFINED,
-        playerSpawn: { row: 0, col: 0 },
-        items: [
-          { type: ItemType.COLLECTABLE, position: { row: 4, col: 4 } },
-          { type: ItemType.COLLECTABLE, position: { row: 4, col: 5 } },
-          { type: ItemType.COLLECTABLE, position: { row: 5, col: 4 } },
-          { type: ItemType.COLLECTABLE, position: { row: 5, col: 5 } },
-          { type: ItemType.COLLECTABLE, position: { row: 3, col: 3 } },
-          { type: ItemType.COLLECTABLE, position: { row: 3, col: 6 } },
-          { type: ItemType.COLLECTABLE, position: { row: 6, col: 3 } },
-          { type: ItemType.COLLECTABLE, position: { row: 6, col: 6 } },
-          { type: ItemType.COLLECTABLE, position: { row: 9, col: 9 } },
-          { type: ItemType.OBSTACLE, position: { row: 2, col: 2 } },
-          { type: ItemType.OBSTACLE, position: { row: 2, col: 7 } },
-          { type: ItemType.OBSTACLE, position: { row: 7, col: 2 } },
-          { type: ItemType.OBSTACLE, position: { row: 7, col: 7 } },
-          { type: ItemType.PORTAL, position: { row: 0, col: 9 }, portalPairId: 1 },
-          { type: ItemType.PORTAL, position: { row: 9, col: 0 }, portalPairId: 1 },
-          { type: ItemType.PORTAL, position: { row: 1, col: 5 }, portalPairId: 2 },
-          { type: ItemType.PORTAL, position: { row: 8, col: 5 }, portalPairId: 2 }
-        ]
-      }
     };
 
     // ===================
@@ -1036,8 +906,10 @@
     // GAME LOGIC
     // ===================
     function toggleGame() {
-      // Demo level cannot be formally started
-      if (state.currentLevel && state.currentLevel.type === LevelType.DEMO) {
+      // Demo and Tutorial levels cannot be formally started
+      if (state.currentLevel &&
+          (state.currentLevel.type === LevelType.DEMO ||
+           state.currentLevel.type === LevelType.TUTORIAL)) {
         return;
       }
 
@@ -1085,9 +957,11 @@
     }
 
     function movePlayer(direction) {
-      // Movement works in both states for demo level
-      const isDemo = state.currentLevel && state.currentLevel.type === LevelType.DEMO;
-      if (state.gameState !== 'in-game' && !isDemo) return;
+      // Movement works in both states for demo and tutorial levels
+      const isPracticeLevel = state.currentLevel &&
+        (state.currentLevel.type === LevelType.DEMO ||
+         state.currentLevel.type === LevelType.TUTORIAL);
+      if (state.gameState !== 'in-game' && !isPracticeLevel) return;
 
       const vec = DIRECTION_VECTORS[direction];
       const head = state.player.body[state.player.body.length - 1];
@@ -1119,8 +993,8 @@
 
       render();
 
-      // Check win condition (not for demo level)
-      if (!isDemo && state.allCollectables.length === 0) {
+      // Check win condition (not for demo or tutorial levels)
+      if (!isPracticeLevel && state.allCollectables.length === 0) {
         stopGame();
       }
     }
@@ -1228,9 +1102,11 @@
         // Update tracking
         updateCollectablesTracking();
 
-        // Demo level: auto-respawn collectables
-        if (state.currentLevel.type === LevelType.DEMO && state.allCollectables.length === 0) {
-          respawnDemoCollectables();
+        // Demo and Tutorial levels: auto-respawn collectables
+        if ((state.currentLevel.type === LevelType.DEMO ||
+             state.currentLevel.type === LevelType.TUTORIAL) &&
+            state.allCollectables.length === 0) {
+          respawnPracticeLevelCollectables();
         }
       }
 
@@ -1248,10 +1124,10 @@
       }
     }
 
-    function respawnDemoCollectables() {
-      // Re-add all collectables from the demo level template
-      const demoTemplate = LEVELS.demo;
-      const newCollectables = demoTemplate.items
+    function respawnPracticeLevelCollectables() {
+      // Re-add all collectables from the current level template
+      const levelTemplate = LEVELS[state.currentLevelId];
+      const newCollectables = levelTemplate.items
         .filter(item => item.type === ItemType.COLLECTABLE)
         .map(item => ({
           type: item.type,
@@ -1554,9 +1430,11 @@
         return;
       }
 
-      // Handle in-game actions (or demo level)
-      const isDemo = state.currentLevel && state.currentLevel.type === LevelType.DEMO;
-      if (state.gameState === 'in-game' || isDemo) {
+      // Handle in-game actions (or demo/tutorial level)
+      const isPracticeLevel = state.currentLevel &&
+        (state.currentLevel.type === LevelType.DEMO ||
+         state.currentLevel.type === LevelType.TUTORIAL);
+      if (state.gameState === 'in-game' || isPracticeLevel) {
 
         // Handle pending action (two-key sequences)
         if (state.pendingAction === 'findCharForward') {

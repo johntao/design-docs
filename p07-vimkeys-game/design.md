@@ -1,39 +1,69 @@
-# Design Document
+# The Vimkeys Game
 
-## The Vimkeys Game
 This game is a combination of VIM keybindings and Snake-like gameplay.
 
-### The Basic Gameplay:
+### b60:Player Initialization
+
+When a game starts, the player must be initialized with the following properties:
+
+#### b61:Starting Position
+- **Picker Mode (Random Level):** Player spawns at a random unoccupied cell, or at the center of the grid if unoccupied
+- **Picker Mode (Fixed Level):** Player spawns at a predefined position specified in the level data
+- **Filler Mode:** Player spawns at a predefined position specified in the level data
+
+#### b62:Initial State
+| Property         | Initial Value | Notes                                 |
+| ---------------- | ------------- | ------------------------------------- |
+| Body Length      | 1             | Single cell occupied                  |
+| Active Part      | Head          | For body length > 1 scenarios         |
+| Score            | 0             | -                                     |
+| Combo Streak     | 0             | If combo system is enabled            |
+| Current Color    | None          | For Filler mode only                  |
+
+#### b63:Spawn Constraints
+- The spawn cell must not contain an obstacle
+- The spawn cell must not contain a portal (to avoid immediate teleportation)
+- For random levels, ensure at least one collectable is reachable from spawn position
+
+Index
+- 000:game-core:intro
+- b00:game-core:flow
+- 100:action-movement:core
+- c00:action-movement:backlog
+- d00:action-movement:snake
+- a00:config-gameplay:core
+- 200:config-gameplay:picker-mode
+  - keywords: picker, filler, timer, remain-counter, win-loss-condition
+- 700:config-gameplay:filler-mode
+- e00:config-gameplay:snake-mode
+- 800:level-design
+- 300:config-keybinding
+  - keywords: keybinding
+- 400:visual-background
+  - keywords: map, grid, view
+- 500:visual-foreground
+  - keywords: item, player, collectable, sigil, obstacle, portal
+  - quick definition: foreground refers to items rendered in a cell
+  - to-be-defined: type and maximum amount of items that can be rendered in the same cell
+- 600:visual-hud
+  - keywords: score board, configuration modal
+
+## 000:game-core:intro
+
+### 010:The Basic Gameplay
 
 The player uses VIM keybindings to move in a grid-like map.
 The game scatters collectables at fixed (or random) positions across the view.
 If a timer is used, the game ends when the timer hits zero.
 Otherwise, the game ends when the last collectable is picked up.
 
-### What Makes This Game Unique and Fun:
+#### 011:What Makes This Game Unique and Fun:
 The game contains rich movement actions and gameplay options.
 The player can configure all the keybindings and gameplay as they wish.
 The goal is to let players learn what keybindings and gameplay work best for themselves.
 
-### The Major Components of This Game:
 
-- 100: action-movement
-- 200: config-gameplay (picker mode)
-  - keywords: picker, filler, timer, remain-counter, win-loss-condition
-- 300: config-keybinding
-  - keywords: keybinding
-- 400: visual-background
-  - keywords: map, grid, view
-- 500: visual-foreground
-  - keywords: item, player, collectable, sigil, obstacle, portal
-  - quick definition: foreground refers to items rendered in a cell
-  - to-be-defined: type and maximum amount of items that can be rendered in the same cell
-- 600: visual-hud
-  - keywords: score board, configuration modal
-- 700: config-gameplay (filler mode)
-- 800: level design
-
-### Keywords and Definitions:
+### 020:Keywords and Definitions:
 - **item** => anything rendered inside a cell is an item (visual foreground)
   - e.g. collectable items, sigils with special functions
     - hyperlinks, portals, obstacles (the player cannot step onto an obstacle)
@@ -56,7 +86,7 @@ The goal is to let players learn what keybindings and gameplay work best for the
 - **hyperlink** => links to a cell of the current view
   - Or links to another view
 
-## Design Principles
+### 030:Design Principles
 
 - **This should be fast-paced gameplay**
   - i.e., every keystroke should impact the game progress to some degree
@@ -73,9 +103,9 @@ The goal is to let players learn what keybindings and gameplay work best for the
   - Spamming the same obvious strategy to beat every level will significantly decrease the gaming experience
   - e.g., a "go back" shortcut that allows the player to navigate back to the previous view anytime and anywhere
 
-## Game Flow
+## b00:game-core:flow
 
-### Game Mode Selector
+### b10:Game Mode Selector
 
 Before gameplay begins, the player selects a game mode. This is a higher-order switch that replaces the entire game configuration:
 
@@ -84,7 +114,7 @@ Before gameplay begins, the player selects a game mode. This is a higher-order s
 | Picker | Default mode. Pick up collectables on the view.  | [items#200](#200-config-gameplay-picker-mode)  |
 | Filler | Match colors to clear collectables.              | items#700  |
 
-### State Machine
+### b20:State Machine
 
 ```
 ┌─────────────┐     \     ┌─────────────┐
@@ -111,7 +141,7 @@ Only two game states exist:
     - Configuration modal popup (access keybindings and gameplay settings)
     - Level switch
 
-### Reserved Keybindings
+### b30:Reserved Keybindings
 
 These keybindings are always active and cannot be remapped:
 
@@ -124,7 +154,7 @@ These keybindings are always active and cannot be remapped:
 | `Escape`      | Open/close settings menu                            |
 | `Enter`       | Confirm selections in menus                         |
 
-### Level Switch
+### b40:Level Switch
 
 Players can cycle through levels using `=` and `<backspace>`:
 
@@ -136,7 +166,7 @@ Players can cycle through levels using `=` and `<backspace>`:
 | Predefined Level 3       | Fixed level with preset layout.                                                                 |
 | Dynamic Generated Level  | Randomly generated level. Press `]` to regenerate.                                              |
 
-#### Demo Level Details
+#### b41:Demo Level Details
 
 The demo level is a special sandbox mode:
 - **Cannot be started** (the `\` key has no effect; the level is always in a playable state without entering formal In-Game mode)
@@ -144,14 +174,14 @@ The demo level is a special sandbox mode:
 - **Supported features**: Pick up collectables, obstacles, portals, all movement actions
 - **Unsupported features**: Combo system, score calculation, win/loss conditions
 
-### Transitions
+### b50:Transitions
 
 | From       | To         | Trigger              |
 | ---------- | ---------- | -------------------- |
 | Out-of-Game | In-Game   | Player presses `\`   |
 | In-Game    | Out-of-Game | Player presses `\` or win condition met |
 
-### Win/Loss Conditions Summary
+### b60:Win/Loss Conditions Summary
 
 | Mode   | Sub-mode                      | Win Condition                          | Loss Condition | Score Calculation                   |
 | ------ | ----------------------------- | -------------------------------------- | -------------- | ----------------------------------- |
@@ -166,69 +196,60 @@ The demo level is a special sandbox mode:
 - Filler mode is always speed-based (fastest completion time wins)
 - See items#236 for detailed scoring formulas
 
-## 100: Action-Movement
+## 100:action-movement:core
 
 The basic movement is `hjkl`, which moves the player one cell at a time inside the grid.
 `hjkl` borrows the conventional directions from VIM: left, down, up, right.
 
-### 105: Player Initialization
-
-When a game starts, the player must be initialized with the following properties:
-
-#### Starting Position
-- **Picker Mode (Random Level):** Player spawns at a random unoccupied cell, or at the center of the grid if unoccupied
-- **Picker Mode (Fixed Level):** Player spawns at a predefined position specified in the level data
-- **Filler Mode:** Player spawns at a predefined position specified in the level data
-
-#### Initial State
-| Property         | Initial Value | Notes                                 |
-| ---------------- | ------------- | ------------------------------------- |
-| Body Length      | 1             | Single cell occupied                  |
-| Active Part      | Head          | For body length > 1 scenarios         |
-| Score            | 0             | -                                     |
-| Combo Streak     | 0             | If combo system is enabled            |
-| Current Color    | None          | For Filler mode only                  |
-
-#### Spawn Constraints
-- The spawn cell must not contain an obstacle
-- The spawn cell must not contain a portal (to avoid immediate teleportation)
-- For random levels, ensure at least one collectable is reachable from spawn position
-
-### 110: Collision
+### 110:Collision
 
 There are a few meanings of "collision" in this game.
 The basic concept is that the player moves from cell A to cell B; if cell B contains another item, then the player "collides" with the item.
-Let's expand on this statement:
-- **111**: If the distance between A and B is greater than 1, this indicates the movement traverses multiple cells at a time
-  - This indicates the collision might occur multiple times during the process
-- **112**: A movement action might be teleportable
-  - If the movement action is teleportable, then only the destination cell is considered collidable
-  - i.e., all collisions between cell A and cell B are ignored
-- **113**: It is possible to set an item as non-collidable, which means it doesn't trigger a collision event even if the collision occurs
-  - Collectables and obstacles are collidable
-  - Sigils are non-collidable
-  - If multiple collidable items occupy the same cell, all collision events for that cell are triggered
-- **114**: Collisions are basically events defined by the engine
-  - When a player collides with a collectable: the player picks up the collectable
-    - Remove the collectable from the screen, score + 1
-  - When a player collides with an obstacle: push back the player in the opposite direction from where they came
-    - i.e., the player cannot step onto an obstacle
-- **115**: If cell B is out of bounds of the current grid, it should also trigger a boundary-collision event
-  - The default behavior is to move the player to the boundary (a viable cell) of the grid
+Let's expand on this statement further
 
-#### Edge Case
+#### 111:multiple collision
+
+If the distance between A and B is greater than 1, this indicates the movement traverses multiple cells at a time
+This indicates the collision might occur multiple times during the process
+
+#### 112:teleportable movement
+
+If the movement action is teleportable, then only the destination cell is considered collidable
+i.e., all collisions between cell A and cell B are ignored
+
+#### 113:non-collidable item
+
+It is possible to set an item as non-collidable, which means it doesn't trigger a collision event even if the collision occurs
+- Collectables and obstacles are collidable
+- Sigils are non-collidable
+- If multiple collidable items occupy the same cell, all collision events for that cell are triggered
+
+#### 114:collision as event
+
+Collisions are basically events defined by the engine
+- When a player collides with a collectable: the player picks up the collectable
+  - Remove the collectable from the screen, score + 1
+- When a player collides with an obstacle: push back the player in the opposite direction from where they came
+  - i.e., the player cannot step onto an obstacle
+
+#### 115:collide on boundary
+
+If cell B is out of bounds of the current grid, it should also trigger a boundary-collision event
+The default behavior of the event is to move the player to a viable cell which is closest to the boundary
+
+#### 116:A Test Case
 
 The player moves from cell A to cell C; cell B sits between A and C.
 Cell B contains an obstacle.
 The movement type is teleport.
 Expectation: The player should teleport to cell C without being blocked by the obstacle in cell B.
 
-### 120: Basic Movement
+### 120:Basic Movement
 
 Props:
 - collidible: true
 
-#### Edge Case
+#### 121:A Test Case
 
 Define what happens when the player hits the boundary of a grid:
 - Stay in the previous cell without moving
@@ -237,7 +258,7 @@ Define what happens when the player hits the boundary of a grid:
   - Move the player to the right boundary of the left grid
   - e.g., new-row-index == old-row-index; new-col-index == new-cols.at(-1)
 
-### 130: Grid Movement
+### 130:Grid Movement
 
 A view may contain multiple grids.
 A grid movement means the player teleports from grid A to grid B.
@@ -252,14 +273,14 @@ Props:
     - The cell has the identical row-col index as before the teleport
     - e.g., from cur-grid(3,4) to dest-grid(3,4)
 
-### 140: Sigil
+### 140:Sigil
 
 A sigil is an item that is not collidable but is interactable with certain movement actions.
 
 Props:
 - collidable: false
 
-#### Item Properties Reference
+#### 141:Sigil Properties Reference
 
 All foreground item properties are defined in section 500 (Visual-Foreground). See:
 - items#520 for sigil/rune properties
@@ -267,7 +288,7 @@ All foreground item properties are defined in section 500 (Visual-Foreground). S
 - items#532 for portal properties
 - Collectable properties are defined inline within items#200 (Config-Gameplay)
 
-#### 141: Angle Bracket
+#### 142:Angle Bracket
 
 Render angle brackets '<' and '>' directly in the cell.
 This is somewhat similar to the classic VIM "word boundary" feature, except that the word boundary is now visualized and rendered as a character directly in a cell.
@@ -278,7 +299,7 @@ Players may use `qwer` to teleport to the existing angle brackets on the view:
 - `e` teleports to the nearest left angle bracket '<' in forward direction (from 0,0 to n,n)
 - `r` teleports to the nearest right angle bracket '>' in forward direction (from 0,0 to n,n)
 
-#### 142: Alphabets
+#### 143:Alphabets
 
 Render alphabets in the cell.
 This feature is similar to how normal characters work in VIM editor.
@@ -289,7 +310,7 @@ Here in the game, alphabets are rendered sparsely, and they have nothing to do w
 Players may use `f` to search for an alphabet in the forward direction (use `d` to search backward), press the key that represents the alphabet, then teleport to the cell (the first occurence of the alphabet) directly.
 Note that `f` works differently comparing to the implementation in VIM, here the function search across multiple lines, whereas VIM search only in the same line.
 
-### 150: Macro
+### 150:Macro
 
 A macro is a set of pre-defined actions allowing the player to perform multiple actions in one keystroke.
 It is mostly equivalent to how macros work in VIM, except:
@@ -299,7 +320,7 @@ It is mostly equivalent to how macros work in VIM, except:
   1. Define it in the keybinding configuration menu (with limitations)
   2. By picking up powerups while playing the game
 
-#### Limitations
+#### 151:Limitations
 
 Macros are so powerful that they should have some "limitations" to ensure they don't break the gameplay (i.e., make the game extremely easy).
 
@@ -311,7 +332,7 @@ Some possible macros:
 - Move left 5 times (i.e., hhhhh)
 - Move left 3 times, then down 3 times (i.e., hhhjjj)
 
-#### Design Background
+#### 152:Design Background
 
 The first version was a dead simple configurable basic movement with a configurable multiplier.
 However, after a few playthroughs, the design felt boring.
@@ -319,7 +340,7 @@ Then, I came up with the idea of moving in an L-shape similar to how knights mov
 As an alternative, make macros collectable powerups, which makes the macro only executable once the player picks up the powerup in-game.
 Still need more evaluation to check if this is actually fun to play.
 
-### 160: Pattern Movement
+### 160:Pattern Movement
 
 A pattern move is something similar to how `#*(){}[]%` works in VIM:
 - The player may teleport to the next symbol under the cursor using `#*`
@@ -331,14 +352,14 @@ A pattern move is something similar to how `#*(){}[]%` works in VIM:
 However, I think this movement over-complicates the gameplay.
 We should keep this in the backlog without actually implementing it.
 
-#### More Patterns
+#### 161:More Patterns
 
 It is possible to define more patterns by introducing LSP and AST.
 Again, it would over-complicate the gameplay to introduce these features.
 
-### 170: Repeater
+### 170:Repeater
 
-#### design notes
+#### 171:design notes
 
 this one is inspired by VIM `;,` to repeat the last inline command and `np` to repeat the last find command
 here, I tamper the design by introducing two more concepts:
@@ -353,7 +374,7 @@ Available non-basic movements:
 - Sigil: angle bracket items#141
 - Sigil: alphabet items#142
 
-#### 171: proposal 1 (dropped)
+#### 172:proposal 1 (dropped)
 
 This feature is a group of three keystrokes:
 e.g., `m,<.`
@@ -365,7 +386,7 @@ Note: On a QWERTY keyboard, `,` and `<` share the same key, so this uses three k
 
 Dropped reason: indeterministic direction increase cognitive load
 
-#### 172: proposal 2 (adopted)
+#### 173:proposal 2 (adopted)
 
 Alternatively, implement `nm,.` as below:
 - Press `n` to allow the player to repeat the last used non-basic movement in backward direction (from n,n to 0,0)
@@ -381,7 +402,7 @@ Alternatively, implement `nm,.` as below:
   - Keep the player in the same cell if the non-basic movement fails
 - Press `.` to allow the player to repeat the last used non-basic movement in forward direction (from 0,0 to n,n)
 
-### 180: Expand/Shrink the Body
+### 180:Expand/Shrink the Body
 
 This is a very special feature to let players expand or shrink their body length (by default, the body length is 1).
 This is expected to change the gameplay enormously, where a player might clear a level in a short period of time.
@@ -406,11 +427,6 @@ Note that the player will lose some interactive functions when the body length i
   - i.e., sigil movement still works if the player is activating either the head or tail part
   - Reason 1: Maintaining sigil movement for head/tail modes makes the game more versatile and fun
   - Reason 2: Sigil movement requires a specific cursor position to calculate the target; while activating the body part, there's no obvious way to determine which part should be the active cursor
-
-### Candidates
-
-- marker command
-- Ggg0^$
 
 #### 181: Keybindings Proposal 1 (dropped)
 
@@ -470,6 +486,11 @@ Pros and cons:
   - Less "toggling" cognitive load
 - Cons:
   - Requires more keystrokes
+
+### Candidates
+
+- marker command
+- Ggg0^$
 
 ### Dropped Feature: Search
 
