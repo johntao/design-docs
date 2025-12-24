@@ -2,31 +2,35 @@
 
 The basic movement is `hjkl`, which moves the player one cell at a time inside the grid.
 `hjkl` borrows the conventional directions from VIM: left, down, up, right.
+TODO:
+- movement collision table
+- stage 1..5
+- collectable table?
 
-## Collision
+## 000:Collision
 
 There are a few meanings of "collision" in this game.
 The basic concept is that the player moves from cell A to cell B; if cell B contains another item, then the player "collides" with the item.
 Let's expand on this statement further
 
-### multiple collision
+### 010:multiple collision
 
 If the distance between A and B is greater than 1, this indicates the movement traverses multiple cells at a time
 This indicates the collision might occur multiple times during the process
 
-### teleportable movement
+### 020:teleportable movement
 
 If the movement action is teleportable, then only the destination cell is considered collidable
 i.e., all collisions between cell A and cell B are ignored
 
-### non-collidable item
+### 030:non-collidable item
 
 It is possible to set an item as non-collidable, which means it doesn't trigger a collision event even if the collision occurs
 - Collectables and obstacles are collidable
 - Sigils are non-collidable
 - If multiple collidable items occupy the same cell, all collision events for that cell are triggered
 
-### collision as event
+### 040:collision as event
 
 Collisions are basically events defined by the engine
 - When a player collides with a collectable: the player picks up the collectable
@@ -34,24 +38,24 @@ Collisions are basically events defined by the engine
 - When a player collides with an obstacle: push back the player in the opposite direction from where they came
   - i.e., the player cannot step onto an obstacle
 
-### collide on boundary
+### 050:collide on boundary
 
 If cell B is out of bounds of the current grid, it should also trigger a boundary-collision event
 The default behavior of the event is to move the player to a viable cell which is closest to the boundary
 
-### A Test Case
+### 060:A Test Case
 
 The player moves from cell A to cell C; cell B sits between A and C.
 Cell B contains an obstacle.
 The movement type is teleport.
 Expectation: The player should teleport to cell C without being blocked by the obstacle in cell B.
 
-## Basic Movement
+## 100:Basic Movement
 
 Props:
 - collidible: true
 
-### A Test Case
+### 110:A Test Case
 
 Define what happens when the player hits the boundary of a grid:
 - Stay in the previous cell without moving
@@ -60,7 +64,7 @@ Define what happens when the player hits the boundary of a grid:
   - Move the player to the right boundary of the left grid
   - e.g., new-row-index == old-row-index; new-col-index == new-cols.at(-1)
 
-## Grid Movement
+## 200:Grid Movement
 
 A view may contain multiple grids.
 A grid movement means the player teleports from grid A to grid B.
@@ -75,14 +79,14 @@ Props:
     - The cell has the identical row-col index as before the teleport
     - e.g., from cur-grid(3,4) to dest-grid(3,4)
 
-## Sigil
+## 300:Sigil
 
 A sigil is an item that is not collidable but is interactable with certain movement actions.
 
 Props:
 - collidable: false
 
-### Sigil Properties Reference
+### 310:Sigil Properties Reference
 
 All foreground item properties are defined in section 500 (Visual-Foreground). See:
 - items#520 for sigil/rune properties
@@ -90,7 +94,7 @@ All foreground item properties are defined in section 500 (Visual-Foreground). S
 - items#532 for portal properties
 - Collectable properties are defined inline within items#200 (Config-Gameplay)
 
-### Angle Bracket
+### 320:Angle Bracket
 
 Render angle brackets '<' and '>' directly in the cell.
 This is somewhat similar to the classic VIM "word boundary" feature, except that the word boundary is now visualized and rendered as a character directly in a cell.
@@ -101,7 +105,7 @@ Players may use `qwer` to teleport to the existing angle brackets on the view:
 - `e` teleports to the nearest left angle bracket '<' in forward direction (from 0,0 to n,n)
 - `r` teleports to the nearest right angle bracket '>' in forward direction (from 0,0 to n,n)
 
-### Alphabets
+### 330:Alphabets
 
 Render alphabets in the cell.
 This feature is similar to how normal characters work in VIM editor.
@@ -112,7 +116,7 @@ Here in the game, alphabets are rendered sparsely, and they have nothing to do w
 Players may use `f` to search for an alphabet in the forward direction (use `d` to search backward), press the key that represents the alphabet, then teleport to the cell (the first occurence of the alphabet) directly.
 Note that `f` works differently comparing to the implementation in VIM, here the function search across multiple lines, whereas VIM search only in the same line.
 
-## Macro
+## 400:Macro
 
 A macro is a set of pre-defined actions allowing the player to perform multiple actions in one keystroke.
 It is mostly equivalent to how macros work in VIM, except:
@@ -122,7 +126,7 @@ It is mostly equivalent to how macros work in VIM, except:
   1. Define it in the keybinding configuration menu (with limitations)
   2. By picking up powerups while playing the game
 
-### Limitations
+### 410:Limitations
 
 Macros are so powerful that they should have some "limitations" to ensure they don't break the gameplay (i.e., make the game extremely easy).
 
@@ -134,7 +138,7 @@ Some possible macros:
 - Move left 5 times (i.e., hhhhh)
 - Move left 3 times, then down 3 times (i.e., hhhjjj)
 
-### Design Background
+### 420:Design Background
 
 The first version was a dead simple configurable basic movement with a configurable multiplier.
 However, after a few playthroughs, the design felt boring.
@@ -142,26 +146,9 @@ Then, I came up with the idea of moving in an L-shape similar to how knights mov
 As an alternative, make macros collectable powerups, which makes the macro only executable once the player picks up the powerup in-game.
 Still need more evaluation to check if this is actually fun to play.
 
-## Pattern Movement
+## 500:Repeater
 
-A pattern move is something similar to how `#*(){}[]%` works in VIM:
-- The player may teleport to the next symbol under the cursor using `#*`
-- The player may teleport to the next sentence using `()`
-- The player may teleport to the next paragraph using `{}`
-- The player may teleport to the next section using `[]`
-- The player may teleport to the next pair construct using `%`
-
-However, I think this movement over-complicates the gameplay.
-We should keep this in the backlog without actually implementing it.
-
-### More Patterns
-
-It is possible to define more patterns by introducing LSP and AST.
-Again, it would over-complicate the gameplay to introduce these features.
-
-## Repeater
-
-### design notes
+### 510:design notes
 
 this one is inspired by VIM `;,` to repeat the last inline command and `np` to repeat the last find command
 here, I tamper the design by introducing two more concepts:
@@ -176,7 +163,7 @@ Available non-basic movements:
 - Sigil: angle bracket items#141
 - Sigil: alphabet items#142
 
-### proposal 1 (dropped)
+### 520:proposal 1 (dropped)
 
 This feature is a group of three keystrokes:
 e.g., `m,<.`
@@ -188,7 +175,7 @@ Note: On a QWERTY keyboard, `,` and `<` share the same key, so this uses three k
 
 Dropped reason: indeterministic direction increase cognitive load
 
-### proposal 2 (adopted)
+### 530:proposal 2 (adopted)
 
 Alternatively, implement `nm,.` as below:
 - Press `n` to allow the player to repeat the last used non-basic movement in backward direction (from n,n to 0,0)
@@ -205,7 +192,7 @@ Alternatively, implement `nm,.` as below:
 - Press `.` to allow the player to repeat the last used non-basic movement in forward direction (from 0,0 to n,n)
 
 
-## Expand/Shrink the Body
+## 600:changing body length
 
 This is a very special feature to let players expand or shrink their body length (by default, the body length is 1).
 This is expected to change the gameplay enormously, where a player might clear a level in a short period of time.
@@ -231,7 +218,7 @@ Note that the player will lose some interactive functions when the body length i
   - Reason  Maintaining sigil movement for head/tail modes makes the game more versatile and fun
   - Reason  Sigil movement requires a specific cursor position to calculate the target; while activating the body part, there's no obvious way to determine which part should be the active cursor
 
-### Keybindings Proposal 1 (dropped)
+### 610:Keybindings Proposal 1 (dropped)
 
 Register two keystrokes: `zx`
 - `z` switches between head or tail (variable mode)
@@ -253,7 +240,7 @@ Should have visual difference between variable-length and fixed-length mode.
 Should introduce visual marker for active head/tail part.
 Should introduce visual marker for previous active head/tail part (if currently activating body part).
 
-### Keybindings Proposal 2 (dropped)
+### 620:Keybindings Proposal 2 (dropped)
 
 Register three keystrokes: `zxc`
 - `z` switches to head part (variable mode)
@@ -270,7 +257,7 @@ Pros and cons:
 Should have visual difference between variable-length and fixed-length mode.
 Should introduce distinctive visual difference for head and tail parts.
 
-### Keybindings Proposal 3
+### 630:Keybindings Proposal 3
 
 Register three keystrokes: `zxc`
 - `z` switches to tail part (variable mode); trigger `z` would also trigger a basic movement `h`
@@ -291,36 +278,63 @@ Pros and cons:
   - Requires more keystrokes
 
 
-## game mode implementation
+## 700:game mode implementation
 
-### core
+### 710:core
 
-### score-booster
+implement these features:
+- [collision](#000collision)
+- [basic movement](#100basic-movement)
+- [grid movement](#200grid-movement)
+- [sigil](#300sigil)
+- [macro](#400macro)
+- [repeater](#500repeater)
 
-inherit all stuff from [core](#000core)
+### 720:score-booster
 
-### filler
+inherit all stuff from [core](#710core)
 
-inherit all stuff from [core](#000core)
+### 730:filler
 
-### snake
+inherit all stuff from [core](#710core)
 
-inherit all stuff from [core](#000core)
+### 740:snake
 
-## appendix-candidates
+inherit all stuff from [core](#710core)
+
+implement [changing body length](#700changing-body-length)
+
+## 800:appendix-candidates
 
 - marker command
 - Ggg0^$
 
-## appendix-dropped-ideas
+### 810:Pattern Movement
 
-### Search
+A pattern move is something similar to how `#*(){}[]%` works in VIM:
+- The player may teleport to the next symbol under the cursor using `#*`
+- The player may teleport to the next sentence using `()`
+- The player may teleport to the next paragraph using `{}`
+- The player may teleport to the next section using `[]`
+- The player may teleport to the next pair construct using `%`
+
+However, I think this movement over-complicates the gameplay.
+We should keep this in the backlog without actually implementing it.
+
+#### 811:More Patterns
+
+It is possible to define more patterns by introducing LSP and AST.
+Again, it would over-complicate the gameplay to introduce these features.
+
+## 900:appendix-dropped-ideas
+
+### 910:Search
 
 **Reason for dropping:** Would slow down game pace and violates the first design principle.
 
 VIM provides an extraordinary search function. However, a full-fledged search function would slow down the game pace. Also, it disobeys the first design principle where a search function requires an extra enter key to activate. For now, the find alphabet command from items#142 is good enough.
 
-### Scrolling
+### 920:Scrolling
 
 **Reason for dropping:** Not applicable to fixed-view gameplay.
 
