@@ -265,6 +265,74 @@ A feature to fill in multiple cells at once
 
 A feature to make different levels of filling colors when a coin appears twice in the same cell. However, filler mode renders all coins on game start; respawning coins introduces unnecessary complexity without improving the gaming experience.
 
+## snake feature set
+
+Pick up a coin now also increase the length of the player by 1. (just like how the classic snake game does)
+
+Additional features while the player's length is greater than 1:
+- the first bit driven the body is the head
+- the last bit dragged by the head is the tail
+- get bonus score equals to the current body length
+  - e.g. body length = 2, picking up a coin would give 1 + (2-1) score
+  - e.g. body length = 3, picking up a coin would give 1 + (3-1) score
+- there's a command to swap the position of head and tail
+- there's a command to change snake movement from head-driven to body-driven
+  - i.e. hitting `l` would make the entire body move one unit right
+  - each cell of the body calculate collision
+    - hitting an obstacle or a portal would cause the body split into smaller segments
+      - the part that occur the collision is wiped out
+      - enter head-driven mode after the collision
+      - the head restore on the longest segment
+        - restore in the either end of the segment randomly
+        - segements having the same length, choose one randomly
+        - end the game immediately if there's no available body part to restore the head
+    - all collided coins are picked up
+    - hitting the boundary would cancel the movement similar to how it normally works
+  - hitting the command again, restore back to head-driven mode
+- using a teleport-based command would detach the player's head
+  - which would left the body part behind
+  - hitting a portal by head also share the same effect (body is left behind)
+- there's a command to set the body length to 1
+  - and teleport the head to the position of the tail before the shrink
+- hitting the detached body by head would reconnect the whole body automatically
+  - re-attach the body part would also get 1 score
+  - and then, teleport the head to the tail part of the body when last time detached
+- hitting the attached body by head would decrease the length of body by 1
+  - and trigger a swap between head and tail
+
+configurable options:
+- this feature set is enabled exclusively to snake mode
+- maximum bonus score given while the length of the body is greater than 1 (defaults to 5)
+  - e.g. body length = 6, picking up a coin would give 1 + min(6-1, 5) score
+  - e.g. body length = 7, picking up a coin would give 1 + min(7-1, 5) score
+- score given when re-attach to a body part (defaults to 1)
+
+### dropped_body driven mode cannot collide special item
+
+**Reason for dropping:** too boring (refer to 5th design principle)
+
+in the body driven mode, one of the possible outcome after collision is to cancel the movement if special items (e.g. portals or obstacles) were in the path
+
+### dropped_body driven mode ghost out
+
+**Reason for dropping:** too boring (refer to 5th design principle)
+
+in the body driven mode, one of the possible outcome after collision is to make the body part just overlap onto the special items (e.g. portals or obstacles) without triggering any side effects (i.e. ghost out directly)
+
+### dropped_get extra score for hitting body part while attaching
+
+**Reason for dropping:** unnecessary complexity (refer to 4th design principle)
+
+this feature grant the player extra score for hitting body part while attaching, the behavior is very similar to picking up a coin except that the length of body is reduce afterward
+
+the game already give extra score for re-attaching the head to detached body, it is unnecessary to introduce another mechanism doing a similar thing
+
+also, noted that if reducing the length of body grant extra score, then it would motivate the player to reduce the length of body to zero before the game ends
+
+and the game also provide a shortcut to reduce the length to zero
+
+with all these arguments, it is obviously a feature deserved to be dropped
+
 ## game mode specific
 
 ### design notes
@@ -317,4 +385,4 @@ implement these additional features:
 inherit all features from [shared](#shared)
 implement these additional features:
 - [endgame condition 2](#endgame-cond-2_countdown-and-unlimited-coins)
-- 
+- [snake feature set](#snake-feature-set)

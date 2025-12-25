@@ -77,6 +77,10 @@ The goal is to let players learn what keybindings and gameplay work best for the
   - design the complexity of the game purposely
   - do not introduce complexity to the game without good reason
   - try to separate game feature set into different mode if things get overly complex
+- **Choose the design that make the gameplay less boring whenever possible**
+  - when the complexity is settled, and there're a few more design decisions to made
+  - choose the one that enrich the player experience more
+  - this is a rule go against "least surprising design"
 
 ## flow
 
