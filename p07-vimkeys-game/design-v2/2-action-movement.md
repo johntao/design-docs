@@ -278,9 +278,9 @@ Pros and cons:
   - Requires more keystrokes
 
 
-## 700:game mode implementation
+## 700:game mode specific
 
-### 710:core
+### 710:shared
 
 implement these features:
 - [collision](#000collision)
@@ -290,17 +290,21 @@ implement these features:
 - [macro](#400macro)
 - [repeater](#500repeater)
 
-### 720:score-booster
+### 720:picker
 
-inherit all stuff from [core](#710core)
+inherit all stuff from [shared](#710shared)
 
-### 730:filler
+### 730:score-booster
 
-inherit all stuff from [core](#710core)
+inherit all stuff from [shared](#710shared)
 
-### 740:snake
+### 740:filler
 
-inherit all stuff from [core](#710core)
+inherit all stuff from [shared](#710shared)
+
+### 750:snake
+
+inherit all stuff from [shared](#710shared)
 
 implement [changing body length](#700changing-body-length)
 

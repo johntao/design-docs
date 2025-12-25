@@ -1,132 +1,177 @@
 # config-gameplay
 
-## 010:stopwatch
+## endgame-cond-1_stopwatch and limited coins
 
-**Sub-mode 1 (fixed collectable, variable time):**
-Render all collectables at once on game start.
-The game ends once all the collectables are picked up; the score is determined by how fast the player ends the game (less time spent is better).
+Start a stopwatch once the game is started.
+End the game once the last coin is picked up.
+The game ends once all the coins are picked up; the score is determined by how fast the player ends the game (less time spent is better).
 
-### 011:Implementation Proposal
+Extra notes:
+- picker and filler mode use this endgame condition, and it is not configurable
 
-**Core Rule:** Only one of `timer` or `remain_counter` can be non-null at a time. They are mutually exclusive parameters that determine the game mode.
+configurable options:
+- #n/a
 
-Data:
-- `int? timer` - timer (defaults to null, which means sub-mode 1)
-  - When set to a non-nullable integer, `remain_counter` must be null
-  - Setting to 10 will create a 10-second timer (which means sub-mode 2)
-    - Game ends once the timer hits zero seconds
-  - Generate collectables dynamically along with the game progress
-  - Newly generated positions will be added to prev_positions automatically
-  - Use max_display to determine how many collectables to show at a time
-- `int? max_display` - determines the maximum amount of collectables to be shown at a time (defaults to null)
-  - Set to null if remain_counter is non-null
-  - Null value means render all remaining collectables at once
-  - Defaults to 9 if timer is non-null
-- `int? remain_counter` - number of collectables to be spawned (defaults to 9)
-  - When set to a non-nullable integer, `timer` must be null
-  - Setting to 10 will create a remain_counter of 10
-    - Game ends once the counter hits zero
-  - If remain_counter gt positions.Count, the game should generate new collectables at random positions automatically until the counter hits zero
-    - Newly generated positions should be added back to prev_positions
-- `List<(int, int)> prev_positions` - previous collectable positions (defined in level data)
-- `bool` - replace the previous positions, i.e., randomly spawn (defaults to false)
-  - Reuse the previous positions if set to false
+## maximum displaying coins
 
-## 020:maximum collectable display
+The game displays all the coins at a time by default.
+Details:
+- implements a config to restrict the maximum displaying coins to a value (e.g., max 5 at a time)
+- stands as global vision constraint
+- only restrict the visibility of coins, doesn't affect other items
 
-The game displays all the collectables at a time by default.
-This feature implements a config to restrict the maximum displaying collectables to a value (e.g., max 5 at a time).
+configurable options:
+- the amount of maximum displaying coins
+  - set to zero will display all coins at once
+  - defaults to zero for [endgame-cond-1](#endgame-cond-1_stopwatch-and-limited-coins)
+  - defaults to 10 for [endgame-cond-2](#endgame-cond-2_countdown-and-unlimited-coins)
 
-## 030:Speed-Based
+## line of sight
 
-Speed-based endgame condition means whoever ends the game earlier scores better.
-=> In other words, fixed amount of collectable scores AND a variable timer.
+This feature is also stands as fog of war where the player now have limited vision for the surroundings
 
-## 040:Game Version
+Extra notes:
+- stands as fog of war (local vision constraint)
+- restrict visibility of all types of items
+- set the value to 5 means the player now discover approximately 5 radius of cells
+- the fog of war is a soft vision limitation which means players may still activate spcial movements even if the target is not in the sight
+- it is not recommend to enable both maximum displayable coins and line of sight in the same time, just choose one or another
+
+configurable options:
+- the radius of the player's line of sight
+  - set to zero would disable this feature
+  - defaults to zero
+
+## config slots
 
 The game provides settings for users to configure their keybindings or gameplay.
 
 The game should provide saving slots for users to store their settings.
 
-Note that saving slots should manage keybinding and gameplay settings separately.
+Extra rules:
+- each game mode handle separate saving slots (5 slots for each game mode)
+- gameplay configs and keybindings are handle together in the same save slot
 
-## 110:countdown
+configurable options:
+- none
 
-**Sub-mode 2 (fixed time, variable collectable):**
-Render collectables dynamically along with the game progress (the render amount is capped at max_display).
-The game ends once the timer ends; the score is determined by how many collectables the player picked.
+## endgame-cond-2_countdown and unlimited coins
 
-### 111:Implementation Proposal
+Start a countdown timer once the game is started.
+End the game once the timer count to zero.
 
-**Core Rule:** Only one of `timer` or `remain_counter` can be non-null at a time. They are mutually exclusive parameters that determine the game mode.
+Additional information:
+- Render coins dynamically along with the game progress
+  - the render amount is capped by [max_display](#maximum-displayable-coins)
+- the score is determined by how many coins the player picked
+- score-booster and snake mode use this endgame condition, and it is not configurable
 
-Data:
-- `int? timer` - timer (defaults to null, which means sub-mode 1)
-  - When set to a non-nullable integer, `remain_counter` must be null
-  - Setting to 10 will create a 10-second timer (which means sub-mode 2)
-    - Game ends once the timer hits zero seconds
-  - Generate collectables dynamically along with the game progress
-  - Newly generated positions will be added to prev_positions automatically
-  - Use max_display to determine how many collectables to show at a time
-- `int? max_display` - determines the maximum amount of collectables to be shown at a time (defaults to null)
-  - Set to null if remain_counter is non-null
-  - Null value means render all remaining collectables at once
-  - Defaults to 9 if timer is non-null
-- `int? remain_counter` - number of collectables to be spawned (defaults to 9)
-  - When set to a non-nullable integer, `timer` must be null
-  - Setting to 10 will create a remain_counter of 10
-    - Game ends once the counter hits zero
-  - If remain_counter gt positions.Count, the game should generate new collectables at random positions automatically until the counter hits zero
-    - Newly generated positions should be added back to prev_positions
-- `List<(int, int)> prev_positions` - previous collectable positions (defined in level data)
-- `bool` - replace the previous positions, i.e., randomly spawn (defaults to false)
-  - Reuse the previous positions if set to false
+configurable options:
+- #n/a
 
+## score booster feature set
 
-## 120:Combo Streak
+configurable option:
+- this feature set is enabled exclusively to score-booster mode
+- options to enable each booster rule
+  - combo_unstoppable (defaults on)
+  - decremental counter (defaults on)
+  - combo_ocd (defaults off)
+  - expiration (defaults off)
 
-A combo streak state: the streak refreshes if the player picks up a collectable within 4 steps (i.e., within steps 1, 2, 3, or 4).
+extra notes:
+- rule combo_ocd is mutually exclusive to combo_unstoppable AND decremental counter
+  - reason 1: there should be one combo logic at a time
+  - reason 2: too many numbers around a coin would violate 4th design principle
 
-The player loses the combo streak if they make 5 or more consecutive steps without picking up a collectable.
+### Combo_unstoppable
 
-The player will gain extra scores picking up a collectable while maintaining the streak.
+A combo streak state: the streak refreshes if the player picks up a coin within 4 steps (i.e., within steps 1, 2, 3, or 4).
+
+The player loses the combo streak if they make 5 or more consecutive steps without picking up a coin.
+
+The player will gain extra scores picking up a coin while maintaining the streak.
 
 e.g., get one more score if surpassing x2 combo (i.e., x3+); get two more scores if surpassing x5 combo (i.e., x6+); get three more scores if surpassing x8 combo (i.e., x9+); capped extra scores at three.
 
-## 130:Decremental Counter
+configurable options:
+- maximum steps before losing the combo streak (defaults to 4 inclusive, lose all streak on 5)
+- the minimum combo streak to gain extra score (defaults to 3 inclusive, gain extra score on 4th)
+  - 1..3 no bonus; 4..6 one extra; 7..9 double extra; ...etc
+- the amount of extra score, defaults to 1
+  - if set to 2
+    - 4..6 gain +2 score
+    - 7..9 gain +4 score
+- maximum extra score, defaults to 3
+  - if set to 3 then the bonus score is capped at triple extra
+    - 1..3 no bonus; 4..6 one extra; 7..9 double extra; 10..N triple extra
+  - if set to 0 then the bonus score does not cap
+    - 10..12 triple; 13..15 x4; 16..18 x5; ...etc
 
-Make every newly spawned collectable worth an extra score of 5, then reduce the extra score each time the player moves.
-This mode synergizes well with items#232 since both of them keep the player prioritizing the nearest collectables.
+### Decremental Counter
 
-## 140:Ordered Collectables
+Make every newly spawned coin worth an extra score of 5, then reduce the extra score each time the player moves.
+This mode synergizes well with [combo streak](#combo_unstoppable) since both of them keep the player prioritizing the nearest coins.
 
-Mark all the collectables with an ordinal sequence.
+Extra notes:
+- the game should render the counter aside or on top of the coin
 
-The player gains extra score while picking up collectables in the correct order.
+configurable options:
+- counter of a newly spawned coin (defaults to 5)
+- decrement steps (defaults to 1)
 
-This mode also maintains a combo streak; lose extra score if the streak breaks.
+### combo_ocd
+
+Mark coins with an ordinal sequence.
+
+The player gains combo streak while picking up coins in the correct order.  
+Lose all streak if picking up coins in the wrong order.
+
+While maintaining the combo streak, player gain extra score on picking up coins.
 
 The extra score grows arithmetically (e.g., +1, +2, +3...).
 
-## 150:Expiration
+configurable options:
+- amount of coins to mark with an ordinal sequence (defaults to 3)
+  - player should always aim to pick up coin marked as 1
+  - picking up coin other than 1 would break the streak
+  - once the coin is picked, the sequence shift
+    - e.g. a new coin is marked as 3; 2 (previous) --> 1; 3 (previous) --> 2;
+    - the game engine would maintain a single queue, for this task
+    - thus, the sequence should be deterministic behind the scene
+- maximum bonus score: the bonus score should cap by this value (defaults to 5)
+  - e.g. once the combo reach to 6, the bonus value would be capped by 5
 
-Randomly drop time-sensitive collectables.
-This one is similar to items#233 except that the collectable disappears automatically if the counter runs below 1.
-Make sure it is configurable.
+### Expiration
 
-## 160:Scoring Formulas
+Randomly drop a time-sensitive (volatile) coin.
+
+This one is similar to [decremental counter](#decremental-counter) except that the coin disappears automatically if the counter runs below 1.
+
+The initial counter of the volatile coin is 10, then, decrease by 2 for each movement action
+
+Grant extra score equals to the remain value of the counter
+
+Exrta notes:
+- this volatile coin does not count into any combo mechanism
+
+configurable options:
+- the initial value (defaults to 10)
+- decremental step (defaults to 2)
+
+### Calculation Formula
 
 This section defines the exact calculations for all scoring mechanisms.
 
-### 161:Base Score
+#### Base Score
 
 ```
-base_score = collectables_picked × 1
+base_score = coins_picked × 1
 ```
 
-Every collectable picked adds 1 to the base score.
+Every coin picked adds 1 to the base score.
 
-### 162:[Combo Streak](#120combo-streak)
+#### [Combo_unstoppable Formula](#combo_unstoppable)
 
 ```
 combo_bonus = floor(combo_streak / 3)
@@ -142,16 +187,16 @@ score_per_pickup = 1 + combo_bonus
 | 6-8 (×6..8+2)  | +2           | 3                |
 | 9+ (×9..+3)    | +3           | 4                |
 
-### 163:[Decremental Counter](#130decremental-counter)
+#### [Decremental Counter Formula](#130decremental-counter)
 
 ```
 counter_bonus = max(0, 5 - steps_since_spawn)
 score_per_pickup = 1 + counter_bonus
 ```
 
-Each collectable spawns with a 5-point bonus that decreases by 1 per player step.
+Each coin spawns with a 5-point bonus that decreases by 1 per player step.
 
-### 164:[Ordered Collectables](#140ordered-collectables)
+#### [combo_ocd Formula](#combo_ocd)
 
 ```
 order_bonus = consecutive_correct_pickups
@@ -163,151 +208,113 @@ order_bonus = 0
 
 Bonus grows arithmetically: +1 for 1st correct, +2 for 2nd correct, +3 for 3rd, etc.
 
-### 165:[Expiration](#150expiration)
+#### [Expiration Formula](#150expiration)
 
 ```
 expiration_bonus = remaining_countdown
 score_per_pickup = 1 + expiration_bonus
 
 // If countdown reaches 0:
-collectable disappears, no score awarded
+coin disappears, no score awarded
 ```
 
-### 166:Final Score Calculation
+#### Final Score Calculation
 
 ```
 final_score = sum(score_per_pickup for each pickup)
 ```
 
-## 220:implementation
+## coloring feature set
 
-Data:
-- `int remain_counter` - counting down the amount of collectables to pick to win the game
-- `List<Level> levels` - define a list of levels
-  - The player can choose which level to play
-  - Each level should have its own scoreboard
-- Level Props:
-  - `string name` - name of the level
-  - `List<(int, int, Color)> colors` - colors respawning position and the color attached to it
-  - `List<(int, int, Color)> collectables` - collectables spawning position and the color condition to pick up
+Each coin now comes with a color code to match.
+The player can pick up (equip) a color spray to match the condition.
 
-## 230:design
+A color spray respawns automatically after the player moves a few steps, which ensures the player can always beat the level.
+Picking up a new color spray would replace the previous color directly.
 
-Each collectable now comes with a condition to match (e.g., color).
-The player can pick up a color item to match the condition.
+Extra rules:
+- when a coin is picked up, the cell containing the coin is colored by the matched color (by checking the equipped color spray)
+  - this cell is not colorable afterward
+- alternative, implement a feature to color all the visited cells by the current equipped color spray
+  - this does not affect cells that were colored by matching coin conditions
+- alternative, the color spray now expired after coloring too much cells (e.g. expired after coloring 10 cells)
+  - if the spray expired, then, the player needs to replenish the item again
 
-A color item respawns automatically after the player moves a few steps, which ensures the player can always beat the level.
-Picking up a new color item would replace the previous color directly.
+configurable options:
+- this feature set is enabled exclusively to filler mode
+- whether to color visited cells automatically or not (defaults to NOT)
+- set how many cells a spray could color before expiration
+  - set to zero would disable this feature
+  - defaults to zero
 
-Coloring visited cells is still a viable option; however, it should provide only visual feedback without changing the gameplay.
-
-## 240:dropped:Explicit Fill-Up Command
+### dropped_Explicit Fill-Up Command
 
 **Reason for dropping:** Violates the first design principle (extra keypresses).
 
 Originally tried to let the player hit space to fill up a cell. Both making the player explicitly hit space to fill up a cell and hitting space to toggle filling behavior violate the first design principle because it makes players hit extra spaces to complete the game. The threshold feature (requiring un-coloring of unrelated cells) also felt tedious after playthroughs.
 
-## 250:dropped:Stroke Width
+### dropped_Stroke Width
 
 **Reason for dropping:** Over-complicates gameplay.
 
-A feature to fill in multiple cells at once; could be done by implementing items#180. However, it would over-complicate the gameplay.
+A feature to fill in multiple cells at once
 
-## 260:dropped:Stroke Depth
+### dropped_Stroke Depth
 
 **Reason for dropping:** Unnecessary complexity.
 
-A feature to make different levels of filling colors when a collectable appears twice in the same cell. However, filler mode renders all collectables on game start; respawning collectables introduces unnecessary complexity without improving the gaming experience.
+A feature to make different levels of filling colors when a coin appears twice in the same cell. However, filler mode renders all coins on game start; respawning coins introduces unnecessary complexity without improving the gaming experience.
 
-## game mode implementation
+## game mode specific
 
-### how game mode works
-
-the [core game mode](#000core) is the base game mode having the following game flow:
-- game start, a stopwatch start
-- coins rendered at once
-- player collect the last coin
-- stopwatch stop, game end
-
-the [score-booster mode](#100score-booster) is a special game mode that introduce several score-boosting rules, and a countdown timer
-here's the game flow:
-- game start, a countdown timer start
-- coins keep rendering
-- player keep collecting coins
-- timer stop, game end
-
-the [filler mode](#200filler) is a special game mode that works very similar to the base gameplay with extra feature set
-game flow is identical to [core game mode](#000core)
-the main feature of this mode: picking up coins would also color the cells
-
-the [snake mode](#300snake) is a special game mode that works very similar to [score-booster](#100score-booster) with a different feature set
-game flow is identical to [score-booster mode](#100score-booster)
-the main feature of this mode: length of the player is increased by 1 each time the player collect a coin
-
-
-### design decision
+### design notes
 
 it is obvious that some of the features may work interchangeably across different modes
 for example:
 - score-booster mode may also use a stopwatch, and rendered limited amount of coins
 - enable snake feature in score-booster mode
 - filler mode may also use a countdown timer, enabling all the score-booster features
-however, this type of freedom or feature mixin might cause significantly negative impact on the game experience
-this is designer's duty to reduce player's cognitive load, and make the opinionated design decisions to maximize the game experience
 
-### core
+however, this type of freedom or feature mixin might cause significantly negative impact to the player experience
 
-Picker (or pick-up) mode is the basic game mode where the game drops collectables at random or fixed positions on the view.
+it is designer's duty to reduce player's cognitive load (4th design principle), and make the opinionated design decisions to maximize the game experience
+
+### shared
 
 implement these features:
-- [stopwatch](#010stopwatch)
-- [maximum collectable display](#020maximum-collectable-display)
-- [speed based](#030speed-based)
-- [game version](#040game-version)
+- [maximum displaying coins](#maximum-displaying-coins)
+- [config slots](#config-slots)
+- [line of sight](#line-of-sight)
 
-### score-booster
+### picker mode impl
+
+Picker (or pick-up) mode is the basic game mode where the game drops coins at random or fixed positions on the view.
+
+inherit all features from [shared](#shared)
+
+implement these additional features:
+- [endgame condition 1](#endgame-cond-1_stopwatch-and-limited-coins)
+
+### score-booster mode impl
 
 The players try to gain as many scores as possible in a fixed amount of time.
 
-This feature works with score-based scoring mode.
-Implement a few rules allowing players to get extra scores while meeting the conditions.
-Here are a few possible score-boost rules:
-Note that all these rules should be configurable.
+inherit all features from [shared](#shared)
 
-implement these features:
+implement these additional features:
+- [endgame condition 2](#endgame-cond-2_countdown-and-unlimited-coins)
+- [score booster feature set](#score-booster-feature-set)
 
-- [countdown](#110countdown)
-- [Combo Streak](#120combo-streak)
-- [Decremental Counter](#130decremental-counter)
-- [Ordered Collectables](#140ordered-collectables)
-- [Expiration](#150expiration)
-- [Scoring Formulas](#160scoring-formulas)
+### filler mode impl
 
-### filler
+inherit all features from [picker mode](#picker-mode-impl)
 
-inherit all features from [core](#000core)
-
-Filler (or fill-up) mode is a special gameplay mode extended from the base gameplay of vimkeys-game (extended from picker mode).
-
-This document reviews all the features inherited from the base gameplay, which then explicitly includes or excludes each feature.
-
-Plus, it adds new features introduced by the filler mode.
-
-Filler mode is an alternative game mode with the following features:
-- **Render differently:**
-  - The player now leaves track colors
-  - Picked up collectables will change the background color of the cell
-- **Extra pick-up rules:**
-  - Now all collectables have a pre-defined condition; the player must meet the condition before the collectable can be picked up
-  - e.g., a collectable may have condition "red"; then the player must pick up a "red color" first before they can pick up red collectables
-    - Colors are special collectables that don't give extra score, and they will keep respawning in a few steps (configurable)
-
-All the levels in filler mode are pre-defined; thus, there's no score-based gameplay. The only endgame condition is to clear the level in as few seconds as possible (i.e., the shortest time possible).
-
-implement these features:
-- [implementation](#220implementation)
-- [design](#230design)
+implement these additional features:
+- [coloring feature set](#coloring-feature-set)
 
 ### snake
 
-inherit all features from [core](#000core)
+inherit all features from [shared](#shared)
+implement these additional features:
+- [endgame condition 2](#endgame-cond-2_countdown-and-unlimited-coins)
+- 

@@ -57,7 +57,7 @@ The goal is to let players learn what keybindings and gameplay work best for the
   - demo levels remove win/ loss condition and score calculation
   - refer to [game level](./1-game-level.md) for more information
 
-### Design Principles
+## Design Principles
 
 - **This should be fast-paced gameplay**
   - i.e., every keystroke should impact the game progress to some degree
@@ -133,3 +133,33 @@ These keybindings are always active and cannot be remapped:
 | `Escape`      | Open/close settings menu                            |
 | `Enter`       | Confirm selections in menus                         |
 
+## game mode introduction
+
+### picker mode
+
+is the base game mode having the following game flow:
+- game start, a stopwatch start
+- coins rendered at once
+- player collect the last coin
+- stopwatch stop, game end
+
+### filler mode
+
+is a special game mode that works very similar to the base gameplay with extra feature set
+game flow is identical to [picker mode](#picker-mode)
+the main feature of this mode: picking up coins would also color the cells
+
+### score-booster mode
+
+is a special game mode that introduce several score-boosting rules, and a countdown timer
+here's the game flow:
+- game start, a countdown timer start
+- coins keep rendering
+- player keep collecting coins
+- timer stop, game end
+
+### snake mode
+
+is a special game mode that works very similar to [score-booster](#score-booster-mode) with a different feature set
+game flow is identical to score-booster mode
+the main feature of this mode: length of the player is increased by 1 each time the player collect a coin
