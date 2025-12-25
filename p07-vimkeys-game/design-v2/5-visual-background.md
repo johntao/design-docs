@@ -8,13 +8,16 @@ The player moves around inside the grid exclusively via these keybindings: hjkl.
 
 I would like to expand the idea further to render multiple grids at a time.
 
-Players could choose to use "hjkl" to move around different grids once they touch the boundaries between each grid.
+Players could choose to use "hjkl" to move around different grids once they touch the boundaries between each grid.  
+if player hit the left most cell of the left most grid, then, move the player left would hit the boundary as how it works in a single grid
 
-Also, the game should introduce new keybindings to make the player teleport between each grid using one keystroke.
+Also, the game should introduce new keybindings to make the player teleport between each grid using one keystroke.  
+(i.e. `HJKL` capitalized)
 
 ### 010:Examples
 
-Given 9 grids on the screen at a time in a 3×3 layout:
+Given 9 grids on the screen at a time in a 3×3 layout:  
+Each grid contains 10x10 cells
 
 The player is positioned on the top-left grid (0,0).
 

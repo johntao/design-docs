@@ -1,59 +1,63 @@
 # config-keybinding
 
-## 000:core
-
 All keybindings should be configurable.
 Keybindings are basically actions to trigger a movement.
 Thus, they should be defined in [action-movement](./2-action-movement.md)
 
-### 010:Default Keybinding Table
+## Default Keybinding Table
 
-| Action                         | Default Key | Remappable | Category       | Reference |
-| ------------------------------ | ----------- | ---------- | -------------- | --------- |
-| Move Left                      | `h`         | Yes        | Basic Movement | items#120 |
-| Move Down                      | `j`         | Yes        | Basic Movement | items#120 |
-| Move Up                        | `k`         | Yes        | Basic Movement | items#120 |
-| Move Right                     | `l`         | Yes        | Basic Movement | items#120 |
-| Grid Left                      | `Ctrl+h`    | Yes        | Grid Movement  | items#130 |
-| Grid Down                      | `Ctrl+j`    | Yes        | Grid Movement  | items#130 |
-| Grid Up                        | `Ctrl+k`    | Yes        | Grid Movement  | items#130 |
-| Grid Right                     | `Ctrl+l`    | Yes        | Grid Movement  | items#130 |
-| Find Angle '<' Backward        | `q`         | Yes        | Sigil Movement | items#141 |
-| Find Angle '>' Backward        | `w`         | Yes        | Sigil Movement | items#141 |
-| Find Angle '<' Forward         | `e`         | Yes        | Sigil Movement | items#141 |
-| Find Angle '>' Forward         | `r`         | Yes        | Sigil Movement | items#141 |
-| Find Alphabet Backward         | `d` + char  | Yes        | Sigil Movement | items#142 |
-| Find Alphabet Forward          | `f` + char  | Yes        | Sigil Movement | items#142 |
-| Repeat Backward                | `n`         | Yes        | Repeater       | items#172 |
-| Repeat Forward Skip Same Line  | `m`         | Yes        | Repeater       | items#172 |
-| Repeat Backward Skip Same Line | `,`         | Yes        | Repeater       | items#172 |
-| Repeat Forward                 | `.`         | Yes        | Repeater       | items#172 |
-| Switch to Tail (+ move left)   | `z`         | Yes        | Body Control   | items#183 |
-| Switch to Body                 | `x`         | Yes        | Body Control   | items#183 |
-| Switch to Head (+ move right)  | `c`         | Yes        | Body Control   | items#183 |
+Remappable keys:
 
-### 020:Keybinding Constraints
+| Action                             | Default Key | Category                  |
+| ---------------------------------- | ----------- | ------------------------- |
+| Move Left                          | `h`         | Basic Movement            |
+| Move Down                          | `j`         | Basic Movement            |
+| Move Up                            | `k`         | Basic Movement            |
+| Move Right                         | `l`         | Basic Movement            |
+| Grid Left                          | `shift+h`   | Grid Movement             |
+| Grid Down                          | `shift+j`   | Grid Movement             |
+| Grid Up                            | `shift+k`   | Grid Movement             |
+| Grid Right                         | `shift+l`   | Grid Movement             |
+| Find Angle '<' Backward            | `q`         | Sigil Movement            |
+| Find Angle '<' Forward             | `w`         | Sigil Movement            |
+| Find Angle '>' Backward            | `e`         | Sigil Movement            |
+| Find Angle '>' Forward             | `r`         | Sigil Movement            |
+| Find Alphabet Backward             | `a` + char  | Sigil Movement            |
+| Find Alphabet Forward              | `s` + char  | Sigil Movement            |
+| Repeat Find Alphabet Backward      | `d`         | Repeater                  |
+| Repeat Find Alphabet Forwardd      | `f`         | Repeater                  |
+| Swap between head and tail         | `z`         | Body Control (snake mode) |
+| Shrink the body length to 1        | `x`         | Body Control (snake mode) |
+| Toggle between head or body-driven | `c`         | Body Control (snake mode) |
+| Detach the head                    | `v`         | Body Control (snake mode) |
 
-1. **Reserved Keys (Cannot Be Remapped)**
-   - `\` - Start/stop game (see Game Flow)
-   - `=` - Switch to next level
-   - `<backspace>` - Switch to previous level
-   - `]` - Randomize level (dynamic levels only)
-   - `Escape` - Always opens/closes settings menu
-   - `Enter` - Confirms selections in menus
+Reserved keys:
 
-2. **Conflict Resolution**
+| Action                                | Default Key   |
+| ------------------------------------- | ------------- |
+| Start/stop game (see Game Flow)       | `\`           |
+| Switch to previous game mode          | `-`           |
+| Switch to next game mode              | `=`           |
+| Randomize level (dynamic levels only) | `<backspace>` |
+| Switch to previous level              | `[`           |
+| Switch to next level                  | `]`           |
+| Always opens/closes settings menu     | `Escape`      |
+| Confirms selections in menus          | `Enter`       |
+
+## Keybinding Constraints
+
+1. **Conflict Resolution**
    - If a user tries to assign a key already in use, show a warning
    - Offer to swap the bindings or cancel the change
    - Macros cannot use keys already bound to other actions
 
-3. **Key Combinations**
+2. **Key Combinations**
    - Support modifier keys: `Ctrl`, `Shift`, `Alt`
    - Maximum one modifier per binding
    - `Ctrl+letter` combinations are allowed
    - `Shift+letter` produces uppercase (treated as different key)
 
-### 030:Keybinding Storage
+## Keybinding Storage
 
 Keybindings are stored per save slot:
 
@@ -75,18 +79,6 @@ Keybindings are stored per save slot:
 }
 ```
 
-#### 031:design notes
+### design notes
 
 only the user-defined part are saved (i.e. no need to store the settings if it is identical to the system default)
-
-## 100:score-booster
-
-inherit all features from [core](#000core)
-
-## 200:filler
-
-inherit all features from [core](#000core)
-
-## 300:snake
-
-inherit all features from [core](#000core)

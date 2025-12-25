@@ -333,6 +333,12 @@ and the game also provide a shortcut to reduce the length to zero
 
 with all these arguments, it is obviously a feature deserved to be dropped
 
+### extra design note
+
+originally, the game rely on certain commands to expand/ shrink the body length
+which would make the gameplay less attractive
+the game would be more interesting and interactive if a certain result is caused by delicate instructions instead of a directly keystroke
+
 ## game mode specific
 
 ### design notes

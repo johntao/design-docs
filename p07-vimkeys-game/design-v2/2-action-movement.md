@@ -52,6 +52,9 @@ Expectation: The player should teleport to cell C without being blocked by the o
 
 ## 100:Basic Movement
 
+basic movement are cached and repeatable by some command
+cache defaults to left basic movement if null
+
 Props:
 - collidible: true
 
@@ -88,11 +91,7 @@ Props:
 
 ### 310:Sigil Properties Reference
 
-All foreground item properties are defined in section 500 (Visual-Foreground). See:
-- items#520 for sigil/rune properties
-- items#540 for obstacle properties
-- items#532 for portal properties
-- Collectable properties are defined inline within items#200 (Config-Gameplay)
+All foreground item (sigil, obstacle, portal, coins) properties are defined in [Visual Foreground](./6-visual-foreground.md)
 
 ### 320:Angle Bracket
 
@@ -101,8 +100,8 @@ This is somewhat similar to the classic VIM "word boundary" feature, except that
 (On the other hand, VIM word boundary is a zero-width assertion.)
 Players may use `qwer` to teleport to the existing angle brackets on the view:
 - `q` teleports to the nearest left angle bracket '<' in backward direction (from n,n to 0,0)
-- `w` teleports to the nearest right angle bracket '>' in backward direction (from n,n to 0,0)
-- `e` teleports to the nearest left angle bracket '<' in forward direction (from 0,0 to n,n)
+- `w` teleports to the nearest left angle bracket '<' in forward direction (from 0,0 to n,n)
+- `e` teleports to the nearest right angle bracket '>' in backward direction (from n,n to 0,0)
 - `r` teleports to the nearest right angle bracket '>' in forward direction (from 0,0 to n,n)
 
 ### 330:Alphabets
@@ -113,38 +112,8 @@ Basically, the player can use a find command followed by a character to jump to 
 The only difference is that in VIM, alphabets are normally rendered everywhere in a text file, and the concept of word boundary is built on top of it.
 Here in the game, alphabets are rendered sparsely, and they have nothing to do with word boundaries since word boundaries are represented by angle brackets explicitly.
 
-Players may use `f` to search for an alphabet in the forward direction (use `d` to search backward), press the key that represents the alphabet, then teleport to the cell (the first occurence of the alphabet) directly.
-Note that `f` works differently comparing to the implementation in VIM, here the function search across multiple lines, whereas VIM search only in the same line.
-
-## 400:Macro
-
-A macro is a set of pre-defined actions allowing the player to perform multiple actions in one keystroke.
-It is mostly equivalent to how macros work in VIM, except:
-- The player cannot record macros by themselves
-- A macro is triggered by a single keystroke instead of `@` followed by another keystroke
-- There are two different ways to define a macro:
-  1. Define it in the keybinding configuration menu (with limitations)
-  2. By picking up powerups while playing the game
-
-### 410:Limitations
-
-Macros are so powerful that they should have some "limitations" to ensure they don't break the gameplay (i.e., make the game extremely easy).
-
-For macros defined in the keybinding configuration menu:
-- The configuration popup should allow the player to define a maximum of 6 basic movements in a single macro
-- This limitation ensures macros remain balanced and don't trivialize the gameplay
-
-Some possible macros:
-- Move left 5 times (i.e., hhhhh)
-- Move left 3 times, then down 3 times (i.e., hhhjjj)
-
-### 420:Design Background
-
-The first version was a dead simple configurable basic movement with a configurable multiplier.
-However, after a few playthroughs, the design felt boring.
-Then, I came up with the idea of moving in an L-shape similar to how knights move in chess.
-As an alternative, make macros collectable powerups, which makes the macro only executable once the player picks up the powerup in-game.
-Still need more evaluation to check if this is actually fun to play.
+Players may use `s` to search for an alphabet in the forward direction (use `a` to search backward), press the key that represents the alphabet, then teleport to the cell (the first occurence of the alphabet) directly.
+Note that `s` works differently comparing to the implementation in VIM, here the function search across multiple lines, whereas VIM search only in the same line.
 
 ## 500:Repeater
 
@@ -163,7 +132,7 @@ Available non-basic movements:
 - Sigil: angle bracket items#141
 - Sigil: alphabet items#142
 
-### 520:proposal 1 (dropped)
+### 520:dropped_proposal 1
 
 This feature is a group of three keystrokes:
 e.g., `m,<.`
@@ -175,7 +144,7 @@ Note: On a QWERTY keyboard, `,` and `<` share the same key, so this uses three k
 
 Dropped reason: indeterministic direction increase cognitive load
 
-### 530:proposal 2 (adopted)
+### 530:dropped_proposal 2
 
 Alternatively, implement `nm,.` as below:
 - Press `n` to allow the player to repeat the last used non-basic movement in backward direction (from n,n to 0,0)
@@ -191,6 +160,11 @@ Alternatively, implement `nm,.` as below:
   - Keep the player in the same cell if the non-basic movement fails
 - Press `.` to allow the player to repeat the last used non-basic movement in forward direction (from 0,0 to n,n)
 
+### 540:proposal 3
+
+Now, repeater only repeats sigil_alphabet movement
+use `d` to repeat the movement in backward direction
+use `f` to repeat the movement in forward direction
 
 ## 600:changing body length
 
@@ -218,7 +192,7 @@ Note that the player will lose some interactive functions when the body length i
   - Reason  Maintaining sigil movement for head/tail modes makes the game more versatile and fun
   - Reason  Sigil movement requires a specific cursor position to calculate the target; while activating the body part, there's no obvious way to determine which part should be the active cursor
 
-### 610:Keybindings Proposal 1 (dropped)
+### 610:dropped_Keybindings Proposal 1
 
 Register two keystrokes: `zx`
 - `z` switches between head or tail (variable mode)
@@ -240,7 +214,7 @@ Should have visual difference between variable-length and fixed-length mode.
 Should introduce visual marker for active head/tail part.
 Should introduce visual marker for previous active head/tail part (if currently activating body part).
 
-### 620:Keybindings Proposal 2 (dropped)
+### 620:dropped_Keybindings Proposal 2
 
 Register three keystrokes: `zxc`
 - `z` switches to head part (variable mode)
@@ -257,7 +231,7 @@ Pros and cons:
 Should have visual difference between variable-length and fixed-length mode.
 Should introduce distinctive visual difference for head and tail parts.
 
-### 630:Keybindings Proposal 3
+### 630:dropped_Keybindings Proposal 3
 
 Register three keystrokes: `zxc`
 - `z` switches to tail part (variable mode); trigger `z` would also trigger a basic movement `h`
@@ -277,6 +251,14 @@ Pros and cons:
 - Cons:
   - Requires more keystrokes
 
+### 640:keybindings proposal 4
+
+Register 4 keystrokes: `zxcv`
+- hit `z` to swap between head/ tail
+- hit `v` to detach the head
+  - repeat last used basic movement
+- hit `x` to shrink the body length to one as well as swap the head/ tail position
+- hit `c` to toggle between head-driven or body-driven mode
 
 ## 700:game mode specific
 
@@ -287,18 +269,17 @@ implement these features:
 - [basic movement](#100basic-movement)
 - [grid movement](#200grid-movement)
 - [sigil](#300sigil)
-- [macro](#400macro)
 - [repeater](#500repeater)
 
 ### 720:picker
 
 inherit all stuff from [shared](#710shared)
 
-### 730:score-booster
+### 740:filler
 
 inherit all stuff from [shared](#710shared)
 
-### 740:filler
+### 730:score-booster
 
 inherit all stuff from [shared](#710shared)
 
@@ -312,6 +293,36 @@ implement [changing body length](#700changing-body-length)
 
 - marker command
 - Ggg0^$
+
+### 400:Macro
+
+A macro is a set of pre-defined actions allowing the player to perform multiple actions in one keystroke.
+It is mostly equivalent to how macros work in VIM, except:
+- The player cannot record macros by themselves
+- A macro is triggered by a single keystroke instead of `@` followed by another keystroke
+- There are two different ways to define a macro:
+  1. Define it in the keybinding configuration menu (with limitations)
+  2. By picking up powerups while playing the game
+
+#### 410:Limitations
+
+Macros are so powerful that they should have some "limitations" to ensure they don't break the gameplay (i.e., make the game extremely easy).
+
+For macros defined in the keybinding configuration menu:
+- The configuration popup should allow the player to define a maximum of 6 basic movements in a single macro
+- This limitation ensures macros remain balanced and don't trivialize the gameplay
+
+Some possible macros:
+- Move left 5 times (i.e., hhhhh)
+- Move left 3 times, then down 3 times (i.e., hhhjjj)
+
+#### 420:Design Background
+
+The first version was a dead simple configurable basic movement with a configurable multiplier.
+However, after a few playthroughs, the design felt boring.
+Then, I came up with the idea of moving in an L-shape similar to how knights move in chess.
+As an alternative, make macros collectable powerups, which makes the macro only executable once the player picks up the powerup in-game.
+Still need more evaluation to check if this is actually fun to play.
 
 ### 810:Pattern Movement
 
