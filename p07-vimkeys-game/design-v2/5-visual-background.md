@@ -1,6 +1,6 @@
 # visual-background
 
-## Simple Grid
+## 100:Simple Grid
 
 Default grid dimension: 10x10
 
@@ -9,7 +9,7 @@ The player moves around inside the grid exclusively via these keybindings: hjkl.
 By design:
 - if the a movement action hit the boundary of the grid, keep the player at the closest available cell to the boundary
 
-## Multiple Grids
+## 200:Multiple Grids
 
 Default multiple grids layout: 3x3 (9 grids total)
 Default grid dimension: 10x10
@@ -21,7 +21,7 @@ By design:
   - the expected behavior after the grid movement is to keep the player at the same relative position of the grid (before and after, should be the same)
 - if player hit the left most cell of the left most grid, then, move the player left would hit the boundary as how it works in a single grid
 
-### Examples
+### 210:Examples
 
 Given 9 grids in a 3×3 layout, each grid containing 10x10 cells
 

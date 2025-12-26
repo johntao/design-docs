@@ -2,11 +2,11 @@
 
 This section defines how levels are structured, generated, and stored.
 
-## Random Level Generation
+## 100:Random Level Generation
 
 For Picker mode with random generation:
 
-### Algorithm Outline
+### 110:Algorithm Outline
 
 1. Create empty grid of specified dimensions
 2. Place player spawn point
@@ -17,7 +17,7 @@ For Picker mode with random generation:
 5. Place sigils (optional, based on config)
 6. Place portals (optional, in pairs)
 
-### Generation Parameters
+### 120:Generation Parameters
 | Parameter         | Type  | Default | Description                                     |
 | ----------------- | ----- | ------- | ----------------------------------------------- |
 | obstacle_density  | float | 0.10    | Percentage of cells with obstacles (0.0 - 0.20) |
@@ -26,7 +26,7 @@ For Picker mode with random generation:
 | portal_pairs      | int   | 0       | Number of portal pairs to place                 |
 | seed              | int?  | null    | Random seed for reproducibility (null = random) |
 
-## Fixed Level Format
+## 200:Fixed Level Format
 
 Fixed levels are stored as JSON with the following structure:
 
@@ -64,7 +64,7 @@ Fixed levels are stored as JSON with the following structure:
 }
 ```
 
-## Level Validation Rules
+## 300:Level Validation Rules
 
 Before a level can be played, validate:
 1. Player spawn position is within grid bounds
@@ -74,7 +74,7 @@ Before a level can be played, validate:
 5. For Filler mode: all color sources are reachable
 6. Grid dimensions are within allowed range
 
-## Level Set (default)
+## 400:Level Set (default)
 
 Each game mode is mapped to a level set
 Players can cycle through levels using `[` and `]`:
@@ -93,7 +93,7 @@ Players can cycle through levels using `[` and `]`:
 
 Refer to file [visual foreground](./6-visual-foreground.md) for more items information
 
-### Demo Level Details
+### 410:Demo Level Details
 
 The demo level is a special sandbox mode:
 - **Cannot be started** (the `\` key has no effect; the level is always in a playable state without entering formal In-Game mode)
@@ -101,7 +101,7 @@ The demo level is a special sandbox mode:
 - **Supported features**: Pick up collectables, obstacles, portals, all movement actions
 - **Unsupported features**: Combo system, score calculation, win/loss conditions
 
-## alternate coloring logic
+## 500:alternate coloring logic
 
 implement two extra features
 - coin now has a color code
@@ -112,14 +112,14 @@ implement two extra features
   - color spray doesn't give score
   - color spray respawn after 4 movement actions
 
-## level set (filler-mode specific)
+## 600:level set (filler-mode specific)
 
 this level set is identical to [default level set](#level-set-default) except that  
 each level now render coin with color logic, and also render correspond color sprays
 
-## game mode specific
+## 700:game mode specific
 
-### shared
+### 710:shared
 
 implements these:
 
@@ -128,21 +128,21 @@ implements these:
 - [fixed level format](#fixed-level-format)
 - [level validation rules](#level-validation-rules)
 
-### picker
+### 720:picker
 
-inherit from [shared](#shared)
+inherit from [shared](#710shared)
 
-### filler
+### 730:filler
 
-inherit from [shared](#shared)
+inherit from [shared](#710shared)
 implement these:
 - [alternate coloring logic](#alternate-coloring-logic)
 - [level set](#level-set-filler-mode-specific)
 
-### score booster
+### 740:score booster
 
-inherit from [shared](#shared)
+inherit from [shared](#710shared)
 
-### snake
+### 750:snake
 
-inherit from [shared](#shared)
+inherit from [shared](#710shared)

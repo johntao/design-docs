@@ -7,30 +7,30 @@ TODO:
 - stage 1..5
 - collectable table?
 
-## 000:Collision
+## 100:Collision
 
 There are a few meanings of "collision" in this game.
 The basic concept is that the player moves from cell A to cell B; if cell B contains another item, then the player "collides" with the item.
 Let's expand on this statement further
 
-### 010:multiple collision
+### 110:multiple collision
 
 If the distance between A and B is greater than 1, this indicates the movement traverses multiple cells at a time
 This indicates the collision might occur multiple times during the process
 
-### 020:teleportable movement
+### 120:teleportable movement
 
 If the movement action is teleportable, then only the destination cell is considered collidable
 i.e., all collisions between cell A and cell B are ignored
 
-### 030:non-collidable item
+### 130:non-collidable item
 
 It is possible to set an item as non-collidable, which means it doesn't trigger a collision event even if the collision occurs
 - Collectables and obstacles are collidable
 - Sigils are non-collidable
 - If multiple collidable items occupy the same cell, all collision events for that cell are triggered
 
-### 040:collision as event
+### 140:collision as event
 
 Collisions are basically events defined by the engine
 - When a player collides with a collectable: the player picks up the collectable
@@ -38,19 +38,19 @@ Collisions are basically events defined by the engine
 - When a player collides with an obstacle: push back the player in the opposite direction from where they came
   - i.e., the player cannot step onto an obstacle
 
-### 050:collide on boundary
+### 150:collide on boundary
 
 If cell B is out of bounds of the current grid, it should also trigger a boundary-collision event
 The default behavior of the event is to move the player to a viable cell which is closest to the boundary
 
-### 060:A Test Case
+### 160:A Test Case
 
 The player moves from cell A to cell C; cell B sits between A and C.
 Cell B contains an obstacle.
 The movement type is teleport.
 Expectation: The player should teleport to cell C without being blocked by the obstacle in cell B.
 
-## 100:Basic Movement
+## 200:Basic Movement
 
 basic movement are cached and repeatable by some command
 cache defaults to left basic movement if null
@@ -58,7 +58,7 @@ cache defaults to left basic movement if null
 Props:
 - collidible: true
 
-### 110:A Test Case
+### 210:A Test Case
 
 Define what happens when the player hits the boundary of a grid:
 - Stay in the previous cell without moving
@@ -67,7 +67,7 @@ Define what happens when the player hits the boundary of a grid:
   - Move the player to the right boundary of the left grid
   - e.g., new-row-index == old-row-index; new-col-index == new-cols.at(-1)
 
-## 200:Grid Movement
+## 300:Grid Movement
 
 A view may contain multiple grids.
 A grid movement means the player teleports from grid A to grid B.
@@ -82,18 +82,18 @@ Props:
     - The cell has the identical row-col index as before the teleport
     - e.g., from cur-grid(3,4) to dest-grid(3,4)
 
-## 300:Sigil
+## 400:Sigil
 
 A sigil is an item that is not collidable but is interactable with certain movement actions.
 
 Props:
 - collidable: false
 
-### 310:Sigil Properties Reference
+### 410:Sigil Properties Reference
 
 All foreground item (sigil, obstacle, portal, coins) properties are defined in [Visual Foreground](./6-visual-foreground.md)
 
-### 320:Angle Bracket
+### 420:Angle Bracket
 
 Render angle brackets '<' and '>' directly in the cell.
 This is somewhat similar to the classic VIM "word boundary" feature, except that the word boundary is now visualized and rendered as a character directly in a cell.
@@ -104,7 +104,7 @@ Players may use `qwer` to teleport to the existing angle brackets on the view:
 - `e` teleports to the nearest right angle bracket '>' in backward direction (from n,n to 0,0)
 - `r` teleports to the nearest right angle bracket '>' in forward direction (from 0,0 to n,n)
 
-### 330:Alphabets
+### 430:Alphabets
 
 Render alphabets in the cell.
 This feature is similar to how normal characters work in VIM editor.
@@ -265,21 +265,21 @@ Register 4 keystrokes: `zxcv`
 ### 710:shared
 
 implement these features:
-- [collision](#000collision)
+- [collision](#100collision)
 - [basic movement](#100basic-movement)
 - [grid movement](#200grid-movement)
-- [sigil](#300sigil)
+- [sigil](#400sigil)
 - [repeater](#500repeater)
 
 ### 720:picker
 
 inherit all stuff from [shared](#710shared)
 
-### 740:filler
+### 730:filler
 
 inherit all stuff from [shared](#710shared)
 
-### 730:score-booster
+### 740:score-booster
 
 inherit all stuff from [shared](#710shared)
 
@@ -293,17 +293,17 @@ implement [changing body length](#700changing-body-length)
 
 these features are not going to implement in this version
 
-### marker command
+### 810:marker command
 
 TBD
 
-### border jump command
+### 820:border jump command
 
 TBD
 
 e.g. Ggg0^$
 
-### 400:Macro
+### 830:Macro
 
 A macro is a set of pre-defined actions allowing the player to perform multiple actions in one keystroke.
 It is mostly equivalent to how macros work in VIM, except:
@@ -313,7 +313,7 @@ It is mostly equivalent to how macros work in VIM, except:
   1. Define it in the keybinding configuration menu (with limitations)
   2. By picking up powerups while playing the game
 
-#### 410:Limitations
+#### 831:Limitations
 
 Macros are so powerful that they should have some "limitations" to ensure they don't break the gameplay (i.e., make the game extremely easy).
 
@@ -325,7 +325,7 @@ Some possible macros:
 - Move left 5 times (i.e., hhhhh)
 - Move left 3 times, then down 3 times (i.e., hhhjjj)
 
-#### 420:Design Background
+#### 832:Design Background
 
 The first version was a dead simple configurable basic movement with a configurable multiplier.
 However, after a few playthroughs, the design felt boring.
@@ -333,7 +333,7 @@ Then, I came up with the idea of moving in an L-shape similar to how knights mov
 As an alternative, make macros collectable powerups, which makes the macro only executable once the player picks up the powerup in-game.
 Still need more evaluation to check if this is actually fun to play.
 
-### 810:Pattern Movement
+### 840:Pattern Movement
 
 A pattern move is something similar to how `#*(){}[]%` works in VIM:
 - The player may teleport to the next symbol under the cursor using `#*`
@@ -345,7 +345,7 @@ A pattern move is something similar to how `#*(){}[]%` works in VIM:
 However, I think this movement over-complicates the gameplay.
 We should keep this in the backlog without actually implementing it.
 
-#### 811:More Patterns
+#### 841:More Patterns
 
 It is possible to define more patterns by introducing LSP and AST.
 Again, it would over-complicate the gameplay to introduce these features.

@@ -2,9 +2,9 @@
 
 Information about score, game status, and configuration modal popup.
 
-## Score Board
+## 100:Score Board
 
-### In-Game Display
+### 110:In-Game Display
 
 While in-game, the HUD displays:
 
@@ -15,7 +15,7 @@ While in-game, the HUD displays:
 | Stopwatch and remaining count | If endgame condition 1 is used          |
 | Current Color Spray           | Equipped color spray (Filler mode only) |
 
-### Out-of-Game Display
+### 120:Out-of-Game Display
 
 While out-of-game:
 
@@ -28,9 +28,9 @@ While out-of-game:
 | Configuration Access | Button/link to open settings modal                   |
 | Start Hint           | "Press `\` to start"                                 |
 
-## Settings Modal
+## 200:Settings Modal
 
-### Modal Structure
+### 210:Modal Structure
 
 The settings modal contains two main tabs accessed via toggle buttons:
 
@@ -46,12 +46,12 @@ The settings modal contains two main tabs accessed via toggle buttons:
 └─────────────────────────────────────────┘
 ```
 
-### Gameplay Tab Contents
+### 220:Gameplay Tab Contents
 
 The Gameplay tab displays different options depending on the selected game mode. Picker mode and Filler mode each have their own set of configurable settings.
 
 
-### Keybindings Tab Contents
+### 230:Keybindings Tab Contents
 
 Displays the keybinding table in an editable format:
 - Click on a key cell to rebind

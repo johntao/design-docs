@@ -4,7 +4,7 @@ All keybindings should be configurable.
 Keybindings are basically actions to trigger a movement.
 Thus, they should be defined in [action-movement](./2-action-movement.md)
 
-## Default Keybinding Table
+## 100:Default Keybinding Table
 
 Remappable keys:
 
@@ -44,7 +44,7 @@ Reserved keys:
 | Always opens/closes settings menu     | `Escape`      |
 | Confirms selections in menus          | `Enter`       |
 
-## Keybinding Constraints
+## 200:Keybinding Constraints
 
 1. **Conflict Resolution**
    - If a user tries to assign a key already in use, show a warning
@@ -57,7 +57,7 @@ Reserved keys:
    - `Ctrl+letter` combinations are allowed
    - `Shift+letter` produces uppercase (treated as different key)
 
-## Keybinding Storage
+## 300:Keybinding Storage
 
 Keybindings are stored per save slot:
 
@@ -79,6 +79,6 @@ Keybindings are stored per save slot:
 }
 ```
 
-### design notes
+### 310:design notes
 
 only the user-defined part are saved (i.e. no need to store the settings if it is identical to the system default)

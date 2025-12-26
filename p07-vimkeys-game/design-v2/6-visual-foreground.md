@@ -6,7 +6,7 @@ all items are basically printable characters
 
 collision: when the player moves and overlap on another item, a collision event is triggered
 
-## type properties
+## 100:type properties
 
 this table illustrate the basic properties of each type of items
 | Type-props  | collidable | actionable | collision event                 | Sub-item                   |
@@ -16,7 +16,7 @@ this table illustrate the basic properties of each type of items
 | obstacle    | o          | x          | block, cancel the movement      |                            |
 | sigil       | x          | o          | NONE                            | alphabet, angle bracket    |
 
-## spawn rules
+## 200:spawn rules
 
 this table illustrate if two different type of items could be spawned in the same cell
 | spawn     | portal | sg-angle | sg-letter | obstacle | player | coin |
@@ -28,7 +28,7 @@ this table illustrate if two different type of items could be spawned in the sam
 | player    | x      | o        | o         | x        | #N/A   | x    |
 | coin      | x      | o        | o         | x        | x      | #N/A |
 
-## item display
+## 300:item display
 
 this table illustrate the printable character to represent each item type
 | display   | char | desc                               |
@@ -40,7 +40,7 @@ this table illustrate the printable character to represent each item type
 | player    | ▢    | hollow square with rounded corners |
 | coin      | •    | dot                                |
 
-## step rules
+## 400:step rules
 
 this table illustrate if the player could step onto another item type (i.e. collidable) 
 | player stepping         | portal | sg-angle | sg-letter | obstacle | player | coin |
@@ -51,7 +51,7 @@ this table illustrate if the player could step onto another item type (i.e. coll
 
 [^1]: refer to "snake feature set" section of [config-gameplay](./3-config-gameplay.md) for more details
 
-## collectable_coin
+## 500:collectable_coin
 
 picking up a coin would give player one score
 
@@ -62,7 +62,7 @@ extra notes:
   - a number to represent the correct order to keep the combo streak
 - if filler feature set is enabled, successfully picking up a coin would also paint the cell with the correspond color
 
-## collectable_color spray
+## 600:collectable_color spray
 
 this is a collectable item in filler mode
 
@@ -70,7 +70,7 @@ extra notes:
 - it doesn't give score
 - it respawn after 4 movement actions
 
-## collectable_volatile coin
+## 700:collectable_volatile coin
 
 this is a collectable item in score-booster mode
 
@@ -78,16 +78,16 @@ extra notes:
 - a decremental counter is rendered aside or on top of the coin
 - the coin vanish once the counter run below 1
 
-## Player Initialization
+## 800:Player Initialization
 
 When a game starts, the player must be initialized with the following properties:
 
-### Starting Position
+### 810:Starting Position
 - **Picker Mode (Random Level):** Player spawns at a random unoccupied cell, or at the center of the grid if unoccupied
 - **Picker Mode (Fixed Level):** Player spawns at a predefined position specified in the level data
 - **Filler Mode:** Player spawns at a predefined position specified in the level data
 
-### Initial State
+### 820:Initial State
 | Property      | Initial Value | Notes                         |
 | ------------- | ------------- | ----------------------------- |
 | Body Length   | 1             | Single cell occupied          |
@@ -96,12 +96,12 @@ When a game starts, the player must be initialized with the following properties
 | Combo Streak  | 0             | If combo system is enabled    |
 | Current Color | None          | For Filler mode only          |
 
-### Spawn Constraints
+### 830:Spawn Constraints
 - The spawn cell must not contain an obstacle
 - The spawn cell must not contain a portal (to avoid immediate teleportation)
 - For random levels, ensure at least one collectable is reachable from spawn position
 
-## Obstacle
+## 900:Obstacle
 
 The player cannot step onto a cell that contains an obstacle.
 
@@ -109,7 +109,7 @@ The game engine should not render an obstacle and any other item in the same cel
 - If a cell contains an obstacle, it cannot contain collectables, sigils, portals, or any other items
 - This ensures clear collision behavior and prevents ambiguous game states
 
-## sigil_alphabet
+## a00:sigil_alphabet
 
 Sigils are printable characters that players may use special actions to interact with
 
@@ -119,7 +119,7 @@ Extra info:
   - this would make the repeater action more useful
 - render alphbets starts from a
 
-## sigil_angle bracket
+## b00:sigil_angle bracket
 
 Sigils are printable characters that players may use special actions to interact with
 
@@ -129,7 +129,7 @@ Extra info:
 - the game should render angle bracket in pairs without nesting
   - this simulate the how word boundaries works in VIM originally
 
-### design notes
+### b10:design notes
 
 this concept originate from VIM word boundary motion
 
@@ -149,7 +149,7 @@ the similarity:
   - which is similar to VIM that the user may use either word motion or find char to navigate to the same position
 - render in pairs without nesting
 
-## portals
+## c00:portals
 
 A pair of portals that teleports the player on collision.
 
@@ -160,7 +160,7 @@ Extra notes:
   - e.g. A <=> A' colored red; B <=> B' colored blue;
 - in snake mode, hitting portals by the body part would remove the body part directly instead of teleporting
 
-## Fog of War
+## d00:Fog of War
 
 The current gameplay displays the whole view entirely.
 
@@ -170,16 +170,16 @@ extra notes:
 - the area is configured by a radius value (defaults to 5)
 - use a proper algorithm to simulate a circular area within a grid
 
-### Design Notes
+### d10:Design Notes
 
 This config works best in randomly generated levels (timer + score-based mode).
 The reason is that playing a static level in speed-based mode means the game should eliminate noise of the gameplay to ensure better player experience.
 
-## game mode specific
+## e00:game mode specific
 
 noted that some of the game mode specific instructions are already included below the "extra note" of each feature
 
-### shared
+### e10:shared
 
 - dummy blank
 - [type properties](#type-properties)
@@ -188,37 +188,37 @@ noted that some of the game mode specific instructions are already included belo
 - [step rules](#step-rules)
 - [collectable coin](#collectable_coin)
 - [player](#player-initialization)
-- [obstacle](#obstacle)
+- [obstacle](#900obstacle)
 - [sigil alphabet](#sigil_alphabet)
 - [sigil angle bracket](#sigil_angle-bracket)
-- [portals](#portals)
+- [portals](#c00portals)
 - [fog of war](#fog-of-war)
 
-### picker
+### e20:picker
 
-inherit all from [shared](#shared)
+inherit all from [shared](#e10shared)
 
-### filler
+### e30:filler
 
-inherit all from [shared](#shared)
+inherit all from [shared](#e10shared)
 implement these additional features:
 - [collectable color spray](#collectable_color-spray)
 
-### score-booster
+### e40:score-booster
 
-inherit all from [shared](#shared)
+inherit all from [shared](#e10shared)
 implement these additional features:
 - [collectable volatile coin](#collectable_volatile-coin)
 
-### snake
+### e50:snake
 
-inherit all from [shared](#shared)
+inherit all from [shared](#e10shared)
 implement these additional features:
 - [collectable volatile coin](#collectable_volatile-coin)
 
-## appendix_dropped features
+## f00:appendix_dropped features
 
-### Hyperlink-Like
+### f10:Hyperlink-Like
 
 **Reason for dropping:** Violates the first design principle (non-movement actions).
 

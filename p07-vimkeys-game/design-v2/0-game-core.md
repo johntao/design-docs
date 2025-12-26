@@ -2,19 +2,19 @@
 
 This game is a combination of VIM keybindings and Snake-like gameplay.
 
-## intro
+## 100:intro
 
-### The Basic Gameplay
+### 110:The Basic Gameplay
 
 The player uses VIM keybindings to explore and pick up coins in a grid-like area
 
-#### What Makes This Game Unique and Fun:
+#### 111:What Makes This Game Unique and Fun:
 
 The game contains rich movement actions and gameplay options.
 The player can configure all the keybindings and gameplay as they wish.
 The goal is to let players learn what keybindings and gameplay work best for themselves.
 
-### Keywords and Definitions:
+### 120:Keywords and Definitions:
 - **view** => the entire area that is visible and actionable to the player
   - A view may contain one or many grids at a time
   - There should be margins between two different grids
@@ -58,7 +58,7 @@ The goal is to let players learn what keybindings and gameplay work best for the
   - demo levels remove win/ loss condition and score calculation
   - refer to [game level](./1-game-level.md) for more information
 
-## Design Principles
+## 200:Design Principles
 
 - **This should be fast-paced gameplay**
   - i.e., every keystroke should impact the game progress to some degree
@@ -83,9 +83,9 @@ The goal is to let players learn what keybindings and gameplay work best for the
   - choose the one that enrich the player experience more
   - this is a rule go against "least surprising design"
 
-## flow
+## 300:flow
 
-### Game Mode Selector
+### 310:Game Mode Selector
 
 Before gameplay begins, the player selects a game mode. This is a higher-order switch that replaces the entire game configuration:
 
@@ -96,7 +96,7 @@ Before gameplay begins, the player selects a game mode. This is a higher-order s
 | Score-Booster | Pick up coins in a given timer           |
 | Snake         | Pick up coins in a given timer           |
 
-### State Machine
+### 320:State Machine
 
 ```
 ┌─────────────┐     \     ┌─────────────┐
@@ -104,14 +104,14 @@ Before gameplay begins, the player selects a game mode. This is a higher-order s
 └─────────────┘           └─────────────┘
 ```
 
-### Transitions
+### 330:Transitions
 
 | From        | To          | Trigger                                 |
 | ----------- | ----------- | --------------------------------------- |
 | Out-of-Game | In-Game     | Player presses `\`                      |
 | In-Game     | Out-of-Game | Player presses `\` or win condition met |
 
-### Reserved Keybindings
+### 340:Reserved Keybindings
 
 These keybindings are always active and cannot be remapped:
 
@@ -126,9 +126,9 @@ These keybindings are always active and cannot be remapped:
 | `Escape`      | Open/close settings menu                            |
 | `Enter`       | Confirm selections in menus                         |
 
-## game mode introduction
+## 400:game mode introduction
 
-### picker mode
+### 410:picker mode
 
 is the base game mode having the following game flow:
 - game start, a stopwatch start
@@ -136,13 +136,13 @@ is the base game mode having the following game flow:
 - player collect the last coin
 - stopwatch stop, game end
 
-### filler mode
+### 420:filler mode
 
 is a special game mode that works very similar to the base gameplay with extra feature set
 game flow is identical to [picker mode](#picker-mode)
 the main feature of this mode: picking up coins would also color the cells
 
-### score-booster mode
+### 430:score-booster mode
 
 is a special game mode that introduce several score-boosting rules, and a countdown timer
 here's the game flow:
@@ -151,7 +151,7 @@ here's the game flow:
 - player keep collecting coins
 - timer stop, game end
 
-### snake mode
+### 440:snake mode
 
 is a special game mode that works very similar to [score-booster](#score-booster-mode) with a different feature set
 game flow is identical to score-booster mode

@@ -15,4 +15,11 @@
   - to-be-defined: type and maximum amount of items that can be rendered in the same cell
 - [visual-hud](./7-visual-hud.md)
   - keywords: score board, configuration modal
-- [appendix](./8-appendix.md)
+
+## Implementation Prompt
+
+- Encapsulate the main program into one standalone HTML file
+- Separate game level definition to another JS file
+- Zero frameworks and libraries
+- Skip design notes and appendix, no need to implement contents in the appendix
+- Plan Make sure the game is implemented in 3 to 5 stages where each stage is a standalone commit

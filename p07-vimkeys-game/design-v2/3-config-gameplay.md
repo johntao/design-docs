@@ -1,6 +1,6 @@
 # config-gameplay
 
-## endgame-cond-1_stopwatch and limited coins
+## 100:endgame-cond-1_stopwatch and limited coins
 
 Start a stopwatch once the game is started.
 End the game once the last coin is picked up.
@@ -12,7 +12,7 @@ Extra notes:
 configurable options:
 - #n/a
 
-## maximum displaying coins
+## 200:maximum displaying coins
 
 The game displays all the coins at a time by default.
 Details:
@@ -26,7 +26,7 @@ configurable options:
   - defaults to zero for [endgame-cond-1](#endgame-cond-1_stopwatch-and-limited-coins)
   - defaults to 10 for [endgame-cond-2](#endgame-cond-2_countdown-and-unlimited-coins)
 
-## line of sight
+## 300:line of sight
 
 This feature is also stands as fog of war where the player now have limited vision for the surroundings
 
@@ -42,7 +42,7 @@ configurable options:
   - set to zero would disable this feature
   - defaults to zero
 
-## config slots
+## 400:config slots
 
 The game provides settings for users to configure their keybindings or gameplay.
 
@@ -55,7 +55,7 @@ Extra rules:
 configurable options:
 - none
 
-## endgame-cond-2_countdown and unlimited coins
+## 500:endgame-cond-2_countdown and unlimited coins
 
 Start a countdown timer once the game is started.
 End the game once the timer count to zero.
@@ -69,7 +69,7 @@ Additional information:
 configurable options:
 - #n/a
 
-## score booster feature set
+## 600:score booster feature set
 
 configurable option:
 - this feature set is enabled exclusively to score-booster mode
@@ -84,7 +84,7 @@ extra notes:
   - reason 1: there should be one combo logic at a time
   - reason 2: too many numbers around a coin would violate 4th design principle
 
-### Combo_unstoppable
+### 610:Combo_unstoppable
 
 A combo streak state: the streak refreshes if the player picks up a coin within 4 steps (i.e., within steps 1, 2, 3, or 4).
 
@@ -108,7 +108,7 @@ configurable options:
   - if set to 0 then the bonus score does not cap
     - 10..12 triple; 13..15 x4; 16..18 x5; ...etc
 
-### Decremental Counter
+### 620:Decremental Counter
 
 Make every newly spawned coin worth an extra score of 5, then reduce the extra score each time the player moves.
 This mode synergizes well with [combo streak](#combo_unstoppable) since both of them keep the player prioritizing the nearest coins.
@@ -120,7 +120,7 @@ configurable options:
 - counter of a newly spawned coin (defaults to 5)
 - decrement steps (defaults to 1)
 
-### combo_ocd
+### 630:combo_ocd
 
 Mark coins with an ordinal sequence.
 
@@ -142,7 +142,7 @@ configurable options:
 - maximum bonus score: the bonus score should cap by this value (defaults to 5)
   - e.g. once the combo reach to 6, the bonus value would be capped by 5
 
-### violatile coin
+### 640:violatile coin
 
 Randomly drop a time-sensitive (volatile) coin.
 
@@ -159,11 +159,11 @@ configurable options:
 - the initial value (defaults to 10)
 - decremental step (defaults to 2)
 
-### Calculation Formula
+### 650:Calculation Formula
 
 This section defines the exact calculations for all scoring mechanisms.
 
-#### Base Score
+#### 651:Base Score
 
 ```
 base_score = coins_picked × 1
@@ -171,7 +171,7 @@ base_score = coins_picked × 1
 
 Every coin picked adds 1 to the base score.
 
-#### [Combo_unstoppable Formula](#combo_unstoppable)
+#### 652:[Combo_unstoppable Formula](#combo_unstoppable)
 
 ```
 combo_bonus = floor(combo_streak / 3)
@@ -187,7 +187,7 @@ score_per_pickup = 1 + combo_bonus
 | 6-8 (×6..8+2)  | +2           | 3                |
 | 9+ (×9..+3)    | +3           | 4                |
 
-#### [Decremental Counter Formula](#130decremental-counter)
+#### 653:[Decremental Counter Formula](#130decremental-counter)
 
 ```
 counter_bonus = max(0, 5 - steps_since_spawn)
@@ -196,7 +196,7 @@ score_per_pickup = 1 + counter_bonus
 
 Each coin spawns with a 5-point bonus that decreases by 1 per player step.
 
-#### [combo_ocd Formula](#combo_ocd)
+#### 654:[combo_ocd Formula](#combo_ocd)
 
 ```
 order_bonus = consecutive_correct_pickups
@@ -208,7 +208,7 @@ order_bonus = 0
 
 Bonus grows arithmetically: +1 for 1st correct, +2 for 2nd correct, +3 for 3rd, etc.
 
-#### [violatile coin Formula](#150violatile-coin)
+#### 655:[violatile coin Formula](#150violatile-coin)
 
 ```
 expiration_bonus = remaining_countdown
@@ -218,13 +218,13 @@ score_per_pickup = 1 + expiration_bonus
 coin disappears, no score awarded
 ```
 
-#### Final Score Calculation
+#### 656:Final Score Calculation
 
 ```
 final_score = sum(score_per_pickup for each pickup)
 ```
 
-## coloring feature set
+## 700:coloring feature set
 
 Each coin now comes with a color code to match.
 The player can pick up (equip) a color spray to match the condition.
@@ -247,25 +247,25 @@ configurable options:
   - set to zero would disable this feature
   - defaults to zero
 
-### dropped_Explicit Fill-Up Command
+### 710:dropped_Explicit Fill-Up Command
 
 **Reason for dropping:** Violates the first design principle (extra keypresses).
 
 Originally tried to let the player hit space to fill up a cell. Both making the player explicitly hit space to fill up a cell and hitting space to toggle filling behavior violate the first design principle because it makes players hit extra spaces to complete the game. The threshold feature (requiring un-coloring of unrelated cells) also felt tedious after playthroughs.
 
-### dropped_Stroke Width
+### 720:dropped_Stroke Width
 
 **Reason for dropping:** Over-complicates gameplay.
 
 A feature to fill in multiple cells at once
 
-### dropped_Stroke Depth
+### 730:dropped_Stroke Depth
 
 **Reason for dropping:** Unnecessary complexity.
 
 A feature to make different levels of filling colors when a coin appears twice in the same cell. However, filler mode renders all coins on game start; respawning coins introduces unnecessary complexity without improving the gaming experience.
 
-## snake feature set
+## 800:snake feature set
 
 Pick up a coin now also increase the length of the player by 1. (just like how the classic snake game does)
 
@@ -309,19 +309,19 @@ configurable options:
 - [violatile coin](#violatile-coin) borrowed from [score-booster feature set](#score-booster-feature-set)
   - defaults ON
 
-### dropped_body driven mode cannot collide special item
+### 810:dropped_body driven mode cannot collide special item
 
 **Reason for dropping:** too boring (refer to 5th design principle)
 
 in the body driven mode, one of the possible outcome after collision is to cancel the movement if special items (e.g. portals or obstacles) were in the path
 
-### dropped_body driven mode ghost out
+### 820:dropped_body driven mode ghost out
 
 **Reason for dropping:** too boring (refer to 5th design principle)
 
 in the body driven mode, one of the possible outcome after collision is to make the body part just overlap onto the special items (e.g. portals or obstacles) without triggering any side effects (i.e. ghost out directly)
 
-### dropped_get extra score for hitting body part while attaching
+### 830:dropped_get extra score for hitting body part while attaching
 
 **Reason for dropping:** unnecessary complexity (refer to 4th design principle)
 
@@ -335,15 +335,15 @@ and the game also provide a shortcut to reduce the length to zero
 
 with all these arguments, it is obviously a feature deserved to be dropped
 
-### extra design note
+### 840:extra design note
 
 originally, the game rely on certain commands to expand/ shrink the body length
 which would make the gameplay less attractive
 the game would be more interesting and interactive if a certain result is caused by delicate instructions instead of a directly keystroke
 
-## game mode specific
+## 900:game mode specific
 
-### design notes
+### 910:design notes
 
 it is obvious that some of the features may work interchangeably across different modes
 for example:
@@ -355,42 +355,42 @@ however, this type of freedom or feature mixin might cause significantly negativ
 
 it is designer's duty to reduce player's cognitive load (4th design principle), and make the opinionated design decisions to maximize the game experience
 
-### shared
+### 920:shared
 
 implement these features:
 - [maximum displaying coins](#maximum-displaying-coins)
 - [config slots](#config-slots)
 - [line of sight](#line-of-sight)
 
-### picker mode impl
+### 930:picker mode impl
 
 Picker (or pick-up) mode is the basic game mode where the game drops coins at random or fixed positions on the view.
 
-inherit all features from [shared](#shared)
+inherit all features from [shared](#920shared)
 
 implement these additional features:
 - [endgame condition 1](#endgame-cond-1_stopwatch-and-limited-coins)
 
-### score-booster mode impl
+### 940:score-booster mode impl
 
 The players try to gain as many scores as possible in a fixed amount of time.
 
-inherit all features from [shared](#shared)
+inherit all features from [shared](#920shared)
 
 implement these additional features:
 - [endgame condition 2](#endgame-cond-2_countdown-and-unlimited-coins)
 - [score booster feature set](#score-booster-feature-set)
 
-### filler mode impl
+### 950:filler mode impl
 
 inherit all features from [picker mode](#picker-mode-impl)
 
 implement these additional features:
 - [coloring feature set](#coloring-feature-set)
 
-### snake
+### 960:snake
 
-inherit all features from [shared](#shared)
+inherit all features from [shared](#920shared)
 implement these additional features:
 - [endgame condition 2](#endgame-cond-2_countdown-and-unlimited-coins)
 - [snake feature set](#snake-feature-set)
