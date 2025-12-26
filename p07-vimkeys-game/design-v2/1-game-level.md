@@ -2,14 +2,6 @@
 
 This section defines how levels are structured, generated, and stored.
 
-## Grid Dimensions
-
-Default grid dimension: 10x10
-
-For multi-grid views:
-- Maximum grids per view: 9 (3×3 layout)
-- Grid margin: 10px between grids
-
 ## Random Level Generation
 
 For Picker mode with random generation:
@@ -132,7 +124,6 @@ each level now render coin with color logic, and also render correspond color sp
 implements these:
 
 - dummy blank line
-- [grid dimensions](#grid-dimensions)
 - [random level generation](#random-level-generation)
 - [fixed level format](#fixed-level-format)
 - [level validation rules](#level-validation-rules)

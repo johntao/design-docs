@@ -1,28 +1,34 @@
 # visual-background
 
-## 000:Maps
+## Simple Grid
 
-The current gameplay only renders a single grid map at a time.
+Default grid dimension: 10x10
 
 The player moves around inside the grid exclusively via these keybindings: hjkl.
 
-I would like to expand the idea further to render multiple grids at a time.
+By design:
+- if the a movement action hit the boundary of the grid, keep the player at the closest available cell to the boundary
 
-Players could choose to use "hjkl" to move around different grids once they touch the boundaries between each grid.  
-if player hit the left most cell of the left most grid, then, move the player left would hit the boundary as how it works in a single grid
+## Multiple Grids
 
-Also, the game should introduce new keybindings to make the player teleport between each grid using one keystroke.  
-(i.e. `HJKL` capitalized)
+Default multiple grids layout: 3x3 (9 grids total)
+Default grid dimension: 10x10
+Grid margin: 10px between grids
 
-### 010:Examples
+By design:
+- when the player hit the boundary of a grid, firing the basic movement `hjkl` would bring the player to adjacent grids if available
+  - alternative, player could use capitalized `HJKL` to move to the adjacent grids directly
+  - the expected behavior after the grid movement is to keep the player at the same relative position of the grid (before and after, should be the same)
+- if player hit the left most cell of the left most grid, then, move the player left would hit the boundary as how it works in a single grid
 
-Given 9 grids on the screen at a time in a 3×3 layout:  
-Each grid contains 10x10 cells
+### Examples
 
-The player is positioned on the top-left grid (0,0).
+Given 9 grids in a 3×3 layout, each grid containing 10x10 cells
+
+The player is positioned at cell (8,5) of the top-left grid (0,0)
 
 Player pressing HJKL (capitalized) would expect the following results:
 - H => nothing happens
-- J => move to the downside grid (1,0)
+- J => teleport to cell (8,5) of the downside grid (1,0)
 - K => nothing happens
-- L => move to the rightside grid (0,1)
+- L => teleport to cell (8,5) of the rightside grid (0,1)
