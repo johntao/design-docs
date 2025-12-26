@@ -555,7 +555,12 @@
     }
 
     function getCurrentLevelSet() {
-      return LEVELS[game.mode] || LEVELS.picker;
+      // Picker, Score-Booster, and Snake share the same level set
+      // Filler has its own level set
+      if (game.mode === GameModes.FILLER) {
+        return LEVELS.filler;
+      }
+      return LEVELS.picker; // shared by picker, scoreBooster, snake
     }
 
     function getCurrentLevel() {
@@ -857,10 +862,10 @@
       const level = getCurrentLevel();
       if (level.isDemo) return; // Cannot start demo levels
 
+      // Reset all level state before starting
+      resetLevelState();
+
       game.state = GameState.IN_GAME;
-      game.score = 0;
-      game.comboStreak = 0;
-      game.stepsSinceLastCoin = 0;
 
       // Start timer
       if (game.mode === GameModes.PICKER || game.mode === GameModes.FILLER) {
@@ -894,20 +899,68 @@
         clearInterval(game.timerInterval);
         game.timerInterval = null;
       }
+
+      // Reset level state without regenerating dynamic levels
+      resetLevelState();
       updateHUD();
     }
 
-    function endGame() {
-      stopGame();
+    function resetLevelState() {
+      const level = getCurrentLevel();
 
-      // Update high score
+      // For dynamic levels, we keep the same generated items
+      // For fixed levels, reload items from level definition
+      if (!level.isDynamic) {
+        game.items = JSON.parse(JSON.stringify(level.items));
+      } else {
+        // Reset counters on existing coins for dynamic levels
+        game.items.forEach(item => {
+          if (item.type === 'collectable' && item.counter !== undefined) {
+            item.counter = game.settings.decrementalStart;
+          }
+        });
+      }
+
+      // Reset player position
+      if (level.isDynamic) {
+        // For dynamic levels, spawn at center
+        game.player.row = Math.floor(level.grid.rows / 2);
+        game.player.col = Math.floor(level.grid.cols / 2);
+      } else {
+        game.player.row = level.playerSpawn.row;
+        game.player.col = level.playerSpawn.col;
+      }
+
+      // Reset player state
+      game.player.bodyParts = [];
+      game.player.activeMode = 'head';
+      game.player.equippedSpray = null;
+
+      // Reset game counters
+      game.score = 0;
+      game.timer = 0;
+      game.comboStreak = 0;
+      game.stepsSinceLastCoin = 0;
+      game.coloredCells = new Map();
+      game.lastAlphabetSearch = null;
+
+      // For countdown modes, set initial timer
+      if (level.timerSeconds) {
+        game.timer = level.timerSeconds;
+      }
+
+      renderGrid();
+    }
+
+    function endGame() {
+      // Update high score before stopping
       const key = getHighScoreKey();
       if (!game.highScores[key] || game.score > game.highScores[key]) {
         game.highScores[key] = game.score;
       }
 
-      // Reset level for next play
-      loadLevel();
+      // Stop the game (this will reset level state without regenerating dynamic levels)
+      stopGame();
     }
 
     function checkWinCondition() {
@@ -1218,6 +1271,11 @@
       game.items.forEach(item => {
         if (item.type === 'collectable' && item.counter !== undefined) {
           item.counter -= game.settings.decrementalStep;
+
+          // Cap at 0 for regular coins in score-booster mode
+          if (item.subtype === 'coin' && item.counter < 0) {
+            item.counter = 0;
+          }
 
           // Remove volatile coins that expired
           if (item.subtype === 'volatile' && item.counter <= 0) {
