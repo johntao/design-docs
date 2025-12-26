@@ -25,3 +25,13 @@
 - Zero frameworks and libraries
 - Skip design notes and appendix, no need to implement contents in the appendix
 - Split the implementation to 3 to 5 phases (commits) such that the game can be tested in a more granular-sense
+
+## Phase 1 Testing
+
+- fix the visual effect when the player step onto an item
+  - put the player on top of the item, instead of put the player aside of the item
+- the portals doesn't work as expected, fix it
+- each sigil should have minimal amount of 4
+- minimal of coins for each levels should be set to 9
+- I found out duplicate sigil alphabet existed in the same cell, fix it
+  - each cell should have at max one sigil-alphabet

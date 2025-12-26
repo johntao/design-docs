@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VimKeys Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background-color: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      color: #00d9ff;
+    }
+
+    #hud {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 15px;
+      padding: 10px 20px;
+      background: #16213e;
+      border-radius: 8px;
+      min-width: 500px;
+      justify-content: center;
+    }
+
+    .hud-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hud-label {
+      font-size: 12px;
+      color: #888;
+      text-transform: uppercase;
+    }
+
+    .hud-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #00d9ff;
+    }
+
+    #game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #grid-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .grid {
+      display: grid;
+      background: #0f0f23;
+      border: 2px solid #333;
+      border-radius: 4px;
+    }
+
+    .cell {
+      width: 36px;
+      height: 36px;
+      border: 1px solid #222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      position: relative;
+      background: #0f0f23;
+    }
+
+    .cell.player {
+      color: #00ff88;
+    }
+
+    .cell .player-char {
+      color: #00ff88;
+      font-size: 20px;
+      position: absolute;
+      z-index: 10;
+    }
+
+    .cell .coin {
+      color: #ffd700;
+    }
+
+    .cell .obstacle {
+      color: #ff4444;
+    }
+
+    .cell .portal {
+      color: #ff00ff;
+    }
+
+    .cell .sigil-angle {
+      color: #00d9ff;
+    }
+
+    .cell .sigil-alphabet {
+      color: #88ff88;
+      font-size: 14px;
+    }
+
+    .cell .spray {
+      font-size: 14px;
+    }
+
+    .cell.colored-red { background: rgba(255, 0, 0, 0.3); }
+    .cell.colored-blue { background: rgba(0, 0, 255, 0.3); }
+    .cell.colored-green { background: rgba(0, 255, 0, 0.3); }
+    .cell.colored-yellow { background: rgba(255, 255, 0, 0.3); }
+
+    #status-bar {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #16213e;
+      border-radius: 8px;
+      text-align: center;
+      min-width: 500px;
+    }
+
+    #mode-selector {
+      margin-bottom: 10px;
+    }
+
+    #level-selector {
+      margin-bottom: 10px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .key {
+      background: #333;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+
+    #game-state {
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+
+    #game-state.in-game {
+      color: #00ff88;
+    }
+
+    #game-state.out-game {
+      color: #ff8800;
+    }
+
+    #combo-display {
+      position: absolute;
+      top: -20px;
+      right: 10px;
+      font-size: 14px;
+      color: #ff00ff;
+      font-weight: bold;
+    }
+
+    .counter-overlay {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      font-size: 10px;
+      color: #ffa500;
+      font-weight: bold;
+    }
+
+    #settings-modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #16213e;
+      border: 2px solid #00d9ff;
+      border-radius: 8px;
+      padding: 20px;
+      z-index: 1000;
+      min-width: 400px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    #settings-modal.show {
+      display: block;
+    }
+
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 999;
+    }
+
+    #modal-overlay.show {
+      display: block;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 10px;
+    }
+
+    .modal-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .modal-tab {
+      padding: 8px 16px;
+      background: #333;
+      border: none;
+      color: #eee;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .modal-tab.active {
+      background: #00d9ff;
+      color: #000;
+    }
+
+    .modal-content {
+      margin-bottom: 15px;
+    }
+
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #222;
+    }
+
+    .setting-row input {
+      background: #333;
+      border: 1px solid #555;
+      color: #eee;
+      padding: 4px 8px;
+      border-radius: 4px;
+      width: 80px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .modal-actions button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: #00d9ff;
+      color: #000;
+    }
+
+    .btn-secondary {
+      background: #333;
+      color: #eee;
+    }
+
+    #snake-body-display {
+      display: none;
+    }
+
+    #snake-body-display.show {
+      display: flex;
+    }
+
+    .body-part {
+      color: #00cc66;
+    }
+
+    .body-part.head {
+      color: #00ff88;
+    }
+
+    .body-part.tail {
+      color: #009944;
+    }
+  </style>
+</head>
+<body>
+  <h1>VimKeys Game</h1>
+
+  <div id="hud">
+    <div class="hud-item">
+      <span class="hud-label">Score</span>
+      <span class="hud-value" id="score">0</span>
+    </div>
+    <div class="hud-item" id="timer-display">
+      <span class="hud-label">Time</span>
+      <span class="hud-value" id="timer">00:00</span>
+    </div>
+    <div class="hud-item" id="remaining-display">
+      <span class="hud-label">Remaining</span>
+      <span class="hud-value" id="remaining">0</span>
+    </div>
+    <div class="hud-item" id="combo-hud" style="display: none;">
+      <span class="hud-label">Combo</span>
+      <span class="hud-value" id="combo">x0</span>
+    </div>
+    <div class="hud-item" id="spray-display" style="display: none;">
+      <span class="hud-label">Spray</span>
+      <span class="hud-value" id="current-spray">-</span>
+    </div>
+    <div class="hud-item" id="snake-body-display">
+      <span class="hud-label">Body</span>
+      <span class="hud-value" id="body-length">1</span>
+    </div>
+  </div>
+
+  <div id="game-container">
+    <div id="grid-container"></div>
+  </div>
+
+  <div id="status-bar">
+    <div id="game-state" class="out-game">OUT OF GAME</div>
+    <div id="mode-selector">
+      Mode: <span id="current-mode">Picker</span>
+      <span class="hint">(<span class="key">-</span> / <span class="key">=</span> to switch)</span>
+    </div>
+    <div id="level-selector">
+      Level: <span id="current-level">Demo: Blank</span>
+      <span class="hint">(<span class="key">[</span> / <span class="key">]</span> to switch)</span>
+    </div>
+    <div class="hint">
+      Press <span class="key">\</span> to start | <span class="key">Esc</span> for settings |
+      <span class="key">hjkl</span> to move
+    </div>
+    <div id="high-score-display" class="hint">
+      High Score: <span id="high-score">0</span>
+    </div>
+  </div>
+
+  <div id="modal-overlay"></div>
+  <div id="settings-modal">
+    <div class="modal-header">
+      <h2>Settings</h2>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-tab="gameplay">Gameplay</button>
+      <button class="modal-tab" data-tab="keybindings">Keybindings</button>
+    </div>
+    <div class="modal-content" id="gameplay-settings">
+      <div class="setting-row">
+        <span>Max Display Coins</span>
+        <input type="number" id="setting-max-coins" min="0" max="50" value="0">
+      </div>
+      <div class="setting-row">
+        <span>Line of Sight (0=off)</span>
+        <input type="number" id="setting-los" min="0" max="20" value="0">
+      </div>
+      <div class="setting-row" id="combo-settings" style="display: none;">
+        <span>Combo Steps</span>
+        <input type="number" id="setting-combo-steps" min="1" max="10" value="4">
+      </div>
+    </div>
+    <div class="modal-content" id="keybinding-settings" style="display: none;">
+      <div class="setting-row">
+        <span>Move Left</span>
+        <input type="text" id="key-left" value="h" maxlength="1">
+      </div>
+      <div class="setting-row">
+        <span>Move Down</span>
+        <input type="text" id="key-down" value="j" maxlength="1">
+      </div>
+      <div class="setting-row">
+        <span>Move Up</span>
+        <input type="text" id="key-up" value="k" maxlength="1">
+      </div>
+      <div class="setting-row">
+        <span>Move Right</span>
+        <input type="text" id="key-right" value="l" maxlength="1">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btn-reset">Reset to Default</button>
+      <button class="btn-primary" id="btn-close-modal">Close</button>
+    </div>
+  </div>
+
+  <script src="level.js"></script>
+  <script>
+    // ============================================
+    // GAME STATE
+    // ============================================
+    const GameModes = {
+      PICKER: 'picker',
+      FILLER: 'filler',
+      SCORE_BOOSTER: 'scoreBooster',
+      SNAKE: 'snake'
+    };
+
+    const GameState = {
+      IN_GAME: 'in_game',
+      OUT_GAME: 'out_game'
+    };
+
+    const game = {
+      state: GameState.OUT_GAME,
+      mode: GameModes.PICKER,
+      modeIndex: 0,
+      levelIndex: 0,
+      score: 0,
+      highScores: {},
+      timer: 0,
+      timerInterval: null,
+      comboStreak: 0,
+      stepsSinceLastCoin: 0,
+
+      // Player state
+      player: {
+        row: 0,
+        col: 0,
+        bodyParts: [], // For snake mode: [{row, col}, ...]
+        activeMode: 'head', // 'head', 'body', 'tail'
+        equippedSpray: null,
+      },
+
+      // Grid state
+      grids: [],
+      currentGridIndex: 0,
+
+      // Level state
+      currentLevel: null,
+      items: [],
+      coloredCells: new Set(),
+
+      // For sigil movement
+      lastAlphabetSearch: null,
+      lastBasicMovement: 'h',
+
+      // Keybindings
+      keybindings: {
+        moveLeft: 'h',
+        moveDown: 'j',
+        moveUp: 'k',
+        moveRight: 'l',
+        gridLeft: 'H',
+        gridDown: 'J',
+        gridUp: 'K',
+        gridRight: 'L',
+        findAngleLeftBackward: 'q',
+        findAngleLeftForward: 'w',
+        findAngleRightBackward: 'e',
+        findAngleRightForward: 'r',
+        findAlphabetBackward: 'a',
+        findAlphabetForward: 's',
+        repeatBackward: 'd',
+        repeatForward: 'f',
+        snakeSwapHeadTail: 'z',
+        snakeShrink: 'x',
+        snakeToggleMode: 'c',
+        snakeDetach: 'v',
+      },
+
+      // Gameplay settings
+      settings: {
+        maxDisplayCoins: 0,
+        lineOfSight: 0,
+        comboSteps: 4,
+        comboMinStreak: 3,
+        comboExtraScore: 1,
+        comboMaxExtra: 3,
+        decrementalStart: 5,
+        decrementalStep: 1,
+      },
+
+      // Waiting for alphabet input
+      waitingForAlphabet: null, // 'forward' or 'backward' or null
+    };
+
+    const modeList = [GameModes.PICKER, GameModes.FILLER, GameModes.SCORE_BOOSTER, GameModes.SNAKE];
+    const modeNames = {
+      [GameModes.PICKER]: 'Picker',
+      [GameModes.FILLER]: 'Filler',
+      [GameModes.SCORE_BOOSTER]: 'Score Booster',
+      [GameModes.SNAKE]: 'Snake',
+    };
+
+    // ============================================
+    // DOM ELEMENTS
+    // ============================================
+    const elements = {
+      gridContainer: document.getElementById('grid-container'),
+      score: document.getElementById('score'),
+      timer: document.getElementById('timer'),
+      remaining: document.getElementById('remaining'),
+      combo: document.getElementById('combo'),
+      comboHud: document.getElementById('combo-hud'),
+      gameState: document.getElementById('game-state'),
+      currentMode: document.getElementById('current-mode'),
+      currentLevel: document.getElementById('current-level'),
+      highScore: document.getElementById('high-score'),
+      settingsModal: document.getElementById('settings-modal'),
+      modalOverlay: document.getElementById('modal-overlay'),
+      timerDisplay: document.getElementById('timer-display'),
+      remainingDisplay: document.getElementById('remaining-display'),
+      sprayDisplay: document.getElementById('spray-display'),
+      currentSpray: document.getElementById('current-spray'),
+      snakeBodyDisplay: document.getElementById('snake-body-display'),
+      bodyLength: document.getElementById('body-length'),
+    };
+
+    // ============================================
+    // UTILITY FUNCTIONS
+    // ============================================
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function cellKey(row, col) {
+      return `${row},${col}`;
+    }
+
+    function getCurrentLevelSet() {
+      return LEVELS[game.mode] || LEVELS.picker;
+    }
+
+    function getCurrentLevel() {
+      const levels = getCurrentLevelSet();
+      return levels[game.levelIndex] || levels[0];
+    }
+
+    function getHighScoreKey() {
+      const level = getCurrentLevel();
+      return `${game.mode}_${level.id}`;
+    }
+
+    // ============================================
+    // RENDERING
+    // ============================================
+    function renderGrid() {
+      elements.gridContainer.innerHTML = '';
+      const level = getCurrentLevel();
+      const { rows, cols } = level.grid;
+
+      const gridEl = document.createElement('div');
+      gridEl.className = 'grid';
+      gridEl.style.gridTemplateColumns = `repeat(${cols}, 36px)`;
+      gridEl.style.gridTemplateRows = `repeat(${rows}, 36px)`;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+
+          // Check fog of war
+          if (game.settings.lineOfSight > 0 && game.state === GameState.IN_GAME) {
+            const dist = Math.abs(r - game.player.row) + Math.abs(c - game.player.col);
+            if (dist > game.settings.lineOfSight) {
+              cell.style.opacity = '0.2';
+            }
+          }
+
+          // Check colored cells (filler mode)
+          if (game.coloredCells.has(cellKey(r, c))) {
+            const colorData = game.coloredCells.get(cellKey(r, c));
+            if (colorData) {
+              cell.classList.add(`colored-${colorData}`);
+            }
+          }
+
+          gridEl.appendChild(cell);
+        }
+      }
+
+      elements.gridContainer.appendChild(gridEl);
+      renderItems();
+      renderPlayer();
+    }
+
+    function renderItems() {
+      // Clear existing item renders
+      document.querySelectorAll('.cell').forEach(cell => {
+        cell.innerHTML = '';
+      });
+
+      const level = getCurrentLevel();
+      const { cols } = level.grid;
+
+      // Filter coins for max display
+      let visibleItems = [...game.items];
+      if (game.settings.maxDisplayCoins > 0) {
+        const coins = visibleItems.filter(i => i.type === 'collectable' && i.subtype === 'coin');
+        const nonCoins = visibleItems.filter(i => !(i.type === 'collectable' && i.subtype === 'coin'));
+        visibleItems = [...nonCoins, ...coins.slice(0, game.settings.maxDisplayCoins)];
+      }
+
+      visibleItems.forEach(item => {
+        const cell = document.querySelector(`.cell[data-row="${item.row}"][data-col="${item.col}"]`);
+        if (!cell) return;
+
+        const span = document.createElement('span');
+
+        switch (item.type) {
+          case 'collectable':
+            if (item.subtype === 'coin') {
+              span.className = 'coin';
+              span.textContent = '\u2022'; // bullet
+              if (item.color) {
+                span.style.color = item.color;
+              }
+              if (item.counter !== undefined) {
+                const counter = document.createElement('span');
+                counter.className = 'counter-overlay';
+                counter.textContent = item.counter;
+                cell.appendChild(counter);
+              }
+              if (item.order !== undefined) {
+                const order = document.createElement('span');
+                order.className = 'counter-overlay';
+                order.textContent = item.order;
+                cell.appendChild(order);
+              }
+            } else if (item.subtype === 'spray') {
+              span.className = 'spray';
+              span.textContent = '\u25A0'; // square
+              span.style.color = item.color;
+            } else if (item.subtype === 'volatile') {
+              span.className = 'coin';
+              span.textContent = '\u2605'; // star
+              span.style.color = '#ff6600';
+              if (item.counter !== undefined) {
+                const counter = document.createElement('span');
+                counter.className = 'counter-overlay';
+                counter.textContent = item.counter;
+                cell.appendChild(counter);
+              }
+            }
+            break;
+
+          case 'obstacle':
+            span.className = 'obstacle';
+            span.textContent = '\u25AE'; // vertical rectangle
+            break;
+
+          case 'portal':
+            span.className = 'portal';
+            span.textContent = '\u25CB'; // circle
+            // Color by pair
+            const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff8800'];
+            span.style.color = colors[(item.pairId - 1) % colors.length];
+            break;
+
+          case 'sigil':
+            if (item.subtype === 'angle_left') {
+              span.className = 'sigil-angle';
+              span.textContent = '<';
+            } else if (item.subtype === 'angle_right') {
+              span.className = 'sigil-angle';
+              span.textContent = '>';
+            } else if (item.subtype === 'alphabet') {
+              span.className = 'sigil-alphabet';
+              span.textContent = item.char;
+            }
+            break;
+        }
+
+        cell.appendChild(span);
+      });
+
+      renderPlayer();
+    }
+
+    function renderPlayer() {
+      // Remove existing player renders
+      document.querySelectorAll('.player-char').forEach(el => el.remove());
+      document.querySelectorAll('.body-part').forEach(el => el.remove());
+
+      const level = getCurrentLevel();
+      const { cols } = level.grid;
+
+      // Render snake body parts first (if any)
+      if (game.mode === GameModes.SNAKE && game.player.bodyParts.length > 0) {
+        game.player.bodyParts.forEach((part, idx) => {
+          const cell = document.querySelector(`.cell[data-row="${part.row}"][data-col="${part.col}"]`);
+          if (cell) {
+            const span = document.createElement('span');
+            span.className = 'body-part';
+            if (idx === 0) span.classList.add('head');
+            if (idx === game.player.bodyParts.length - 1) span.classList.add('tail');
+            span.textContent = '\u25A1'; // hollow square
+            cell.appendChild(span);
+          }
+        });
+      }
+
+      // Render player head
+      const playerCell = document.querySelector(`.cell[data-row="${game.player.row}"][data-col="${game.player.col}"]`);
+      if (playerCell) {
+        const playerSpan = document.createElement('span');
+        playerSpan.className = 'player-char';
+        playerSpan.textContent = '\u25A2'; // hollow square with rounded corners
+        playerCell.appendChild(playerSpan);
+      }
+    }
+
+    function updateHUD() {
+      elements.score.textContent = game.score;
+      elements.timer.textContent = formatTime(game.timer);
+      elements.currentMode.textContent = modeNames[game.mode];
+      elements.currentLevel.textContent = getCurrentLevel().name;
+
+      // Update remaining coins count
+      const coins = game.items.filter(i => i.type === 'collectable' && i.subtype === 'coin');
+      elements.remaining.textContent = coins.length;
+
+      // Update high score
+      const key = getHighScoreKey();
+      elements.highScore.textContent = game.highScores[key] || 0;
+
+      // Update game state display
+      if (game.state === GameState.IN_GAME) {
+        elements.gameState.textContent = 'IN GAME';
+        elements.gameState.className = 'in-game';
+      } else {
+        elements.gameState.textContent = 'OUT OF GAME';
+        elements.gameState.className = 'out-game';
+      }
+
+      // Show/hide mode-specific HUD elements
+      const isCountdownMode = game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE;
+      elements.comboHud.style.display = isCountdownMode ? 'flex' : 'none';
+      elements.combo.textContent = `x${game.comboStreak}`;
+
+      elements.sprayDisplay.style.display = game.mode === GameModes.FILLER ? 'flex' : 'none';
+      elements.currentSpray.textContent = game.player.equippedSpray || '-';
+      elements.currentSpray.style.color = game.player.equippedSpray || '#eee';
+
+      elements.snakeBodyDisplay.style.display = game.mode === GameModes.SNAKE ? 'flex' : 'none';
+      elements.bodyLength.textContent = game.player.bodyParts.length + 1;
+
+      // Timer display based on mode
+      if (game.mode === GameModes.PICKER || game.mode === GameModes.FILLER) {
+        elements.timerDisplay.querySelector('.hud-label').textContent = 'Time';
+      } else {
+        elements.timerDisplay.querySelector('.hud-label').textContent = 'Time Left';
+      }
+    }
+
+    // ============================================
+    // LEVEL MANAGEMENT
+    // ============================================
+    function loadLevel() {
+      const level = getCurrentLevel();
+
+      // Handle dynamic level generation
+      if (level.isDynamic) {
+        const generated = generateDynamicLevel(
+          level.generationParams,
+          level.grid.rows,
+          level.grid.cols
+        );
+        game.items = JSON.parse(JSON.stringify(generated.items));
+        game.player.row = generated.playerSpawn.row;
+        game.player.col = generated.playerSpawn.col;
+      } else {
+        game.items = JSON.parse(JSON.stringify(level.items));
+        game.player.row = level.playerSpawn.row;
+        game.player.col = level.playerSpawn.col;
+      }
+
+      // Reset player state
+      game.player.bodyParts = [];
+      game.player.activeMode = 'head';
+      game.player.equippedSpray = null;
+
+      // Reset game state
+      game.score = 0;
+      game.timer = 0;
+      game.comboStreak = 0;
+      game.stepsSinceLastCoin = 0;
+      game.coloredCells = new Map();
+      game.lastAlphabetSearch = null;
+
+      // For countdown modes, set initial timer
+      if (level.timerSeconds) {
+        game.timer = level.timerSeconds;
+      }
+
+      renderGrid();
+      updateHUD();
+    }
+
+    function regenerateLevel() {
+      const level = getCurrentLevel();
+      if (level.isDynamic) {
+        loadLevel();
+      }
+    }
+
+    function switchMode(direction) {
+      if (game.state === GameState.IN_GAME) return;
+
+      game.modeIndex = (game.modeIndex + direction + modeList.length) % modeList.length;
+      game.mode = modeList[game.modeIndex];
+      game.levelIndex = 0;
+      loadLevel();
+    }
+
+    function switchLevel(direction) {
+      if (game.state === GameState.IN_GAME) return;
+
+      const levels = getCurrentLevelSet();
+      game.levelIndex = (game.levelIndex + direction + levels.length) % levels.length;
+      loadLevel();
+    }
+
+    // ============================================
+    // GAME FLOW
+    // ============================================
+    function startGame() {
+      const level = getCurrentLevel();
+      if (level.isDemo) return; // Cannot start demo levels
+
+      game.state = GameState.IN_GAME;
+      game.score = 0;
+      game.comboStreak = 0;
+      game.stepsSinceLastCoin = 0;
+
+      // Start timer
+      if (game.mode === GameModes.PICKER || game.mode === GameModes.FILLER) {
+        // Stopwatch mode
+        game.timer = 0;
+        game.timerInterval = setInterval(() => {
+          game.timer++;
+          updateHUD();
+        }, 1000);
+      } else {
+        // Countdown mode
+        game.timer = level.timerSeconds || 60;
+        game.timerInterval = setInterval(() => {
+          game.timer--;
+          updateHUD();
+          if (game.timer <= 0) {
+            endGame();
+          }
+        }, 1000);
+
+        // Spawn initial coins for score booster/snake
+        spawnCoinsForCountdownMode();
+      }
+
+      updateHUD();
+    }
+
+    function stopGame() {
+      game.state = GameState.OUT_GAME;
+      if (game.timerInterval) {
+        clearInterval(game.timerInterval);
+        game.timerInterval = null;
+      }
+      updateHUD();
+    }
+
+    function endGame() {
+      stopGame();
+
+      // Update high score
+      const key = getHighScoreKey();
+      if (!game.highScores[key] || game.score > game.highScores[key]) {
+        game.highScores[key] = game.score;
+      }
+
+      // Reset level for next play
+      loadLevel();
+    }
+
+    function checkWinCondition() {
+      const level = getCurrentLevel();
+      if (level.isDemo) {
+        // Demo mode: respawn coins when all collected
+        const coins = game.items.filter(i => i.type === 'collectable' && i.subtype === 'coin');
+        if (coins.length === 0) {
+          respawnCoinsForDemo();
+        }
+        return;
+      }
+
+      if (game.mode === GameModes.PICKER || game.mode === GameModes.FILLER) {
+        const coins = game.items.filter(i => i.type === 'collectable' && i.subtype === 'coin');
+        if (coins.length === 0) {
+          endGame();
+        }
+      }
+    }
+
+    function respawnCoinsForDemo() {
+      const level = getCurrentLevel();
+      const originalCoins = level.items.filter(i => i.type === 'collectable' && i.subtype === 'coin');
+      originalCoins.forEach(coin => {
+        game.items.push(JSON.parse(JSON.stringify(coin)));
+      });
+      renderItems();
+    }
+
+    function spawnCoinsForCountdownMode() {
+      const level = getCurrentLevel();
+      const maxCoins = game.settings.maxDisplayCoins || 10;
+      const currentCoins = game.items.filter(i => i.type === 'collectable' && i.subtype === 'coin');
+
+      while (currentCoins.length < maxCoins) {
+        const row = Math.floor(Math.random() * level.grid.rows);
+        const col = Math.floor(Math.random() * level.grid.cols);
+
+        // Check if position is valid
+        const hasObstacle = game.items.some(i => i.type === 'obstacle' && i.row === row && i.col === col);
+        const hasPortal = game.items.some(i => i.type === 'portal' && i.row === row && i.col === col);
+        const hasCoin = game.items.some(i => i.type === 'collectable' && i.row === row && i.col === col);
+        const isPlayer = row === game.player.row && col === game.player.col;
+
+        if (!hasObstacle && !hasPortal && !hasCoin && !isPlayer) {
+          const newCoin = {
+            type: 'collectable',
+            subtype: 'coin',
+            row,
+            col,
+            counter: game.settings.decrementalStart
+          };
+          game.items.push(newCoin);
+          currentCoins.push(newCoin);
+        }
+      }
+      renderItems();
+    }
+
+    // ============================================
+    // MOVEMENT & COLLISION
+    // ============================================
+    function movePlayer(dRow, dCol, isTeleport = false) {
+      const level = getCurrentLevel();
+      const { rows, cols } = level.grid;
+
+      let newRow = game.player.row + dRow;
+      let newCol = game.player.col + dCol;
+      let portalTeleported = false;
+
+      // Boundary check
+      newRow = Math.max(0, Math.min(rows - 1, newRow));
+      newCol = Math.max(0, Math.min(cols - 1, newCol));
+
+      // For non-teleport movement, check each cell along the path
+      if (!isTeleport) {
+        const steps = Math.max(Math.abs(dRow), Math.abs(dCol));
+        const stepRow = dRow === 0 ? 0 : dRow / Math.abs(dRow);
+        const stepCol = dCol === 0 ? 0 : dCol / Math.abs(dCol);
+
+        let currentRow = game.player.row;
+        let currentCol = game.player.col;
+
+        for (let i = 0; i < steps; i++) {
+          const nextRow = currentRow + stepRow;
+          const nextCol = currentCol + stepCol;
+
+          // Check boundary
+          if (nextRow < 0 || nextRow >= rows || nextCol < 0 || nextCol >= cols) {
+            break;
+          }
+
+          // Check obstacle collision
+          const obstacle = game.items.find(
+            item => item.type === 'obstacle' && item.row === nextRow && item.col === nextCol
+          );
+          if (obstacle && !(game.mode === GameModes.SNAKE && game.player.activeMode === 'body')) {
+            break;
+          }
+
+          currentRow = nextRow;
+          currentCol = nextCol;
+
+          // Handle collision with items at this cell
+          portalTeleported = handleCollision(currentRow, currentCol);
+          if (portalTeleported) break; // Stop if teleported by portal
+        }
+
+        newRow = currentRow;
+        newCol = currentCol;
+      } else {
+        // Teleport: only check destination
+        const obstacle = game.items.find(
+          item => item.type === 'obstacle' && item.row === newRow && item.col === newCol
+        );
+        if (obstacle && !(game.mode === GameModes.SNAKE && game.player.activeMode === 'body')) {
+          return; // Can't teleport onto obstacle
+        }
+        portalTeleported = handleCollision(newRow, newCol);
+      }
+
+      // Update snake body (only if not teleported by portal)
+      if (!portalTeleported && game.mode === GameModes.SNAKE && game.player.bodyParts.length > 0) {
+        if (game.player.activeMode === 'head') {
+          // Head-driven: body follows
+          game.player.bodyParts.unshift({ row: game.player.row, col: game.player.col });
+          game.player.bodyParts.pop();
+        } else if (game.player.activeMode === 'body') {
+          // Body-driven: whole body moves
+          game.player.bodyParts = game.player.bodyParts.map(part => ({
+            row: part.row + (newRow - game.player.row),
+            col: part.col + (newCol - game.player.col)
+          }));
+        }
+      }
+
+      // Only update position if not already teleported by portal
+      if (!portalTeleported) {
+        game.player.row = newRow;
+        game.player.col = newCol;
+      }
+
+      // Track last basic movement direction
+      if (dRow === 0 && dCol === -1) game.lastBasicMovement = 'h';
+      else if (dRow === 1 && dCol === 0) game.lastBasicMovement = 'j';
+      else if (dRow === -1 && dCol === 0) game.lastBasicMovement = 'k';
+      else if (dRow === 0 && dCol === 1) game.lastBasicMovement = 'l';
+
+      // Decrement counters on coins
+      if (game.state === GameState.IN_GAME) {
+        decrementCoinCounters();
+      }
+
+      renderGrid();
+      updateHUD();
+      checkWinCondition();
+    }
+
+    function teleportTo(row, col) {
+      const level = getCurrentLevel();
+      const { rows, cols } = level.grid;
+
+      // Validate position
+      if (row < 0 || row >= rows || col < 0 || col >= cols) return;
+
+      // Check obstacle
+      const obstacle = game.items.find(
+        item => item.type === 'obstacle' && item.row === row && item.col === col
+      );
+      if (obstacle) return;
+
+      // Handle snake body for teleport
+      if (game.mode === GameModes.SNAKE && game.player.bodyParts.length > 0) {
+        // Teleport detaches the head
+        // Body stays in place
+      }
+
+      handleCollision(row, col);
+      game.player.row = row;
+      game.player.col = col;
+
+      decrementCoinCounters();
+      renderGrid();
+      updateHUD();
+      checkWinCondition();
+    }
+
+    function handleCollision(row, col) {
+      const itemsAtCell = game.items.filter(item => item.row === row && item.col === col);
+      let teleported = false;
+
+      itemsAtCell.forEach(item => {
+        if (item.type === 'collectable') {
+          handleCollectableCollision(item, row, col);
+        } else if (item.type === 'portal') {
+          teleported = handlePortalCollision(item);
+        }
+        // Sigils are non-collidable
+        // Obstacles are handled in movement
+      });
+
+      return teleported;
+    }
+
+    function handleCollectableCollision(item, row, col) {
+      if (item.subtype === 'coin') {
+        // Check color match for filler mode
+        if (game.mode === GameModes.FILLER && item.color) {
+          if (game.player.equippedSpray !== item.color) {
+            return; // Can't collect without matching spray
+          }
+          // Color the cell
+          game.coloredCells.set(cellKey(row, col), item.color);
+        }
+
+        // Calculate score
+        let scoreGain = 1;
+
+        // Combo bonus (score-booster/snake)
+        if (game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE) {
+          if (game.stepsSinceLastCoin <= game.settings.comboSteps) {
+            game.comboStreak++;
+          } else {
+            game.comboStreak = 1;
+          }
+          game.stepsSinceLastCoin = 0;
+
+          // Calculate combo bonus
+          if (game.comboStreak >= game.settings.comboMinStreak) {
+            const bonus = Math.min(
+              Math.floor((game.comboStreak - game.settings.comboMinStreak + game.settings.comboMinStreak) / 3) * game.settings.comboExtraScore,
+              game.settings.comboMaxExtra
+            );
+            scoreGain += bonus;
+          }
+
+          // Decremental counter bonus
+          if (item.counter !== undefined && item.counter > 0) {
+            scoreGain += item.counter;
+          }
+        }
+
+        // Snake body length bonus
+        if (game.mode === GameModes.SNAKE) {
+          const bodyBonus = Math.min(game.player.bodyParts.length, 5);
+          scoreGain += bodyBonus;
+
+          // Increase body length
+          game.player.bodyParts.push({ row: game.player.row, col: game.player.col });
+        }
+
+        game.score += scoreGain;
+
+        // Remove the coin
+        const idx = game.items.indexOf(item);
+        if (idx > -1) game.items.splice(idx, 1);
+
+        // Spawn new coin for countdown modes
+        if (game.state === GameState.IN_GAME &&
+            (game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE)) {
+          spawnCoinsForCountdownMode();
+        }
+
+      } else if (item.subtype === 'spray') {
+        game.player.equippedSpray = item.color;
+        // Remove spray (it will respawn later)
+        const idx = game.items.indexOf(item);
+        if (idx > -1) game.items.splice(idx, 1);
+
+      } else if (item.subtype === 'volatile') {
+        // Volatile coin
+        let scoreGain = 1;
+        if (item.counter !== undefined) {
+          scoreGain += item.counter;
+        }
+        game.score += scoreGain;
+
+        const idx = game.items.indexOf(item);
+        if (idx > -1) game.items.splice(idx, 1);
+      }
+    }
+
+    function handlePortalCollision(portal) {
+      // Snake with body > 1 can't use portals
+      if (game.mode === GameModes.SNAKE && game.player.bodyParts.length > 0) {
+        return false;
+      }
+
+      // Find paired portal
+      const paired = game.items.find(
+        item => item.type === 'portal' &&
+                item.pairId === portal.pairId &&
+                (item.row !== portal.row || item.col !== portal.col)
+      );
+
+      if (paired) {
+        game.player.row = paired.row;
+        game.player.col = paired.col;
+        return true;
+      }
+      return false;
+    }
+
+    function decrementCoinCounters() {
+      game.stepsSinceLastCoin++;
+
+      game.items.forEach(item => {
+        if (item.type === 'collectable' && item.counter !== undefined) {
+          item.counter -= game.settings.decrementalStep;
+
+          // Remove volatile coins that expired
+          if (item.subtype === 'volatile' && item.counter <= 0) {
+            const idx = game.items.indexOf(item);
+            if (idx > -1) game.items.splice(idx, 1);
+          }
+        }
+      });
+    }
+
+    // ============================================
+    // SIGIL MOVEMENT
+    // ============================================
+    function findAngleBracket(type, direction) {
+      const sigils = game.items.filter(
+        item => item.type === 'sigil' && item.subtype === type
+      );
+
+      if (sigils.length === 0) return;
+
+      const level = getCurrentLevel();
+      const { rows, cols } = level.grid;
+
+      // Sort sigils by position
+      const sorted = sigils.map(s => ({
+        ...s,
+        index: s.row * cols + s.col
+      }));
+
+      const playerIndex = game.player.row * cols + game.player.col;
+
+      if (direction === 'forward') {
+        // Find next sigil after player position
+        sorted.sort((a, b) => a.index - b.index);
+        const next = sorted.find(s => s.index > playerIndex) || sorted[0];
+        if (next) teleportTo(next.row, next.col);
+      } else {
+        // Find previous sigil before player position
+        sorted.sort((a, b) => b.index - a.index);
+        const prev = sorted.find(s => s.index < playerIndex) || sorted[0];
+        if (prev) teleportTo(prev.row, prev.col);
+      }
+    }
+
+    function findAlphabet(char, direction) {
+      const sigils = game.items.filter(
+        item => item.type === 'sigil' && item.subtype === 'alphabet' && item.char === char
+      );
+
+      if (sigils.length === 0) return;
+
+      game.lastAlphabetSearch = { char, direction };
+
+      const level = getCurrentLevel();
+      const { cols } = level.grid;
+
+      const sorted = sigils.map(s => ({
+        ...s,
+        index: s.row * cols + s.col
+      }));
+
+      const playerIndex = game.player.row * cols + game.player.col;
+
+      if (direction === 'forward') {
+        sorted.sort((a, b) => a.index - b.index);
+        const next = sorted.find(s => s.index > playerIndex) || sorted[0];
+        if (next) teleportTo(next.row, next.col);
+      } else {
+        sorted.sort((a, b) => b.index - a.index);
+        const prev = sorted.find(s => s.index < playerIndex) || sorted[0];
+        if (prev) teleportTo(prev.row, prev.col);
+      }
+    }
+
+    function repeatAlphabetSearch(direction) {
+      if (!game.lastAlphabetSearch) return;
+      findAlphabet(game.lastAlphabetSearch.char, direction);
+    }
+
+    // ============================================
+    // SNAKE MODE CONTROLS
+    // ============================================
+    function snakeSwapHeadTail() {
+      if (game.mode !== GameModes.SNAKE || game.player.bodyParts.length === 0) return;
+
+      // Swap head position with tail
+      const tail = game.player.bodyParts[game.player.bodyParts.length - 1];
+      game.player.bodyParts.reverse();
+      game.player.bodyParts.unshift({ row: game.player.row, col: game.player.col });
+      game.player.row = tail.row;
+      game.player.col = tail.col;
+      game.player.bodyParts.pop();
+
+      renderGrid();
+    }
+
+    function snakeShrink() {
+      if (game.mode !== GameModes.SNAKE || game.player.bodyParts.length === 0) return;
+
+      // Get tail position before shrink
+      const tail = game.player.bodyParts[game.player.bodyParts.length - 1];
+
+      // Shrink body to 1
+      game.player.bodyParts = [];
+
+      // Teleport to tail position
+      game.player.row = tail.row;
+      game.player.col = tail.col;
+
+      renderGrid();
+      updateHUD();
+    }
+
+    function snakeToggleMode() {
+      if (game.mode !== GameModes.SNAKE) return;
+
+      if (game.player.activeMode === 'head') {
+        game.player.activeMode = 'body';
+      } else {
+        game.player.activeMode = 'head';
+      }
+    }
+
+    function snakeDetach() {
+      if (game.mode !== GameModes.SNAKE || game.player.bodyParts.length === 0) return;
+
+      // Repeat last basic movement
+      const moves = {
+        'h': [0, -1],
+        'j': [1, 0],
+        'k': [-1, 0],
+        'l': [0, 1]
+      };
+      const [dRow, dCol] = moves[game.lastBasicMovement] || [0, 0];
+
+      // Detach head (body stays)
+      const detachedBody = [...game.player.bodyParts];
+      game.player.bodyParts = [];
+
+      movePlayer(dRow, dCol);
+
+      // Store detached body for potential reconnection
+      // (simplified: just clear the body for now)
+    }
+
+    // ============================================
+    // INPUT HANDLING
+    // ============================================
+    function handleKeyDown(e) {
+      const key = e.key;
+
+      // Handle alphabet search waiting
+      if (game.waitingForAlphabet) {
+        if (key.length === 1 && key >= 'a' && key <= 'z') {
+          findAlphabet(key, game.waitingForAlphabet);
+        }
+        game.waitingForAlphabet = null;
+        return;
+      }
+
+      // Reserved keys (always active)
+      switch (key) {
+        case '\\':
+          if (game.state === GameState.OUT_GAME) {
+            startGame();
+          } else {
+            stopGame();
+          }
+          return;
+
+        case '-':
+          switchMode(-1);
+          return;
+
+        case '=':
+          switchMode(1);
+          return;
+
+        case '[':
+          switchLevel(-1);
+          return;
+
+        case ']':
+          switchLevel(1);
+          return;
+
+        case 'Backspace':
+          regenerateLevel();
+          return;
+
+        case 'Escape':
+          toggleSettingsModal();
+          return;
+      }
+
+      // Movement keys (only when not in settings modal)
+      if (elements.settingsModal.classList.contains('show')) return;
+
+      // Demo levels are always playable
+      const canMove = game.state === GameState.IN_GAME || getCurrentLevel().isDemo;
+      if (!canMove) return;
+
+      const kb = game.keybindings;
+
+      // Basic movement
+      if (key === kb.moveLeft) {
+        movePlayer(0, -1);
+      } else if (key === kb.moveDown) {
+        movePlayer(1, 0);
+      } else if (key === kb.moveUp) {
+        movePlayer(-1, 0);
+      } else if (key === kb.moveRight) {
+        movePlayer(0, 1);
+      }
+      // Grid movement (Shift + hjkl)
+      else if (key === kb.gridLeft) {
+        // TODO: Implement multi-grid support
+      } else if (key === kb.gridDown) {
+        // TODO: Implement multi-grid support
+      } else if (key === kb.gridUp) {
+        // TODO: Implement multi-grid support
+      } else if (key === kb.gridRight) {
+        // TODO: Implement multi-grid support
+      }
+      // Sigil movement - angle brackets
+      else if (key === kb.findAngleLeftBackward) {
+        findAngleBracket('angle_left', 'backward');
+      } else if (key === kb.findAngleLeftForward) {
+        findAngleBracket('angle_left', 'forward');
+      } else if (key === kb.findAngleRightBackward) {
+        findAngleBracket('angle_right', 'backward');
+      } else if (key === kb.findAngleRightForward) {
+        findAngleBracket('angle_right', 'forward');
+      }
+      // Sigil movement - alphabet
+      else if (key === kb.findAlphabetBackward) {
+        game.waitingForAlphabet = 'backward';
+      } else if (key === kb.findAlphabetForward) {
+        game.waitingForAlphabet = 'forward';
+      }
+      // Repeater
+      else if (key === kb.repeatBackward) {
+        repeatAlphabetSearch('backward');
+      } else if (key === kb.repeatForward) {
+        repeatAlphabetSearch('forward');
+      }
+      // Snake controls
+      else if (key === kb.snakeSwapHeadTail) {
+        snakeSwapHeadTail();
+      } else if (key === kb.snakeShrink) {
+        snakeShrink();
+      } else if (key === kb.snakeToggleMode) {
+        snakeToggleMode();
+      } else if (key === kb.snakeDetach) {
+        snakeDetach();
+      }
+    }
+
+    // ============================================
+    // SETTINGS MODAL
+    // ============================================
+    function toggleSettingsModal() {
+      elements.settingsModal.classList.toggle('show');
+      elements.modalOverlay.classList.toggle('show');
+    }
+
+    function setupSettingsModal() {
+      // Tab switching
+      document.querySelectorAll('.modal-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+
+          const tabName = tab.dataset.tab;
+          document.getElementById('gameplay-settings').style.display =
+            tabName === 'gameplay' ? 'block' : 'none';
+          document.getElementById('keybinding-settings').style.display =
+            tabName === 'keybindings' ? 'block' : 'none';
+        });
+      });
+
+      // Close button
+      document.getElementById('btn-close-modal').addEventListener('click', () => {
+        // Save settings
+        game.settings.maxDisplayCoins = parseInt(document.getElementById('setting-max-coins').value) || 0;
+        game.settings.lineOfSight = parseInt(document.getElementById('setting-los').value) || 0;
+        game.settings.comboSteps = parseInt(document.getElementById('setting-combo-steps').value) || 4;
+
+        game.keybindings.moveLeft = document.getElementById('key-left').value || 'h';
+        game.keybindings.moveDown = document.getElementById('key-down').value || 'j';
+        game.keybindings.moveUp = document.getElementById('key-up').value || 'k';
+        game.keybindings.moveRight = document.getElementById('key-right').value || 'l';
+
+        toggleSettingsModal();
+        renderGrid();
+      });
+
+      // Reset button
+      document.getElementById('btn-reset').addEventListener('click', () => {
+        document.getElementById('setting-max-coins').value = 0;
+        document.getElementById('setting-los').value = 0;
+        document.getElementById('setting-combo-steps').value = 4;
+        document.getElementById('key-left').value = 'h';
+        document.getElementById('key-down').value = 'j';
+        document.getElementById('key-up').value = 'k';
+        document.getElementById('key-right').value = 'l';
+      });
+
+      // Close on overlay click
+      elements.modalOverlay.addEventListener('click', toggleSettingsModal);
+    }
+
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    function init() {
+      setupSettingsModal();
+      loadLevel();
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    init();
+  </script>
+</body>
+</html>
