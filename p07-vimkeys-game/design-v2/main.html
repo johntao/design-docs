@@ -464,6 +464,12 @@
       currentLevel: null,
       items: [],
       coloredCells: new Set(),
+      predefinedCoinCount: 0, // Track original coins for stage transition
+
+      // Endgame condition 2 (score-booster/snake)
+      stage: 1, // 1 = clear predefined coins, 2 = respawn mode
+      movementsSinceLastRespawn: 0, // For stage 2 respawn after 4 movements
+      totalMovements: 0, // For volatile coin respawn every 8 movements
 
       // For sigil movement
       lastAlphabetSearch: null,
@@ -503,6 +509,9 @@
         comboMaxExtra: 3,
         decrementalStart: 5,
         decrementalStep: 1,
+        stage2RespawnMoves: 4, // Respawn coin after N movements in stage 2
+        volatileRespawnMoves: 8, // Respawn volatile coin every N movements
+        sigilAlphabetOrder: 'asdfqwerzxcv', // Configurable alphabet order (max 12)
       },
 
       // Waiting for alphabet input
@@ -798,7 +807,8 @@
         const generated = generateDynamicLevel(
           level.generationParams,
           level.grid.rows,
-          level.grid.cols
+          level.grid.cols,
+          game.settings.sigilAlphabetOrder
         );
         game.items = JSON.parse(JSON.stringify(generated.items));
         game.player.row = generated.playerSpawn.row;
@@ -876,8 +886,8 @@
           updateHUD();
         }, 1000);
       } else {
-        // Countdown mode
-        game.timer = level.timerSeconds || 60;
+        // Countdown mode (default 10 seconds for score-booster/snake)
+        game.timer = level.timerSeconds || 30;
         game.timerInterval = setInterval(() => {
           game.timer--;
           updateHUD();
@@ -885,9 +895,8 @@
             endGame();
           }
         }, 1000);
-
-        // Spawn initial coins for score booster/snake
-        spawnCoinsForCountdownMode();
+        // Stage 1: clear predefined coins first, no respawn
+        // Stage 2 respawning is handled in handleMovement
       }
 
       updateHUD();
@@ -944,6 +953,16 @@
       game.coloredCells = new Map();
       game.lastAlphabetSearch = null;
 
+      // Reset endgame condition 2 state
+      game.stage = 1;
+      game.movementsSinceLastRespawn = 0;
+      game.totalMovements = 0;
+
+      // Track predefined coin count for stage transition
+      game.predefinedCoinCount = game.items.filter(
+        i => i.type === 'collectable' && i.subtype === 'coin'
+      ).length;
+
       // For countdown modes, set initial timer
       if (level.timerSeconds) {
         game.timer = level.timerSeconds;
@@ -991,12 +1010,11 @@
       renderItems();
     }
 
-    function spawnCoinsForCountdownMode() {
+    function spawnCoinAtRandomPosition() {
       const level = getCurrentLevel();
-      const maxCoins = game.settings.maxDisplayCoins || 10;
-      const currentCoins = game.items.filter(i => i.type === 'collectable' && i.subtype === 'coin');
+      let attempts = 0;
 
-      while (currentCoins.length < maxCoins) {
+      while (attempts < 100) {
         const row = Math.floor(Math.random() * level.grid.rows);
         const col = Math.floor(Math.random() * level.grid.cols);
 
@@ -1015,10 +1033,85 @@
             counter: game.settings.decrementalStart
           };
           game.items.push(newCoin);
-          currentCoins.push(newCoin);
+          return true;
+        }
+        attempts++;
+      }
+      return false;
+    }
+
+    function spawnVolatileCoin() {
+      const level = getCurrentLevel();
+      let attempts = 0;
+
+      while (attempts < 100) {
+        const row = Math.floor(Math.random() * level.grid.rows);
+        const col = Math.floor(Math.random() * level.grid.cols);
+
+        // Check if position is valid
+        const hasObstacle = game.items.some(i => i.type === 'obstacle' && i.row === row && i.col === col);
+        const hasPortal = game.items.some(i => i.type === 'portal' && i.row === row && i.col === col);
+        const hasCoin = game.items.some(i => i.type === 'collectable' && i.row === row && i.col === col);
+        const isPlayer = row === game.player.row && col === game.player.col;
+
+        if (!hasObstacle && !hasPortal && !hasCoin && !isPlayer) {
+          const volatileCoin = {
+            type: 'collectable',
+            subtype: 'volatile',
+            row,
+            col,
+            counter: game.settings.decrementalStart
+          };
+          game.items.push(volatileCoin);
+          return true;
+        }
+        attempts++;
+      }
+      return false;
+    }
+
+    function handleStage2Respawn() {
+      // Only for score-booster and snake modes in stage 2
+      if (game.stage !== 2) return;
+      if (game.mode !== GameModes.SCORE_BOOSTER && game.mode !== GameModes.SNAKE) return;
+
+      const coins = game.items.filter(i => i.type === 'collectable' && i.subtype === 'coin');
+      const shouldRespawn = coins.length === 0 ||
+                            game.movementsSinceLastRespawn >= game.settings.stage2RespawnMoves;
+
+      if (shouldRespawn) {
+        spawnCoinAtRandomPosition();
+        game.movementsSinceLastRespawn = 0;
+        renderItems();
+      }
+    }
+
+    function handleVolatileRespawn() {
+      // Only for score-booster and snake modes in stage 2
+      if (game.stage !== 2) return;
+      if (game.mode !== GameModes.SCORE_BOOSTER && game.mode !== GameModes.SNAKE) return;
+
+      if (game.totalMovements > 0 && game.totalMovements % game.settings.volatileRespawnMoves === 0) {
+        spawnVolatileCoin();
+        renderItems();
+      }
+    }
+
+    function checkStageTransition() {
+      // Only for score-booster and snake modes
+      if (game.mode !== GameModes.SCORE_BOOSTER && game.mode !== GameModes.SNAKE) return;
+
+      if (game.stage === 1) {
+        const coins = game.items.filter(i => i.type === 'collectable' && i.subtype === 'coin');
+        if (coins.length === 0) {
+          // All predefined coins cleared, enter stage 2
+          game.stage = 2;
+          game.movementsSinceLastRespawn = 0;
+          // Immediately spawn first coin of stage 2
+          spawnCoinAtRandomPosition();
+          renderItems();
         }
       }
-      renderItems();
     }
 
     // ============================================
@@ -1110,9 +1203,19 @@
       else if (dRow === -1 && dCol === 0) game.lastBasicMovement = 'k';
       else if (dRow === 0 && dCol === 1) game.lastBasicMovement = 'l';
 
-      // Decrement counters on coins
+      // Track movements and handle respawns for score-booster/snake modes
       if (game.state === GameState.IN_GAME) {
+        game.totalMovements++;
+        game.movementsSinceLastRespawn++;
+
+        // Decrement counters on coins
         decrementCoinCounters();
+
+        // Handle stage 2 respawning and volatile coin respawning
+        if (game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE) {
+          handleStage2Respawn();
+          handleVolatileRespawn();
+        }
       }
 
       renderGrid();
@@ -1143,7 +1246,20 @@
       game.player.row = row;
       game.player.col = col;
 
-      decrementCoinCounters();
+      // Track movements and handle respawns for score-booster/snake modes
+      if (game.state === GameState.IN_GAME) {
+        game.totalMovements++;
+        game.movementsSinceLastRespawn++;
+
+        decrementCoinCounters();
+
+        // Handle stage 2 respawning and volatile coin respawning
+        if (game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE) {
+          handleStage2Respawn();
+          handleVolatileRespawn();
+        }
+      }
+
       renderGrid();
       updateHUD();
       checkWinCondition();
@@ -1219,10 +1335,9 @@
         const idx = game.items.indexOf(item);
         if (idx > -1) game.items.splice(idx, 1);
 
-        // Spawn new coin for countdown modes
-        if (game.state === GameState.IN_GAME &&
-            (game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE)) {
-          spawnCoinsForCountdownMode();
+        // Check for stage transition (score-booster/snake modes)
+        if (game.state === GameState.IN_GAME) {
+          checkStageTransition();
         }
 
       } else if (item.subtype === 'spray') {

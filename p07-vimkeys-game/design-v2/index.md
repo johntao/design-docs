@@ -55,3 +55,24 @@ highlight: spray icon, decremental coin
 - start and stop a game should reset all the states, including:
   - all the decremental counter
   - the position of the player
+
+## Phase 1, Revision 3
+
+highlight: tweak sigil alphabet, countdown timer default, split endgame condition 2 to two stages
+
+- change the rendering logic of sigil alphbet
+  - from abcdefghijkl to asdfqwerzxcv (12 letters at max)
+  - this rendering order logic should be configurable
+- exclude sigil alphabets from "demo sigil"
+- score booster mode
+  - change default countdown timer to 10 seconds
+- endgame condition 2 (for both score booster and snake mode)
+  - change the game progression by introduce two stages
+  - stage 1
+    - clearing all pre-defined coins of the level to enter the second stage
+    - while in the first stage, the game doesn't respawn additional coins (also applies to volatile coin)
+  - stage 2
+    - once entering the second stage, respawn a coin
+    - here's the respawn logic: either the last coin on the map is picked up or the player already made 4 action movements
+- volatile coin (for both score booster and snake mode)
+  - it should be respawn for each 8 movement actions

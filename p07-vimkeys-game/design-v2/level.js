@@ -50,16 +50,7 @@ const LEVELS = {
         { type: 'sigil', subtype: 'angle_right', row: 3, col: 7 },
         { type: 'sigil', subtype: 'angle_right', row: 6, col: 9 },
         { type: 'sigil', subtype: 'angle_right', row: 8, col: 6 },
-        // 4x alphabet 'a'
-        { type: 'sigil', subtype: 'alphabet', char: 'a', row: 2, col: 6 },
-        { type: 'sigil', subtype: 'alphabet', char: 'a', row: 5, col: 2 },
-        { type: 'sigil', subtype: 'alphabet', char: 'a', row: 7, col: 8 },
-        { type: 'sigil', subtype: 'alphabet', char: 'a', row: 9, col: 3 },
-        // 4x alphabet 'b'
-        { type: 'sigil', subtype: 'alphabet', char: 'b', row: 0, col: 5 },
-        { type: 'sigil', subtype: 'alphabet', char: 'b', row: 4, col: 9 },
-        { type: 'sigil', subtype: 'alphabet', char: 'b', row: 6, col: 0 },
-        { type: 'sigil', subtype: 'alphabet', char: 'b', row: 9, col: 7 },
+        // No alphabet sigils in demo_sigil - this demo focuses on angle brackets only
       ]
     },
     {
@@ -519,7 +510,8 @@ const LEVELS = {
 };
 
 // Dynamic level generation
-function generateDynamicLevel(params, gridRows, gridCols) {
+// sigilAlphabetOrder is optional - defaults to 'asdfqwerzxcv' for configurable alphabet selection
+function generateDynamicLevel(params, gridRows, gridCols, sigilAlphabetOrder = 'asdfqwerzxcv') {
   const items = [];
   const occupied = new Set();
   const sigilAlphabetCells = new Set();
@@ -568,7 +560,9 @@ function generateDynamicLevel(params, gridRows, gridCols) {
   }
 
   // Place sigil alphabets (minimum 4 per letter, no duplicates in same cell)
-  const alphabets = params.sigilAlphabets || ['a', 'b'];
+  // Use sigilAlphabetOrder to determine which letters to use
+  const alphabetCount = params.sigilAlphabets?.length || 2;
+  const alphabets = sigilAlphabetOrder.slice(0, alphabetCount).split('');
   const sigilAlphabetCount = Math.max(params.sigilAlphabetCount || 4, 4);
 
   for (const char of alphabets) {
