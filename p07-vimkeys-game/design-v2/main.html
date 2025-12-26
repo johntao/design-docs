@@ -464,12 +464,11 @@
       currentLevel: null,
       items: [],
       coloredCells: new Set(),
-      predefinedCoinCount: 0, // Track original coins for stage transition
 
-      // Endgame condition 2 (score-booster/snake)
-      stage: 1, // 1 = clear predefined coins, 2 = respawn mode
-      movementsSinceLastRespawn: 0, // For stage 2 respawn after 4 movements
-      totalMovements: 0, // For volatile coin respawn every 8 movements
+      // Endgame condition (score-booster/snake) - starts in stage 2 (respawn mode)
+      stage: 2, // Score-booster/snake always use stage 2
+      movementsSinceLastRespawn: 0, // Respawn coin after 4 movements
+      totalMovements: 0, // Respawn volatile coin every 8 movements
 
       // For sigil movement
       lastAlphabetSearch: null,
@@ -819,6 +818,11 @@
         game.player.col = level.playerSpawn.col;
       }
 
+      // Score-booster/snake modes: remove predefined coins (endgame condition 2)
+      if (game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE) {
+        game.items = game.items.filter(i => !(i.type === 'collectable' && i.subtype === 'coin'));
+      }
+
       // Reset player state
       game.player.bodyParts = [];
       game.player.activeMode = 'head';
@@ -886,7 +890,7 @@
           updateHUD();
         }, 1000);
       } else {
-        // Countdown mode (default 10 seconds for score-booster/snake)
+        // Countdown mode (score-booster/snake)
         game.timer = level.timerSeconds || 30;
         game.timerInterval = setInterval(() => {
           game.timer--;
@@ -895,8 +899,12 @@
             endGame();
           }
         }, 1000);
-        // Stage 1: clear predefined coins first, no respawn
-        // Stage 2 respawning is handled in handleMovement
+
+        // Score-booster/snake: start in stage 2 (coins already removed in loadLevel)
+        // Spawn first decremental coin
+        game.stage = 2;
+        spawnCoinAtRandomPosition();
+        renderGrid();
       }
 
       updateHUD();
@@ -930,6 +938,11 @@
         });
       }
 
+      // Score-booster/snake modes: remove predefined coins (endgame condition 2)
+      if (game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE) {
+        game.items = game.items.filter(i => !(i.type === 'collectable' && i.subtype === 'coin'));
+      }
+
       // Reset player position
       if (level.isDynamic) {
         // For dynamic levels, spawn at center
@@ -953,15 +966,11 @@
       game.coloredCells = new Map();
       game.lastAlphabetSearch = null;
 
-      // Reset endgame condition 2 state
-      game.stage = 1;
+      // Reset endgame condition state
+      // Score-booster/snake always start in stage 2 (no stage 1)
+      game.stage = (game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE) ? 2 : 1;
       game.movementsSinceLastRespawn = 0;
       game.totalMovements = 0;
-
-      // Track predefined coin count for stage transition
-      game.predefinedCoinCount = game.items.filter(
-        i => i.type === 'collectable' && i.subtype === 'coin'
-      ).length;
 
       // For countdown modes, set initial timer
       if (level.timerSeconds) {
@@ -986,6 +995,10 @@
       const level = getCurrentLevel();
       if (level.isDemo) {
         // Demo mode: respawn coins when all collected
+        // Skip for score-booster/snake (endgame condition 2 - no predefined coins)
+        if (game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE) {
+          return;
+        }
         const coins = game.items.filter(i => i.type === 'collectable' && i.subtype === 'coin');
         if (coins.length === 0) {
           respawnCoinsForDemo();
@@ -1097,22 +1110,6 @@
       }
     }
 
-    function checkStageTransition() {
-      // Only for score-booster and snake modes
-      if (game.mode !== GameModes.SCORE_BOOSTER && game.mode !== GameModes.SNAKE) return;
-
-      if (game.stage === 1) {
-        const coins = game.items.filter(i => i.type === 'collectable' && i.subtype === 'coin');
-        if (coins.length === 0) {
-          // All predefined coins cleared, enter stage 2
-          game.stage = 2;
-          game.movementsSinceLastRespawn = 0;
-          // Immediately spawn first coin of stage 2
-          spawnCoinAtRandomPosition();
-          renderItems();
-        }
-      }
-    }
 
     // ============================================
     // MOVEMENT & COLLISION
@@ -1334,11 +1331,6 @@
         // Remove the coin
         const idx = game.items.indexOf(item);
         if (idx > -1) game.items.splice(idx, 1);
-
-        // Check for stage transition (score-booster/snake modes)
-        if (game.state === GameState.IN_GAME) {
-          checkStageTransition();
-        }
 
       } else if (item.subtype === 'spray') {
         game.player.equippedSpray = item.color;

@@ -76,3 +76,24 @@ highlight: tweak sigil alphabet, countdown timer default, split endgame conditio
     - here's the respawn logic: either the last coin on the map is picked up or the player already made 4 action movements
 - volatile coin (for both score booster and snake mode)
   - it should be respawn for each 8 movement actions
+
+## Phase 1, Revision 4
+
+highlight: tweak endgame condition again
+
+we previously rework endgame condition 2 by introducing two different stages
+I think keeping only stage 2 would improve player experience
+please changes accordingly as below:
+- both score booster and snake mode ignore all the pre-defined coins from the levels
+  - hide them from the view
+- on game start, start stage 2 immediately
+  - wiping out all the pre-defined coins
+  - generate a decremental coin immediately
+
+The game flow should select game mode first, then select level behind the scene
+I wonder if it is possible to remove pre-defined coins of the level when loading the level?
+If the game mode is set to either score booster or snake mode (the mode that use endgame 2 condition), then, while loading the level, remove all predefined coins from the map
+
+yes, this works perfectly well
+however, you missed the part where demo levels respawn all coins when there isn't any on the map
+for game modes that enabling endgame condition 2, this behavior should also be disabled
