@@ -19,7 +19,9 @@
 ## Implementation Prompt
 
 - Encapsulate the main program into one standalone HTML file
+  - name the main program `deisign-v2/main.html`
+  - name the level data `deisign-v2/level.js`
 - Separate game level definition to another JS file
 - Zero frameworks and libraries
 - Skip design notes and appendix, no need to implement contents in the appendix
-- Plan Make sure the game is implemented in 3 to 5 stages where each stage is a standalone commit
+- Split the implementation to 3 to 5 phases (commits) such that the game can be tested in a more granular-sense
