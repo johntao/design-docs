@@ -74,8 +74,8 @@ A grid movement means the player teleports from grid A to grid B.
 
 Props:
 - collidible: false
-- default keybindings: `<c-h> <c-j> <c-k> <c-l>`
-  - `<c-h>` teleports the player to the grid in the left direction
+- default keybindings: `<s-h> <s-j> <s-k> <s-l>`
+  - `<s-h>` teleports the player to the grid in the left direction
   - If there's no grid on the left, the player stays in the current cell without moving
   - If there's a grid on the left
     - The player teleports to the cell of the left grid
@@ -291,8 +291,17 @@ implement [changing body length](#700changing-body-length)
 
 ## 800:appendix-candidates
 
-- marker command
-- Ggg0^$
+these features are not going to implement in this version
+
+### marker command
+
+TBD
+
+### border jump command
+
+TBD
+
+e.g. Ggg0^$
 
 ### 400:Macro
 

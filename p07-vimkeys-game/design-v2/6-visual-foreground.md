@@ -47,7 +47,9 @@ this table illustrate if the player could step onto another item type (i.e. coll
 | ----------------------- | ------ | -------- | --------- | -------- | ------ | ---- |
 | non snake mode          | o      | o        | o         | x        | #N/A   | o    |
 | snake mode, head-driven | o      | o        | o         | x        | o      | o    |
-| snake mode, body-driven | o      | o        | o         | o        | #N/A   | o    |
+| snake mode, body-driven | o      | o        | o         | o[^1]    | #N/A   | o    |
+
+[^1]: refer to "snake feature set" section of [config-gameplay](./3-config-gameplay.md) for more details
 
 ## collectable_coin
 
@@ -66,7 +68,7 @@ this is a collectable item in filler mode
 
 extra notes:
 - it doesn't give score
-- it respawn after a few movement actions
+- it respawn after 4 movement actions
 
 ## collectable_volatile coin
 

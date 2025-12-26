@@ -77,7 +77,7 @@ configurable option:
   - combo_unstoppable (defaults on)
   - decremental counter (defaults on)
   - combo_ocd (defaults off)
-  - expiration (defaults off)
+  - violatile coin (defaults off)
 
 extra notes:
 - rule combo_ocd is mutually exclusive to combo_unstoppable AND decremental counter
@@ -142,7 +142,7 @@ configurable options:
 - maximum bonus score: the bonus score should cap by this value (defaults to 5)
   - e.g. once the combo reach to 6, the bonus value would be capped by 5
 
-### Expiration
+### violatile coin
 
 Randomly drop a time-sensitive (volatile) coin.
 
@@ -208,7 +208,7 @@ order_bonus = 0
 
 Bonus grows arithmetically: +1 for 1st correct, +2 for 2nd correct, +3 for 3rd, etc.
 
-#### [Expiration Formula](#150expiration)
+#### [violatile coin Formula](#150violatile-coin)
 
 ```
 expiration_bonus = remaining_countdown
@@ -229,7 +229,7 @@ final_score = sum(score_per_pickup for each pickup)
 Each coin now comes with a color code to match.
 The player can pick up (equip) a color spray to match the condition.
 
-A color spray respawns automatically after the player moves a few steps, which ensures the player can always beat the level.
+A color spray respawns automatically after the player made 4 movements, which ensures the player can always beat the level.
 Picking up a new color spray would replace the previous color directly.
 
 Extra rules:
@@ -306,6 +306,8 @@ configurable options:
   - e.g. body length = 6, picking up a coin would give 1 + min(6-1, 5) score
   - e.g. body length = 7, picking up a coin would give 1 + min(7-1, 5) score
 - score given when re-attach to a body part (defaults to 1)
+- [violatile coin](#violatile-coin) borrowed from [score-booster feature set](#score-booster-feature-set)
+  - defaults ON
 
 ### dropped_body driven mode cannot collide special item
 

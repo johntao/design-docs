@@ -54,6 +54,7 @@ The goal is to let players learn what keybindings and gameplay work best for the
   - some of the levels are specific to a game mode; some of the levels are shared
   - demo levels are free to play without starting the game
     - in fact, the player cannot start a demo level
+    - i.e. `\` has no effect on demo level
   - demo levels remove win/ loss condition and score calculation
   - refer to [game level](./1-game-level.md) for more information
 
@@ -103,24 +104,12 @@ Before gameplay begins, the player selects a game mode. This is a higher-order s
 └─────────────┘           └─────────────┘
 ```
 
-Only two game states exist:
+### Transitions
 
-- **In-Game**
-  - Active gameplay state
-  - Press `\` to stop the game and return to out-of-game state
-  - HUD displays:
-    - Current score
-    - Timer or collectables remaining (mode-dependent)
-    - Combo status (if active)
-
-- **Out-of-Game**
-  - Press `\` to start the game
-  - HUD displays:
-    - Game mode selector (Picker / Filler)
-    - Previous game score
-    - Highest score (all time)
-    - Configuration modal popup (access keybindings and gameplay settings)
-    - Level switch
+| From        | To          | Trigger                                 |
+| ----------- | ----------- | --------------------------------------- |
+| Out-of-Game | In-Game     | Player presses `\`                      |
+| In-Game     | Out-of-Game | Player presses `\` or win condition met |
 
 ### Reserved Keybindings
 
