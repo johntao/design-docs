@@ -316,6 +316,11 @@
     .body-part.tail {
       color: #009944;
     }
+
+    .detached-body {
+      color: #666666;
+      opacity: 0.7;
+    }
   </style>
 </head>
 <body>
@@ -470,6 +475,13 @@
       movementsSinceLastRespawn: 0, // Respawn coin after 4 movements
       totalMovements: 0, // Respawn volatile coin every 8 movements
 
+      // Combo OCD state
+      comboOcdStreak: 0, // Current correct sequence streak
+      nextOcdOrder: 1, // Next expected order number
+
+      // Snake detached body state
+      detachedBody: [], // Body parts left behind after teleport [{row, col}, ...]
+
       // For sigil movement
       lastAlphabetSearch: null,
       lastBasicMovement: 'h',
@@ -511,6 +523,13 @@
         stage2RespawnMoves: 4, // Respawn coin after N movements in stage 2
         volatileRespawnMoves: 8, // Respawn volatile coin every N movements
         sigilAlphabetOrder: 'asdfqwerzxcv', // Configurable alphabet order (max 12)
+        // Combo OCD settings (mutually exclusive with combo_unstoppable)
+        comboOcdEnabled: false, // When true, use OCD instead of unstoppable
+        comboOcdCoins: 3, // Number of coins to mark with ordinal sequence
+        comboOcdMaxBonus: 5, // Maximum bonus cap for OCD streak
+        // Snake settings
+        snakeMaxBodyBonus: 5, // Maximum body length bonus
+        snakeReattachScore: 1, // Score for reattaching to detached body
       },
 
       // Waiting for alphabet input
@@ -723,11 +742,25 @@
       // Remove existing player renders
       document.querySelectorAll('.player-char').forEach(el => el.remove());
       document.querySelectorAll('.body-part').forEach(el => el.remove());
+      document.querySelectorAll('.detached-body').forEach(el => el.remove());
 
       const level = getCurrentLevel();
       const { cols } = level.grid;
 
-      // Render snake body parts first (if any)
+      // Render detached body parts (snake mode)
+      if (game.mode === GameModes.SNAKE && game.detachedBody.length > 0) {
+        game.detachedBody.forEach((part, idx) => {
+          const cell = document.querySelector(`.cell[data-row="${part.row}"][data-col="${part.col}"]`);
+          if (cell) {
+            const span = document.createElement('span');
+            span.className = 'detached-body';
+            span.textContent = '\u25A1'; // hollow square
+            cell.appendChild(span);
+          }
+        });
+      }
+
+      // Render snake body parts (attached)
       if (game.mode === GameModes.SNAKE && game.player.bodyParts.length > 0) {
         game.player.bodyParts.forEach((part, idx) => {
           const cell = document.querySelector(`.cell[data-row="${part.row}"][data-col="${part.col}"]`);
@@ -778,7 +811,9 @@
       // Show/hide mode-specific HUD elements
       const isCountdownMode = game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE;
       elements.comboHud.style.display = isCountdownMode ? 'flex' : 'none';
-      elements.combo.textContent = `x${game.comboStreak}`;
+      // Show OCD streak or unstoppable streak based on setting
+      const comboValue = game.settings.comboOcdEnabled ? game.comboOcdStreak : game.comboStreak;
+      elements.combo.textContent = `x${comboValue}`;
 
       elements.sprayDisplay.style.display = game.mode === GameModes.FILLER ? 'flex' : 'none';
       elements.currentSpray.textContent = game.player.equippedSpray || '-';
@@ -972,6 +1007,13 @@
       game.movementsSinceLastRespawn = 0;
       game.totalMovements = 0;
 
+      // Reset combo OCD state
+      game.comboOcdStreak = 0;
+      game.nextOcdOrder = 1;
+
+      // Reset snake detached body
+      game.detachedBody = [];
+
       // For countdown modes, set initial timer
       if (level.timerSeconds) {
         game.timer = level.timerSeconds;
@@ -1045,6 +1087,21 @@
             col,
             counter: game.settings.decrementalStart
           };
+
+          // Assign order number for combo OCD mode
+          if (game.settings.comboOcdEnabled) {
+            const orderedCoins = game.items.filter(
+              i => i.type === 'collectable' && i.subtype === 'coin' && i.order !== undefined
+            );
+            if (orderedCoins.length < game.settings.comboOcdCoins) {
+              // Find the next available order number
+              const usedOrders = orderedCoins.map(c => c.order);
+              let nextOrder = 1;
+              while (usedOrders.includes(nextOrder)) nextOrder++;
+              newCoin.order = nextOrder;
+            }
+          }
+
           game.items.push(newCoin);
           return true;
         }
@@ -1180,11 +1237,48 @@
           game.player.bodyParts.unshift({ row: game.player.row, col: game.player.col });
           game.player.bodyParts.pop();
         } else if (game.player.activeMode === 'body') {
-          // Body-driven: whole body moves
-          game.player.bodyParts = game.player.bodyParts.map(part => ({
-            row: part.row + (newRow - game.player.row),
-            col: part.col + (newCol - game.player.col)
-          }));
+          // Body-driven: whole body moves together, check collisions for each part
+          const dR = newRow - game.player.row;
+          const dC = newCol - game.player.col;
+
+          // Check each body part for collision
+          const newBodyParts = [];
+          let hitObstacle = false;
+
+          for (const part of game.player.bodyParts) {
+            const newPartRow = part.row + dR;
+            const newPartCol = part.col + dC;
+
+            // Check if new position is valid
+            const partObstacle = game.items.find(
+              item => item.type === 'obstacle' && item.row === newPartRow && item.col === newPartCol
+            );
+            const partPortal = game.items.find(
+              item => item.type === 'portal' && item.row === newPartRow && item.col === newPartCol
+            );
+
+            if (partObstacle || partPortal) {
+              // Body part hits obstacle/portal - split here
+              hitObstacle = true;
+              break;
+            }
+
+            newBodyParts.push({ row: newPartRow, col: newPartCol });
+          }
+
+          if (hitObstacle && newBodyParts.length === 0) {
+            // All body parts would hit obstacle - cancel movement
+            return;
+          }
+
+          // Update body parts (may be truncated due to collision)
+          game.player.bodyParts = newBodyParts;
+
+          // If body was split, detach the split parts
+          if (hitObstacle && game.player.bodyParts.length > 0) {
+            // Keep the surviving segment attached
+            // The rest was lost to obstacle collision
+          }
         }
       }
 
@@ -1192,6 +1286,14 @@
       if (!portalTeleported) {
         game.player.row = newRow;
         game.player.col = newCol;
+
+        // Check for detached body reattachment (snake mode)
+        if (checkDetachedBodyCollision(newRow, newCol)) {
+          // Reattached - position already updated by checkDetachedBodyCollision
+          renderGrid();
+          updateHUD();
+          return;
+        }
       }
 
       // Track last basic movement direction
@@ -1233,10 +1335,17 @@
       );
       if (obstacle) return;
 
-      // Handle snake body for teleport
+      // Snake mode: detach body when teleporting (sigil movement)
       if (game.mode === GameModes.SNAKE && game.player.bodyParts.length > 0) {
-        // Teleport detaches the head
-        // Body stays in place
+        detachSnakeBody();
+      }
+
+      // Check for detached body reattachment first
+      if (checkDetachedBodyCollision(row, col)) {
+        // Reattached - position already updated by checkDetachedBodyCollision
+        renderGrid();
+        updateHUD();
+        return;
       }
 
       handleCollision(row, col);
@@ -1295,23 +1404,43 @@
 
         // Combo bonus (score-booster/snake)
         if (game.mode === GameModes.SCORE_BOOSTER || game.mode === GameModes.SNAKE) {
-          if (game.stepsSinceLastCoin <= game.settings.comboSteps) {
-            game.comboStreak++;
+          if (game.settings.comboOcdEnabled) {
+            // Combo OCD mode: bonus for picking coins in order
+            if (item.order !== undefined) {
+              if (item.order === game.nextOcdOrder) {
+                // Correct order - increase streak
+                game.comboOcdStreak++;
+                game.nextOcdOrder++;
+                // Bonus grows arithmetically: +1, +2, +3, etc.
+                const bonus = Math.min(game.comboOcdStreak, game.settings.comboOcdMaxBonus);
+                scoreGain += bonus;
+              } else {
+                // Wrong order - reset streak
+                game.comboOcdStreak = 0;
+                game.nextOcdOrder = 1;
+              }
+            }
+            // Coins without order don't affect OCD streak
           } else {
-            game.comboStreak = 1;
-          }
-          game.stepsSinceLastCoin = 0;
+            // Combo unstoppable mode: bonus for picking coins within N steps
+            if (game.stepsSinceLastCoin <= game.settings.comboSteps) {
+              game.comboStreak++;
+            } else {
+              game.comboStreak = 1;
+            }
+            game.stepsSinceLastCoin = 0;
 
-          // Calculate combo bonus
-          if (game.comboStreak >= game.settings.comboMinStreak) {
-            const bonus = Math.min(
-              Math.floor((game.comboStreak - game.settings.comboMinStreak + game.settings.comboMinStreak) / 3) * game.settings.comboExtraScore,
-              game.settings.comboMaxExtra
-            );
-            scoreGain += bonus;
+            // Calculate combo bonus
+            if (game.comboStreak >= game.settings.comboMinStreak) {
+              const bonus = Math.min(
+                Math.floor((game.comboStreak - game.settings.comboMinStreak + game.settings.comboMinStreak) / 3) * game.settings.comboExtraScore,
+                game.settings.comboMaxExtra
+              );
+              scoreGain += bonus;
+            }
           }
 
-          // Decremental counter bonus
+          // Decremental counter bonus (applies to both combo modes)
           if (item.counter !== undefined && item.counter > 0) {
             scoreGain += item.counter;
           }
@@ -1319,7 +1448,7 @@
 
         // Snake body length bonus
         if (game.mode === GameModes.SNAKE) {
-          const bodyBonus = Math.min(game.player.bodyParts.length, 5);
+          const bodyBonus = Math.min(game.player.bodyParts.length, game.settings.snakeMaxBodyBonus);
           scoreGain += bodyBonus;
 
           // Increase body length
@@ -1352,11 +1481,6 @@
     }
 
     function handlePortalCollision(portal) {
-      // Snake with body > 1 can't use portals
-      if (game.mode === GameModes.SNAKE && game.player.bodyParts.length > 0) {
-        return false;
-      }
-
       // Find paired portal
       const paired = game.items.find(
         item => item.type === 'portal' &&
@@ -1365,8 +1489,49 @@
       );
 
       if (paired) {
+        // Snake mode: detach body when using portal
+        if (game.mode === GameModes.SNAKE && game.player.bodyParts.length > 0) {
+          detachSnakeBody();
+        }
+
         game.player.row = paired.row;
         game.player.col = paired.col;
+        return true;
+      }
+      return false;
+    }
+
+    function detachSnakeBody() {
+      if (game.player.bodyParts.length === 0) return;
+
+      // Store detached body for potential reattachment
+      game.detachedBody = [...game.player.bodyParts];
+      game.player.bodyParts = [];
+    }
+
+    function checkDetachedBodyCollision(row, col) {
+      if (game.mode !== GameModes.SNAKE || game.detachedBody.length === 0) return false;
+
+      // Check if head is on any detached body part
+      const bodyPartIndex = game.detachedBody.findIndex(
+        part => part.row === row && part.col === col
+      );
+
+      if (bodyPartIndex !== -1) {
+        // Reattach body and get score
+        game.score += game.settings.snakeReattachScore;
+
+        // Reattach the body
+        game.player.bodyParts = [...game.detachedBody];
+        const tailPart = game.detachedBody[game.detachedBody.length - 1];
+
+        // Clear detached body
+        game.detachedBody = [];
+
+        // Teleport head to tail position
+        game.player.row = tailPart.row;
+        game.player.col = tailPart.col;
+
         return true;
       }
       return false;
@@ -1518,14 +1683,11 @@
       };
       const [dRow, dCol] = moves[game.lastBasicMovement] || [0, 0];
 
-      // Detach head (body stays)
-      const detachedBody = [...game.player.bodyParts];
-      game.player.bodyParts = [];
+      // Detach body (stored for reattachment)
+      detachSnakeBody();
 
+      // Move head in last direction
       movePlayer(dRow, dCol);
-
-      // Store detached body for potential reconnection
-      // (simplified: just clear the body for now)
     }
 
     // ============================================
