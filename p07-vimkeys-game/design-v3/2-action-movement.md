@@ -1,8 +1,5 @@
 # action-move
 
-The basic move is `hjkl`, which moves the player one cell at a time inside the grid.
-`hjkl` borrows the conventional directions from VIM: left, down, up, right.
-
 ## Collision
 
 There are a few meanings of "collision" in this game.
@@ -19,14 +16,13 @@ This indicates the collision might occur multiple times during the process
 If the move action is non-collidable (ignore collision in-between the destination and the origin), then only the destination cell is considered collidable
 
 here's the table to illustrate if an action is teleport
-| action             | player  | command | collidable |
-| ------------------ | ------- | ------- | ---------- |
-| basic move         | active  | hjkl    | o          |
-| sigil move         | active  | asdf    | x          |
-| grid move          | active  | HJKL    | x          |
-| portal             | passive |         | x          |
-| swap head and tail | passive |         | x          |
-| Body-driven move   | passive |         | o          |
+| action             | player  | command  | collidable |
+| ------------------ | ------- | -------- | ---------- |
+| basic move         | active  | hjkl     | o          |
+| sigil move         | active  | asdfASDF | x          |
+| grid move          | active  | HJKL     | x          |
+| portal             | passive |          | x          |
+| swap head and tail | passive |          | x          |
 
 ### non-collidable item
 
@@ -57,8 +53,8 @@ Expectation: The player should teleport to cell C without being blocked by the o
 
 ## Basic move
 
-basic move are cached and repeatable by some command
-cache defaults to left basic move if null
+The basic move is `hjkl`, which moves the player one cell at a time inside the grid.
+`hjkl` borrows the conventional directions from VIM: left, down, up, right.
 
 ### Case Study
 
@@ -99,7 +95,7 @@ Basically, the player hit an alphabet keystroke, then teleport to the nearest co
 
 Difference:
 - no need to hit `f` before hitting the target alphabet
-  - you just hit `q` to teleport to the next (forward) alphabet q; hit `Q` to teleport to the previous (backward) alphabet q
+  - you just hit `a` to teleport to the next (forward) alphabet a; hit `A` to teleport to the previous (backward) alphabet a
   - forward means from 0,0 to n,n
   - backward means from n,n to 0,0
 - VIM normally open a text file containing dozens of alphabet, here the sigil are rendered with limited amount
@@ -111,7 +107,7 @@ Similarity:
 
 Extra notes:
 - the sigil move doesn't stop on the last occurrence of the direction
-  - i.e. given 4 "q" sigils, and the player is standing at the last "q", hitting `q` would bring the player to the first "q"
+  - i.e. given 4 "a" sigils, and the player is standing at the last "a", hitting `a` would bring the player to the first "a"
 - the default keystroke of sigil moves are `asdf`
   - i.e. the game only render these alphabet sigils
 
@@ -158,12 +154,12 @@ if attack to a attached body part, then, the current head position is swap with 
 
 ### rigid mode
 
-this is a special mode when the player pick up a special powerup
+this is a special mode when the player pick up a special collectable (i.e. volatile coin)
 normally, the body part is dragged by the head part, where only the head part react to player's action
 in this mode, the whole body part including the head react to player's action (i.e. whole body driven)
-thus, the player may trigger multiple collision events at once
+thus, the player may trigger multiple collision events at once (i.e. picking up multiple coins at once)
 
-extra notes for body-driven mode:
+extra notes for rigid mode:
 - picking up a coin doesn't increase body length
 - hitting a detached body part doesn't reattach
   - instead, you get score equals to the length of the detached part
@@ -171,7 +167,7 @@ extra notes for body-driven mode:
   - the sigil move works by using the part marked as head
 - grid movement is available
 - hitting portals or obstacles would cause a "split"
-  - the player lose body-driven mode after the split
+  - the player lose rigid mode after the split
   - the body part that hitting onto the portals or obstacles are vanished
   - the player restore head-driven mode via an algorithm
     - select the longest segments after the split
@@ -181,7 +177,7 @@ extra notes for body-driven mode:
 
 ### detach
 
-in normal mode, the player is detached if the head hit onto portals or activating sigil moves
+in normal mode, the player is detached if the head hit onto portals or activating non-collidable moves (e.g. grid, sigil move)
 
 the body is left behind while the head teleport to the new position accordingly
 

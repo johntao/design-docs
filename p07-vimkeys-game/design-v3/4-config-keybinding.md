@@ -18,26 +18,20 @@ Remappable keys:
 | Grid Down                          | `shift+j`   | Grid Movement             |
 | Grid Up                            | `shift+k`   | Grid Movement             |
 | Grid Right                         | `shift+l`   | Grid Movement             |
-| Find Angle '<' Backward            | `q`         | Sigil Movement            |
-| Find Angle '<' Forward             | `w`         | Sigil Movement            |
-| Find Angle '>' Backward            | `e`         | Sigil Movement            |
-| Find Angle '>' Forward             | `r`         | Sigil Movement            |
-| Find Alphabet Backward             | `a` + char  | Sigil Movement            |
-| Find Alphabet Forward              | `s` + char  | Sigil Movement            |
-| Repeat Find Alphabet Backward      | `d`         | Repeater                  |
-| Repeat Find Alphabet Forwardd      | `f`         | Repeater                  |
-| Swap between head and tail         | `z`         | Body Control (snake mode) |
-| Shrink the body length to 1        | `x`         | Body Control (snake mode) |
-| Toggle between head or body-driven | `c`         | Body Control (snake mode) |
-| Detach the head                    | `v`         | Body Control (snake mode) |
+| Jump to previous a                 | `A`         | Sigil Movement            |
+| Jump to previous s                 | `S`         | Sigil Movement            |
+| Jump to previous d                 | `D`         | Sigil Movement            |
+| Jump to previous f                 | `F`         | Sigil Movement            |
+| Jump to next a                     | `a`         | Sigil Movement            |
+| Jump to next s                     | `s`         | Sigil Movement            |
+| Jump to next d                     | `d`         | Sigil Movement            |
+| Jump to next f                     | `f`         | Sigil Movement            |
 
 Reserved keys:
 
 | Action                                | Default Key   |
 | ------------------------------------- | ------------- |
 | Start/stop game (see Game Flow)       | `\`           |
-| Switch to previous game mode          | `-`           |
-| Switch to next game mode              | `=`           |
 | Randomize level (dynamic levels only) | `<backspace>` |
 | Switch to previous level              | `[`           |
 | Switch to next level                  | `]`           |
@@ -65,16 +59,11 @@ Keybindings are stored per save slot:
 {
   "slot_id": 1,
   "keybindings": {
-    "move_left": "h",
-    "move_down": "j",
-    "move_up": "k",
-    "move_right": "l",
-    "grid_left": "ctrl+h",
-    "find_alphabet": "f",
-    "macros": {
-      "macro_1": "hhhjjj",
-      "macro_2": "llllk"
-    }
+    "move_left": "y",
+    "move_down": "u",
+    "move_up": "i",
+    "move_right": "o",
+    "prev_a": "q"
   }
 }
 ```
