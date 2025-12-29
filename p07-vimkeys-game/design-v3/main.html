@@ -867,11 +867,98 @@
           item.type === 'obstacle' && item.row === newRow && item.col === newCol
         );
         if (obstacle) {
-          return; // Blocked by obstacle
+          if (this.player.rigidMode) {
+            // Rigid mode: can move into obstacles, causes split
+            this.executeRigidMove(newRow, newCol);
+          }
+          return; // Normal mode: blocked by obstacle
         }
 
         // Execute move
         this.executeMove(newRow, newCol, true);
+      },
+
+      executeRigidMove(newRow, newCol) {
+        // Move entire body
+        const deltaRow = newRow - this.player.segments[0].row;
+        const deltaCol = newCol - this.player.segments[0].col;
+
+        const newSegments = this.player.segments.map(seg => ({
+          row: seg.row + deltaRow,
+          col: seg.col + deltaCol
+        }));
+
+        // Find segments that hit obstacles or go out of bounds
+        const level = this.currentLevel;
+        const validSegments = [];
+        const hitSegments = [];
+
+        newSegments.forEach((seg, i) => {
+          const hitsObstacle = this.items.some(item =>
+            item.type === 'obstacle' && item.row === seg.row && item.col === seg.col
+          );
+          const outOfBounds = seg.row < 0 || seg.row >= level.grid.rows ||
+                              seg.col < 0 || seg.col >= level.grid.cols;
+
+          if (hitsObstacle || outOfBounds) {
+            hitSegments.push(i);
+          } else {
+            validSegments.push(seg);
+          }
+        });
+
+        // Handle split - segments hitting obstacles are removed
+        if (validSegments.length === 0) {
+          // All segments lost - respawn at random position
+          const spawn = this.findValidSpawn();
+          this.player.segments = [spawn];
+          this.player.rigidMode = false;
+        } else {
+          this.player.segments = validSegments;
+          // Handle collisions for valid segments
+          validSegments.forEach(seg => {
+            this.handleCollision(seg.row, seg.col, true);
+          });
+        }
+
+        // Exit rigid mode after a split
+        this.player.rigidMode = false;
+
+        this.actionCount++;
+        this.updateVolatileCoins();
+        this.render();
+      },
+
+      findValidSpawn() {
+        const level = this.currentLevel;
+        const rows = level.grid.rows;
+        const cols = level.grid.cols;
+
+        const blocked = new Set();
+        this.items.forEach(item => {
+          if (item.type === 'obstacle' || item.type === 'portal') {
+            blocked.add(`${item.row},${item.col}`);
+          }
+        });
+
+        for (let attempts = 0; attempts < 100; attempts++) {
+          const row = Math.floor(Math.random() * rows);
+          const col = Math.floor(Math.random() * cols);
+          if (!blocked.has(`${row},${col}`)) {
+            return { row, col };
+          }
+        }
+        return { row: 0, col: 0 };
+      },
+
+      updateVolatileCoins() {
+        this.items = this.items.filter(item => {
+          if (item.type === 'volatileCoin') {
+            item.counter -= this.config.gameplay.volatileDecrementalStep;
+            return item.counter > 0;
+          }
+          return true;
+        });
       },
 
       executeMove(newRow, newCol, isCollidable) {
@@ -882,20 +969,55 @@
           const deltaRow = newRow - this.player.segments[0].row;
           const deltaCol = newCol - this.player.segments[0].col;
 
-          this.player.segments = this.player.segments.map(seg => ({
+          const newSegments = this.player.segments.map(seg => ({
             row: seg.row + deltaRow,
             col: seg.col + deltaCol
           }));
 
-          // Check collisions for all segments
-          this.player.segments.forEach((seg, i) => {
-            this.handleCollision(seg.row, seg.col, isCollidable);
-          });
+          // Check for portal collisions in rigid mode - causes split
+          const hitsPortal = newSegments.some((seg, i) =>
+            this.items.some(item =>
+              item.type === 'portal' && item.row === seg.row && item.col === seg.col
+            )
+          );
 
-          // Decrement rigid counter
-          this.player.rigidCounter--;
-          if (this.player.rigidCounter <= 0) {
+          if (hitsPortal) {
+            // Handle portal split similar to obstacle split
+            const level = this.currentLevel;
+            const validSegments = [];
+
+            newSegments.forEach((seg, i) => {
+              const hitsPortalCell = this.items.some(item =>
+                item.type === 'portal' && item.row === seg.row && item.col === seg.col
+              );
+              const outOfBounds = seg.row < 0 || seg.row >= level.grid.rows ||
+                                  seg.col < 0 || seg.col >= level.grid.cols;
+
+              if (!hitsPortalCell && !outOfBounds) {
+                validSegments.push(seg);
+              }
+            });
+
+            if (validSegments.length === 0) {
+              const spawn = this.findValidSpawn();
+              this.player.segments = [spawn];
+            } else {
+              this.player.segments = validSegments;
+            }
             this.player.rigidMode = false;
+          } else {
+            this.player.segments = newSegments;
+
+            // Check collisions for all segments
+            this.player.segments.forEach((seg, i) => {
+              this.handleCollision(seg.row, seg.col, isCollidable);
+            });
+
+            // Decrement rigid counter
+            this.player.rigidCounter--;
+            if (this.player.rigidCounter <= 0) {
+              this.player.rigidMode = false;
+            }
           }
         } else {
           // Normal mode: snake movement
@@ -921,15 +1043,7 @@
         }
 
         this.actionCount++;
-
-        // Update volatile coins - decrement counters and remove expired ones
-        this.items = this.items.filter(item => {
-          if (item.type === 'volatileCoin') {
-            item.counter -= this.config.gameplay.volatileDecrementalStep;
-            return item.counter > 0;
-          }
-          return true;
-        });
+        this.updateVolatileCoins();
 
         // Spawn new coin periodically (only in-game and non-demo)
         if (this.state === GameState.IN_GAME &&
@@ -999,12 +1113,18 @@
           return;
         }
 
+        // Calculate score booster based on body length
+        const bodyBonus = Math.min(
+          this.player.segments.length - 1,
+          this.config.gameplay.maxBonusScore
+        );
+
         if (coin.type === 'volatileCoin') {
-          this.score += 1 + (coin.counter || 0);
+          this.score += 1 + (coin.counter || 0) + bodyBonus;
           this.player.rigidMode = true;
           this.player.rigidCounter = this.config.gameplay.volatileInitialCounter;
         } else {
-          this.score += 1;
+          this.score += 1 + bodyBonus;
           if (!this.player.rigidMode) {
             this.growPlayer();
           }
