@@ -70,7 +70,7 @@ Define what happens when the player hits the boundary of a grid:
 A view may contain multiple grids.
 A grid move means the player teleports from grid A to grid B.
 
-Props:
+extra notes:
 - default keybindings: `HJKL` (capitalized letters)
   - `H` teleports the player to the grid in the left direction
   - If there's no grid on the left, the player stays in the current cell without moving
@@ -78,6 +78,8 @@ Props:
     - The player teleports to the cell of the left grid
     - The cell has the identical row-col index as before the teleport
     - e.g., from cur-grid(3,4) to dest-grid(3,4)
+- in normal mode (head-driven), the player's head is detached for using a grid move
+  - in rigid mode (body-driven), the player move its whole body part at once
 
 ## Sigil
 
@@ -87,29 +89,37 @@ A sigil is an item that is not collidable but is interactable with certain move 
 
 All foreground item (sigil, obstacle, portal, coins) properties are defined in [Visual Foreground](./6-visual-foreground.md)
 
-### Alphabets
+### Letters
 
-Render alphabets in the cell.
+Render a sigil-letters in the cell.
+Sigil letters is a small set of alphabet which is configurable (defaults to `asdf`)
+- sigil-letter-1: letter "a"
+- sigil-letter-2: letter "s"
+- ...etc
+
 This feature is similar to how word motion and `f` motion works in VIM.
-Basically, the player hit an alphabet keystroke, then teleport to the nearest correspond sigil.
+Basically, the player hit a letter keystroke, then jump to the nearest correspond sigil.
 
 Difference:
-- no need to hit `f` before hitting the target alphabet
-  - you just hit `a` to teleport to the next (forward) alphabet a; hit `A` to teleport to the previous (backward) alphabet a
+- no need to hit `f` before hitting the target letter
+  - you hit `a` to jump to the next (forward) sigil-letter-1 occurrence ("a" by default); hit `A` to jump to the previous (backward) letter a
   - forward means from 0,0 to n,n
   - backward means from n,n to 0,0
-- VIM normally open a text file containing dozens of alphabet, here the sigil are rendered with limited amount
+- VIM normally open a text file containing dozens of letter, here sigils are rendered in a small amount
 - there's no word wrap concept in this game, since most of the sigils are scattered randomly in the view, instead of continuos literature
-- the sigil move jump across multiple lines, instead of one line
+- the sigil-move jump across multiple lines, instead of one line
 
 Similarity:
 - one keystroke to teleport is similar to how word motions work in VIM
 
 Extra notes:
-- the sigil move doesn't stop on the last occurrence of the direction
+- the sigil-move doesn't stop on the last occurrence in the direction
   - i.e. given 4 "a" sigils, and the player is standing at the last "a", hitting `a` would bring the player to the first "a"
-- the default keystroke of sigil moves are `asdf`
-  - i.e. the game only render these alphabet sigils
+- the default sequence of sigil-letters are "asdf"
+  - i.e. the game only render these sigil-letters
+  - the game use keystroke `asdf` maps to these sigil-letters by default
+- in normal mode (head-driven), the player's head is detached for using a sigil move
+  - in rigid mode (body-driven), the player move its whole body part at once
 
 ## snake feature set
 
@@ -164,7 +174,7 @@ extra notes for rigid mode:
 - hitting a detached body part doesn't reattach
   - instead, you get score equals to the length of the detached part
 - the head position is marked before entering the rigid mode
-  - the sigil move works by using the part marked as head
+  - the sigil-move works by using the part marked as head
 - grid movement is available
 - hitting portals or obstacles would cause a "split"
   - the player lose rigid mode after the split

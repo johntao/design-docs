@@ -21,11 +21,12 @@ Refer to file [visual foreground](./6-visual-foreground.md) for definitions of i
 | Parameter        | Type | Default | Description                                     |
 | ---------------- | ---- | ------- | ----------------------------------------------- |
 | obstacle_density | int  | 10      | Percentage of cells with obstacles 0-20%        |
-| sigil_density    | int  | 10      | Percentage of cells with sigils 0-20%           |
+| sigil_density    | int  | 10 [^2] | Percentage of cells with sigils 0-20%           |
 | portal_density   | int  | 10      | Percentage of cells with portals 0-20% [^1]     |
 | seed             | int? | null    | Random seed for reproducibility (null = random) |
 
 [^1]: portals are generated in even numbers, 10 portals is equals to 5 pairs of portal
+[^2]: minimal amount of each sigil-letter is 4
 
 ## 200:Fixed Level Format
 
@@ -43,7 +44,7 @@ Fixed levels are stored as JSON with the following structure:
   "items": [
     { "type": "collectable", "subtype": "coin", "row": 2, "col": 3 },
     { "type": "obstacle", "row": 4, "col": 5 },
-    { "type": "sigil", "subtype": "q", "row": 3, "col": 10 },
+    { "type": "sigil", "subtype": "1", "row": 3, "col": 10 },
     { "type": "portal", "pair_id": 1, "row": 1, "col": 1 },
     { "type": "portal", "pair_id": 1, "row": 9, "col": 14 }
   ],
@@ -80,6 +81,12 @@ Players can cycle through levels using `[` and `]`:
 | Dynamic Generated Level | Render all types of items. Randomly generated level. Press `<backspace>` to regenerate. |
 
 Refer to file [visual foreground](./6-visual-foreground.md) for more items information
+
+### Dynamic Generated Level
+
+The only way to regenerate the level is to hit `<backspace>`
+Restarting the game should not regenerate the level
+i.e. player can repeat the level as many times as they want
 
 ### 410:Demo Level Details
 

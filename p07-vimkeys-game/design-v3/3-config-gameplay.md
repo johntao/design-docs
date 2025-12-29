@@ -9,10 +9,11 @@ Additional information:
 - Spawning coins dynamically along with the game progress
   - the spawn amount is defined by maximum coin amount
   - the spawn logic is defined by coins spawning frequency
-- the score is determined by zzz
+- player get scores from collecting coins (including volatile coin)
+  - collecting detached body parts
 
 configurable options:
-- #n/a
+- countdown timer defaults to 30 seconds
 
 ## maximum coin amount
 
@@ -112,4 +113,18 @@ configurable options:
 - maximum bonus score given while the length of the body is greater than 1 (defaults to 5)
   - e.g. body length = 6, picking up a coin would give 1 + min(6-1, 5) score
   - e.g. body length = 7, picking up a coin would give 1 + min(7-1, 5) score
+  - set to zero to disable the maximum limit
 - score given when reattach to a body part (defaults to 1)
+
+## random level generation 
+
+configurable options:
+- obstacle_density (def: 10)
+- sigil_density (def: 10)
+- portal_density (def: 10)
+
+## sigil move
+
+configurable options:
+- sigil sequence: `asdf`
+  - which maps to sigil 1..4

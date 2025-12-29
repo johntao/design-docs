@@ -8,24 +8,24 @@ Thus, they should be defined in [action-movement](./2-action-movement.md)
 
 Remappable keys:
 
-| Action                             | Default Key | Category                  |
-| ---------------------------------- | ----------- | ------------------------- |
-| Move Left                          | `h`         | Basic Movement            |
-| Move Down                          | `j`         | Basic Movement            |
-| Move Up                            | `k`         | Basic Movement            |
-| Move Right                         | `l`         | Basic Movement            |
-| Grid Left                          | `shift+h`   | Grid Movement             |
-| Grid Down                          | `shift+j`   | Grid Movement             |
-| Grid Up                            | `shift+k`   | Grid Movement             |
-| Grid Right                         | `shift+l`   | Grid Movement             |
-| Jump to previous a                 | `A`         | Sigil Movement            |
-| Jump to previous s                 | `S`         | Sigil Movement            |
-| Jump to previous d                 | `D`         | Sigil Movement            |
-| Jump to previous f                 | `F`         | Sigil Movement            |
-| Jump to next a                     | `a`         | Sigil Movement            |
-| Jump to next s                     | `s`         | Sigil Movement            |
-| Jump to next d                     | `d`         | Sigil Movement            |
-| Jump to next f                     | `f`         | Sigil Movement            |
+| Action                   | Default Key | Category         |
+| ------------------------ | ----------- | ---------------- |
+| Move Left                | `h`         | Basic Move       |
+| Move Down                | `j`         | Basic Move       |
+| Move Up                  | `k`         | Basic Move       |
+| Move Right               | `l`         | Basic Move       |
+| Grid Left                | `shift+h`   | Grid Move        |
+| Grid Down                | `shift+j`   | Grid Move        |
+| Grid Up                  | `shift+k`   | Grid Move        |
+| Grid Right               | `shift+l`   | Grid Move        |
+| Jump to previous sigil 1 | `A`         | Sigil 1 Backward |
+| Jump to previous sigil 2 | `S`         | Sigil 2 Backward |
+| Jump to previous sigil 3 | `D`         | Sigil 3 Backward |
+| Jump to previous sigil 4 | `F`         | Sigil 4 Backward |
+| Jump to next sigil 1     | `a`         | Sigil 1 Forward  |
+| Jump to next sigil 2     | `s`         | Sigil 2 Forward  |
+| Jump to next sigil 3     | `d`         | Sigil 3 Forward  |
+| Jump to next sigil 4     | `f`         | Sigil 4 Forward  |
 
 Reserved keys:
 
@@ -67,7 +67,5 @@ Keybindings are stored per save slot:
   }
 }
 ```
-
-### 310:design notes
 
 only the user-defined part are saved (i.e. no need to store the settings if it is identical to the system default)

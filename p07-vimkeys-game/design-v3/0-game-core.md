@@ -72,7 +72,7 @@ The Snake part:
 
 ## 300:flow
 
-### 320:State Machine
+State Machine:
 
 ```
 ┌─────────────┐     \     ┌─────────────┐
@@ -80,12 +80,17 @@ The Snake part:
 └─────────────┘           └─────────────┘
 ```
 
-### 330:Transitions
+Transitions:
 
 | From        | To          | Trigger                                     |
 | ----------- | ----------- | ------------------------------------------- |
 | Out-of-Game | In-Game     | Player presses `\`                          |
 | In-Game     | Out-of-Game | Player presses `\` or endgame condition met |
+
+Extra notes:
+- Stopping a game should reset all the states, including:
+  - all the decremental counter
+  - the position of the player
 
 ### 340:Reserved Keybindings
 

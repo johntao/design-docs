@@ -9,12 +9,14 @@ collision: when the player moves and overlap on another item, a collision event 
 ## 100:type properties
 
 this table illustrate the basic properties of each type of items
-| Type-props  | collidable | actionable | collision event                 | Sub-item                   |
-| ----------- | ---------- | ---------- | ------------------------------- | -------------------------- |
-| collectable | o          | x          | pick up (item vanish afterward) | coin, spray, volatile coin |
-| portal      | o          | x          | teleport                        |                            |
-| obstacle    | o          | x          | block, cancel the movement      |                            |
-| sigil       | x          | o          | NONE                            | alphabet, angle bracket    |
+| Type-props     | collidable | actionable | collision event                 | Sub-item            |
+| -------------- | ---------- | ---------- | ------------------------------- | ------------------- |
+| collectable    | o          | x          | pick up (item vanish afterward) | coin, volatile coin |
+| portal         | o          | x          | teleport                        |                     |
+| obstacle       | o          | x          | block, cancel the movement      |                     |
+| sigil          | x          | o          | NONE                            | letter              |
+| detached parts | o          | x          | attach, swap, get one score     |                     |
+| attached parts | o          | x          | attack, swap                    |                     |
 
 ## 200:spawn rules
 
@@ -31,72 +33,56 @@ this table illustrate if two different type of items could be spawned in the sam
 ## 300:item display
 
 this table illustrate the printable character to represent each item type
-| display   | char | desc                               |
-| --------- | ---- | ---------------------------------- |
-| portal    | ○    | hollow circle                      |
-| sg-angle  | <>   | ascii angle brackets               |
-| sg-letter | a..z | ascii alphabets                    |
-| obstacle  | ▮    | high vertical block                |
-| player    | ▢    | hollow square with rounded corners |
-| coin      | •    | dot                                |
+| display       | char | desc                               |
+| ------------- | ---- | ---------------------------------- |
+| portal        | ○    | hollow circle                      |
+| sigil-letter  | asdf | configurable ascii letters         |
+| obstacle      | ▮    | high vertical block                |
+| player        | ▢    | hollow square with rounded corners |
+| coin          | •    | dot                                |
+| volatile coin | ⋆    | star                               |
 
 ## 400:step rules
 
 this table illustrate if the player could step onto another item type (i.e. collidable) 
-| player stepping         | portal | sg-angle | sg-letter | obstacle | player | coin |
-| ----------------------- | ------ | -------- | --------- | -------- | ------ | ---- |
-| non snake mode          | o      | o        | o         | x        | #N/A   | o    |
-| snake mode, head-driven | o      | o        | o         | x        | o      | o    |
-| snake mode, body-driven | o      | o        | o         | o[^1]    | #N/A   | o    |
+| player state         | portal | sg-letter | obstacle | player | coin |
+| -------------------- | ------ | --------- | -------- | ------ | ---- |
+| len eq 1             | o      | o         | x        | o      | o    |
+| len gt 1             | o[^2]  | o         | x        | o      | o    |
+| len gt 1, rigid mode | o[^1]  | o         | o[^1]    | o      | o    |
 
-[^1]: refer to "snake feature set" section of [config-gameplay](./3-config-gameplay.md) for more details
+[^1]: cause split
+[^2]: detach head, then, teleport
 
 ## 500:collectable_coin
 
-picking up a coin would give player one score
+picking up a coin would give player one score and increase player's body length by 1
 
 extra notes:
-- if decremental counter is enabled, render a number aside or on top of the coin
-  - a number to represent the decremental counter
-- if combo_ocd is enabled, render a number aside or on top of the coin
-  - a number to represent the correct order to keep the combo streak
-- if filler feature set is enabled, successfully picking up a coin would also paint the cell with the correspond color
-
-## 600:collectable_color spray
-
-this is a collectable item in filler mode
-
-extra notes:
-- it doesn't give score
-- it respawn after 4 movement actions
+- spawning logic
+  - spawning at least one coin per grid at any given time
+  - per N player's actions, spawning a new one (N defaults 4)
 
 ## 700:collectable_volatile coin
 
-this is a collectable item in score-booster mode
+a volatile coin also display a decremental counter on the coin
+picking up a volatile coin give player's (one + counter) score, and make the player enter rigid mode
 
 extra notes:
-- a decremental counter is rendered aside or on top of the coin
-- the coin vanish once the counter run below 1
+- a decremental counter is rendered on top of the coin
+- the coin vanish once the counter runs below 1
 
 ## 800:Player Initialization
 
 When a game starts, the player must be initialized with the following properties:
 
 ### 810:Starting Position
-- **Picker Mode (Random Level):** Player spawns at a random unoccupied cell, or at the center of the grid if unoccupied
-- **Picker Mode (Fixed Level):** Player spawns at a predefined position specified in the level data
-- **Filler Mode:** Player spawns at a predefined position specified in the level data
 
-### 820:Initial State
-| Property      | Initial Value | Notes                         |
-| ------------- | ------------- | ----------------------------- |
-| Body Length   | 1             | Single cell occupied          |
-| Active Part   | Head          | For body length > 1 scenarios |
-| Score         | 0             | -                             |
-| Combo Streak  | 0             | If combo system is enabled    |
-| Current Color | None          | For Filler mode only          |
+- for random level, the player spawn at a random unoccupied cell
+- for predefined level, the player spawn at a predefined position specified in the level data
 
 ### 830:Spawn Constraints
+
 - The spawn cell must not contain an obstacle
 - The spawn cell must not contain a portal (to avoid immediate teleportation)
 - For random levels, ensure at least one collectable is reachable from spawn position
@@ -109,45 +95,16 @@ The game engine should not render an obstacle and any other item in the same cel
 - If a cell contains an obstacle, it cannot contain collectables, sigils, portals, or any other items
 - This ensures clear collision behavior and prevents ambiguous game states
 
-## a00:sigil_alphabet
+## a00:sigil_letter
 
 Sigils are printable characters that players may use special actions to interact with
 
 Extra info:
-- one alphabet per cell
+- one sigil letter per cell
 - each letter should render at least 4 times per grid
-  - this would make the repeater action more useful
-- render alphbets starts from a
-
-## b00:sigil_angle bracket
-
-Sigils are printable characters that players may use special actions to interact with
-
-Extra info:
-- doesn't trigger collision events
-- it is possible to spawn different types of sigils in the same cell
-- the game should render angle bracket in pairs without nesting
-  - this simulate the how word boundaries works in VIM originally
-
-### b10:design notes
-
-this concept originate from VIM word boundary motion
-
-| sigil | player act | VIM ori cmd | desc                                                       |
-| ----- | ---------- | ----------- | ---------------------------------------------------------- |
-| <     | w          | w           | Move forward to the start of the next word                 |
-| <     | q          | b           | Move backward to the start of the current or previous word |
-| >     | r          | e           | Move forward to the end of the current or next word        |
-| >     | e          | ge          | Move backward to the end of the previous word              |
-
-the difference:
-- VIM imply the word boundary concept behind the scene
-  - in the other hand, this game visualize this concept with literal characters
-
-the similarity:
-- the game supports rendering alphabet and angle brackets in the same cell
-  - which is similar to VIM that the user may use either word motion or find char to navigate to the same position
-- render in pairs without nesting
+- letters are generating in the following sequence sigil-letter-1, sigil-letter-2, sigil-letter-3, sigil-letter-4
+  - e.g. if a level rendered (5,4,4) sigils and the sigil sequence is defined as `asdf`
+  - then "a" appears 5 times, "s" appear 4 times, "d" appear 4 times, "f" appear 0 time
 
 ## c00:portals
 
@@ -169,59 +126,3 @@ This item would implement a feature limiting the player's sight to a smaller are
 extra notes:
 - the area is configured by a radius value (defaults to 5)
 - use a proper algorithm to simulate a circular area within a grid
-
-### d10:Design Notes
-
-This config works best in randomly generated levels (timer + score-based mode).
-The reason is that playing a static level in speed-based mode means the game should eliminate noise of the gameplay to ensure better player experience.
-
-## e00:game mode specific
-
-noted that some of the game mode specific instructions are already included below the "extra note" of each feature
-
-### e10:shared
-
-- dummy blank
-- [type properties](#type-properties)
-- [spawn rules](#spawn-rules)
-- [item display](#item-display)
-- [step rules](#step-rules)
-- [collectable coin](#collectable_coin)
-- [player](#player-initialization)
-- [obstacle](#900obstacle)
-- [sigil alphabet](#sigil_alphabet)
-- [sigil angle bracket](#sigil_angle-bracket)
-- [portals](#c00portals)
-- [fog of war](#fog-of-war)
-
-### e20:picker
-
-inherit all from [shared](#e10shared)
-
-### e30:filler
-
-inherit all from [shared](#e10shared)
-implement these additional features:
-- [collectable color spray](#collectable_color-spray)
-
-### e40:score-booster
-
-inherit all from [shared](#e10shared)
-implement these additional features:
-- [collectable volatile coin](#collectable_volatile-coin)
-
-### e50:snake
-
-inherit all from [shared](#e10shared)
-implement these additional features:
-- [collectable volatile coin](#collectable_volatile-coin)
-
-## f00:appendix_dropped features
-
-### f10:Hyperlink-Like
-
-**Reason for dropping:** Violates the first design principle (non-movement actions).
-
-An HTML anchor where the player uses a keystroke to enter and then teleport to somewhere else on the view. Requiring the player to hit a key (e.g., `t`) to enter a link is a non-movement action that would slow down the fast-paced gameplay.
-
-Similarly, a keystroke to bring the player back to the previous view like how "go back" works in a browser also disobeys the third design principle.

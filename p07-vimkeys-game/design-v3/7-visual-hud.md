@@ -8,25 +8,22 @@ Information about score, game status, and configuration modal popup.
 
 While in-game, the HUD displays:
 
-| Element                       | Description                             |
-| ----------------------------- | --------------------------------------- |
-| Current Score and Timer       | If endgame condition 2 is used          |
-| Combo Counter                 | Current combo multiplier (if active)    |
-| Stopwatch and remaining count | If endgame condition 1 is used          |
-| Current Color Spray           | Equipped color spray (Filler mode only) |
+| section | Element         | Description                      |
+| ------- | --------------- | -------------------------------- |
+| TOP     | Current Score   | Score gains from various sources |
+| TOP     | Countdown Timer | Timer (defaults to 30s)          |
 
 ### 120:Out-of-Game Display
 
 While out-of-game:
 
-| Element              | Description                                          |
-| -------------------- | ---------------------------------------------------- |
-| Game Mode Selector   | Current mode name with navigation hints (`-` / `=`)  |
-| Level Switch         | Current level name with navigation hints (`[` / `]`) |
-| Previous Game Score  | Score from the most recent game session              |
-| Highest Score        | Highest score ever achieved (per game-mode + level)  |
-| Configuration Access | Button/link to open settings modal                   |
-| Start Hint           | "Press `\` to start"                                 |
+| section | Element              | Description                                          |
+| ------- | -------------------- | ---------------------------------------------------- |
+| TOP     | Previous Game Score  | Score from the most recent game session              |
+| TOP     | Highest Score        | Highest score ever achieved (per game-mode + level)  |
+| TOP     | Level Switch         | Current level name with navigation hints (`[` / `]`) |
+| TOP     | Start Hint           | "Press `\` to start"                                 |
+| BOT     | Configuration Access | Button/link to open settings modal                   |
 
 ## 200:Settings Modal
 
@@ -48,12 +45,30 @@ The settings modal contains two main tabs accessed via toggle buttons:
 
 ### 220:Gameplay Tab Contents
 
-The Gameplay tab displays different options depending on the selected game mode. Picker mode and Filler mode each have their own set of configurable settings.
-
+- gameplay
+  - countdown timer (def: 30s)
+  - line of sight (def: 0)
+  - sigil letters sequence (def: `asdf`)
+- random level generation
+  - obstacle_density (def: 10)
+  - sigil_density (def: 10)
+  - portal_density (def: 10)
+- coin
+  - maximum displaying coins (def: 10)
+  - spawning frequency (def: 4 actions)
+- volatile coin
+  - initial counter (def: 5)
+  - decremental step (def: 1)
+  - spawning frequency (def: 8)
+- score booster
+  - maximum bonus score (def: 5)
+  - reattach score (def: 1)
 
 ### 230:Keybindings Tab Contents
 
 Displays the keybinding table in an editable format:
-- Click on a key cell to rebind
+- Display system & user definition per row
+  - system def is read-only
+  - user def is editable
+  - left user def blank to use the system defaults
 - Visual indicator for conflicts
-- "Reset" button per row to restore default
