@@ -154,6 +154,22 @@
       opacity: 0.7;
     }
 
+    /* Rigid mode styles */
+    .player.rigid {
+      color: #ff6b6b;
+      animation: pulse 0.5s infinite alternate;
+    }
+
+    .player-body.rigid,
+    .player-tail.rigid {
+      color: #ff6b6b;
+    }
+
+    @keyframes pulse {
+      from { opacity: 1; }
+      to { opacity: 0.6; }
+    }
+
     #hud-bottom {
       display: flex;
       gap: 20px;
@@ -717,6 +733,49 @@
         }
       },
 
+      spawnVolatileCoin(randomFn) {
+        const level = this.currentLevel;
+        const rows = level.grid.rows;
+        const cols = level.grid.cols;
+
+        const random = randomFn || Math.random;
+
+        // Find occupied cells
+        const blocked = new Set();
+        this.items.forEach(item => {
+          if (item.type === 'obstacle' || item.type === 'portal') {
+            blocked.add(`${item.row},${item.col}`);
+          }
+        });
+
+        // Block player positions
+        this.player.segments.forEach(seg => blocked.add(`${seg.row},${seg.col}`));
+
+        // Block existing coins
+        this.items.forEach(item => {
+          if (item.type === 'coin' || item.type === 'volatileCoin') {
+            blocked.add(`${item.row},${item.col}`);
+          }
+        });
+
+        let row, col;
+        let attempts = 0;
+        do {
+          row = Math.floor(random() * rows);
+          col = Math.floor(random() * cols);
+          attempts++;
+        } while (blocked.has(`${row},${col}`) && attempts < 100);
+
+        if (attempts < 100) {
+          this.items.push({
+            type: 'volatileCoin',
+            row,
+            col,
+            counter: this.config.gameplay.volatileInitialCounter
+          });
+        }
+      },
+
       regenerateDynamicLevel() {
         if (this.currentLevel.type === 'dynamic') {
           this.dynamicSeed = Date.now();
@@ -863,6 +922,15 @@
 
         this.actionCount++;
 
+        // Update volatile coins - decrement counters and remove expired ones
+        this.items = this.items.filter(item => {
+          if (item.type === 'volatileCoin') {
+            item.counter -= this.config.gameplay.volatileDecrementalStep;
+            return item.counter > 0;
+          }
+          return true;
+        });
+
         // Spawn new coin periodically (only in-game and non-demo)
         if (this.state === GameState.IN_GAME &&
             this.actionCount % this.config.gameplay.coinSpawnFrequency === 0) {
@@ -870,6 +938,12 @@
           if (coinCount < this.config.gameplay.maxCoins) {
             this.spawnCoin();
           }
+        }
+
+        // Spawn volatile coin periodically
+        if (this.state === GameState.IN_GAME &&
+            this.actionCount % this.config.gameplay.volatileSpawnFrequency === 0) {
+          this.spawnVolatileCoin();
         }
 
         this.render();
@@ -1060,6 +1134,9 @@
         const level = this.currentLevel;
 
         if (this.state === GameState.IN_GAME) {
+          const rigidIndicator = this.player.rigidMode
+            ? `<div class="hud-row"><span class="hud-label" style="color:#ff6b6b">RIGID MODE:</span><span class="hud-value" style="color:#ff6b6b">${this.player.rigidCounter}</span></div>`
+            : '';
           hudTop.innerHTML = `
             <div class="hud-row">
               <span class="hud-label">Score:</span>
@@ -1069,6 +1146,7 @@
               <span class="hud-label">Time:</span>
               <span class="hud-value">${this.timer}s</span>
             </div>
+            ${rigidIndicator}
           `;
         } else {
           const isDemo = level.type === 'demo';
@@ -1112,13 +1190,14 @@
 
         // Check for player segments
         const headIndex = this.player.segments.findIndex(seg => seg.row === row && seg.col === col);
+        const rigidClass = this.player.rigidMode ? ' rigid' : '';
         if (headIndex === 0) {
-          content += `<span class="cell-content player">\u25a2</span>`;
+          content += `<span class="cell-content player${rigidClass}">\u25a2</span>`;
         } else if (headIndex > 0) {
           if (headIndex === this.player.segments.length - 1 && this.player.segments.length > 1) {
-            content += `<span class="cell-content player-tail">\u25a2</span>`;
+            content += `<span class="cell-content player-tail${rigidClass}">\u25a2</span>`;
           } else {
-            content += `<span class="cell-content player-body">\u25a2</span>`;
+            content += `<span class="cell-content player-body${rigidClass}">\u25a2</span>`;
           }
         }
 
