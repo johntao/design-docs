@@ -151,7 +151,17 @@
 
     .detached-body {
       color: #ff9f43;
-      opacity: 0.7;
+      opacity: 0.5;
+    }
+
+    .detached-head {
+      color: #ff9f43;
+      opacity: 0.8;
+    }
+
+    .detached-tail {
+      color: #ff9f43;
+      opacity: 0.8;
     }
 
     /* Rigid mode styles */
@@ -863,6 +873,27 @@
           return; // Stay at boundary
         }
 
+        // Physics rule: cannot move toward own body parts (when length > 1)
+        if (this.player.segments.length > 1 && !this.player.rigidMode) {
+          const hitsOwnBody = this.player.segments.slice(1).some(
+            seg => seg.row === newRow && seg.col === newCol
+          );
+          if (hitsOwnBody) {
+            return; // Cannot move into own body
+          }
+        }
+
+        // Physics rule: can only attach to head or tail of detached parts
+        // Middle parts are treated as obstacles
+        if (!this.player.rigidMode) {
+          for (const detached of this.player.detachedSegments) {
+            const hitIndex = detached.findIndex(seg => seg.row === newRow && seg.col === newCol);
+            if (hitIndex !== -1 && hitIndex !== 0 && hitIndex !== detached.length - 1) {
+              return; // Cannot move into middle of detached body
+            }
+          }
+        }
+
         // Check for obstacle collision
         const obstacle = this.items.find(item =>
           item.type === 'obstacle' && item.row === newRow && item.col === newCol
@@ -1171,11 +1202,16 @@
       handleAttach(detachedIndex, hitIndex) {
         const detached = this.player.detachedSegments[detachedIndex];
 
-        // Get the tail of the detached segment
-        const tail = detached[detached.length - 1];
+        // Determine swap position based on which end was hit
+        // hitIndex === 0: attaching to HEAD of detached → swap with TAIL
+        // hitIndex === length-1: attaching to TAIL of detached → swap with HEAD
+        const isHitOnHead = hitIndex === 0;
+        const swapTarget = isHitOnHead
+          ? detached[detached.length - 1]  // Swap with tail
+          : detached[0];                    // Swap with head
 
-        // Swap: head goes to tail position
-        this.player.segments[0] = { ...tail };
+        // Swap: current head goes to the opposite end of detached
+        this.player.segments[0] = { ...swapTarget };
 
         // Reattach the segments
         this.player.segments = [...this.player.segments, ...detached];
@@ -1317,7 +1353,7 @@
           content += `<span class="cell-content player${rigidClass}">\u25a2</span>`;
         } else if (headIndex > 0) {
           if (headIndex === this.player.segments.length - 1 && this.player.segments.length > 1) {
-            content += `<span class="cell-content player-tail${rigidClass}">\u25a2</span>`;
+            content += `<span class="cell-content player-tail${rigidClass}">\u2a2f</span>`;
           } else {
             content += `<span class="cell-content player-body${rigidClass}">\u25a2</span>`;
           }
@@ -1327,7 +1363,14 @@
         for (const detached of this.player.detachedSegments) {
           const detachedIndex = detached.findIndex(seg => seg.row === row && seg.col === col);
           if (detachedIndex !== -1) {
-            content += `<span class="cell-content detached-body">\u25a2</span>`;
+            // Render head and tail of detached parts differently
+            if (detachedIndex === 0) {
+              content += `<span class="cell-content detached-head">\u25a2</span>`;
+            } else if (detachedIndex === detached.length - 1) {
+              content += `<span class="cell-content detached-tail">\u2a2f</span>`;
+            } else {
+              content += `<span class="cell-content detached-body">\u25a2</span>`;
+            }
           }
         }
 
