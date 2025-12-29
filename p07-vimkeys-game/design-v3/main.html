@@ -516,7 +516,8 @@
         segments: [], // Array of {row, col} - head is [0], tail is last
         detachedSegments: [], // Array of arrays of {row, col}
         rigidMode: false,
-        rigidCounter: 0
+        rigidCounter: 0,
+        cacheTail: null,
       },
 
       // Game data
@@ -1035,7 +1036,7 @@
           } else {
             // Normal move
             this.player.segments.unshift(newHead);
-            this.player.segments.pop();
+            this.player.cacheTail = this.player.segments.pop();
 
             // Handle collision at new position
             this.handleCollision(newRow, newCol, isCollidable);
@@ -1133,8 +1134,9 @@
 
       growPlayer() {
         // Add segment at tail position
-        const tail = this.player.segments[this.player.segments.length - 1];
+        const tail = this.player.cacheTail || this.player.segments[this.player.segments.length - 1];
         this.player.segments.push({ ...tail });
+        this.player.cacheTail = null;
       },
 
       handlePortal(portal) {
