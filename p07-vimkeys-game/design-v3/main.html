@@ -1261,6 +1261,8 @@
             <div class="hud-row">
               <span class="hud-label">Score:</span>
               <span class="hud-value">${this.score}</span>
+              <span class="hud-label">Length:</span>
+              <span class="hud-value">${this.player.segments.length}</span>
             </div>
             <div class="hud-row">
               <span class="hud-label">Time:</span>
@@ -1270,13 +1272,11 @@
           `;
         } else {
           const isDemo = level.type === 'demo';
+          const demoStats = isDemo
+            ? `<div class="hud-row"><span class="hud-label">Length:</span><span class="hud-value">${this.player.segments.length}</span></div>`
+            : `<div class="hud-row"><span class="hud-label">Previous:</span><span class="hud-value">${this.previousScore}</span><span class="hud-label">High:</span><span class="hud-value">${this.highScore}</span></div>`;
           hudTop.innerHTML = `
-            <div class="hud-row">
-              <span class="hud-label">Previous:</span>
-              <span class="hud-value">${this.previousScore}</span>
-              <span class="hud-label">High:</span>
-              <span class="hud-value">${this.highScore}</span>
-            </div>
+            ${demoStats}
             <div id="level-display">
               <span style="color:#888">[</span> ${level.name} <span style="color:#888">]</span>
             </div>
