@@ -2,7 +2,7 @@
 !/.gitignore
 !/p07-vimkeys-game/
 /p07-vimkeys-game/material/
-_*
+[._]*
 *.ods
 # /p07-vimkeys-game/*
 # !/p07-vimkeys-game/design.md
