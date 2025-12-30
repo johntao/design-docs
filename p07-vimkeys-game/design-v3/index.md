@@ -50,3 +50,25 @@ I am trying to debug a weird problem, please add a debugging feature that:
 - make a flag to enable this debugging feature
 
 ## Revision 3
+
+we need to rework the game mechanism. here's the new spec:
+- in the original design, picking up a volatile coin would enter rigid mode; the player then moves its whole body at once instead of dragging its body by head
+  - new design:
+  - picking up a volatile coin, enter "overcharge" mode, the player moves as usual
+  - in overcharge mode, remove the bonus capped for picking up a coin
+  - in overcharge mode, the player doesn't reattach to detached body parts, instead the body part vanish and give countdown timer +N seconds
+    - N equals to the length of the detached part
+- in the original design, the player should split into multiple segments hitting onto portals and obstacles in rigid mode
+  - new design: since there's no more rigid body move, thus, remove this split logic from the game
+- in the original design, the player detach its head and body for entering a portal
+  - new design: allow the player to drag its body through the portal
+- make the `player.rigidCounter` a standalone config
+  - rename it to overchargeCounter
+- in the original design, the minimal amount of each sigil-letter is set to 4
+  - a config `sigil_density` to decide the density of sigil letters in a dynamic level
+  - new design:
+  - fix the render amount to 2
+  - replace the density logic by a fix value (defaults to 2)
+- in the original design, attach to a detached body part also grant one score; detach head in the other hand give nothing
+  - new design, instead of getting one score, make the countdown timer +1 second
+  - detach head and body also make the countdown timer +1 second

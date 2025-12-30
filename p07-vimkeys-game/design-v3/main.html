@@ -169,14 +169,14 @@
       font-size: 20px;
     }
 
-    /* Rigid mode styles */
-    .player.rigid {
+    /* Overcharge mode styles */
+    .player.overcharge {
       color: #ff6b6b;
       animation: pulse 0.5s infinite alternate;
     }
 
-    .player-body.rigid,
-    .player-tail.rigid {
+    .player-body.overcharge,
+    .player-tail.overcharge {
       color: #ff6b6b;
     }
 
@@ -489,10 +489,10 @@
         volatileInitialCounter: 5,
         volatileDecrementalStep: 1,
         volatileSpawnFrequency: 8,
+        overchargeCounter: 5,
         maxBonusScore: 5,
-        reattachScore: 1,
         obstacleDensity: 10,
-        sigilDensity: 10,
+        sigilDensity: 2,
         portalDensity: 10
       },
       keybindings: {
@@ -533,8 +533,8 @@
       player: {
         segments: [], // Array of {row, col} - head is [0], tail is last
         detachedSegments: [], // Array of arrays of {row, col}
-        rigidMode: false,
-        rigidCounter: 0,
+        overchargeMode: false,
+        overchargeCounter: 0,
         cacheTail: null,
       },
 
@@ -614,8 +614,8 @@
         // Reset player
         this.player.segments = [{ row: level.playerSpawn.row, col: level.playerSpawn.col }];
         this.player.detachedSegments = [];
-        this.player.rigidMode = false;
-        this.player.rigidCounter = 0;
+        this.player.overchargeMode = false;
+        this.player.overchargeCounter = 0;
 
         // Reset game data
         this.score = 0;
@@ -685,13 +685,12 @@
           }
         }
 
-        // Generate sigils
+        // Generate sigils (fixed amount per letter)
         const sigilLetters = this.config.gameplay.sigilLetters;
-        const sigilCount = Math.floor(totalCells * this.config.gameplay.sigilDensity / 100);
-        const sigisPerLetter = Math.max(4, Math.ceil(sigilCount / sigilLetters.length));
+        const sigilsPerLetter = this.config.gameplay.sigilDensity;
 
         for (let i = 0; i < sigilLetters.length; i++) {
-          for (let j = 0; j < sigisPerLetter; j++) {
+          for (let j = 0; j < sigilsPerLetter; j++) {
             let row, col;
             let attempts = 0;
             do {
@@ -882,7 +881,7 @@
         }
 
         // Physics rule: cannot move toward own body parts (when length > 1)
-        if (this.player.segments.length > 1 && !this.player.rigidMode) {
+        if (this.player.segments.length > 1 && !this.player.overchargeMode) {
           const hitsOwnBody = this.player.segments.slice(1).some(
             seg => seg.row === newRow && seg.col === newCol
           );
@@ -893,7 +892,7 @@
 
         // Physics rule: can only attach to head or tail of detached parts
         // Middle parts are treated as obstacles
-        if (!this.player.rigidMode) {
+        if (!this.player.overchargeMode) {
           for (const detached of this.player.detachedSegments) {
             const hitIndex = detached.findIndex(seg => seg.row === newRow && seg.col === newCol);
             if (hitIndex !== -1 && hitIndex !== 0 && hitIndex !== detached.length - 1) {
@@ -907,66 +906,11 @@
           item.type === 'obstacle' && item.row === newRow && item.col === newCol
         );
         if (obstacle) {
-          if (this.player.rigidMode) {
-            // Rigid mode: can move into obstacles, causes split
-            this.executeRigidMove(newRow, newCol);
-          }
-          return; // Normal mode: blocked by obstacle
+          return; // Blocked by obstacle
         }
 
         // Execute move
         this.executeMove(newRow, newCol, true);
-      },
-
-      executeRigidMove(newRow, newCol) {
-        // Move entire body
-        const deltaRow = newRow - this.player.segments[0].row;
-        const deltaCol = newCol - this.player.segments[0].col;
-
-        const newSegments = this.player.segments.map(seg => ({
-          row: seg.row + deltaRow,
-          col: seg.col + deltaCol
-        }));
-
-        // Find segments that hit obstacles or go out of bounds
-        const level = this.currentLevel;
-        const validSegments = [];
-        const hitSegments = [];
-
-        newSegments.forEach((seg, i) => {
-          const hitsObstacle = this.items.some(item =>
-            item.type === 'obstacle' && item.row === seg.row && item.col === seg.col
-          );
-          const outOfBounds = seg.row < 0 || seg.row >= level.grid.rows ||
-                              seg.col < 0 || seg.col >= level.grid.cols;
-
-          if (hitsObstacle || outOfBounds) {
-            hitSegments.push(i);
-          } else {
-            validSegments.push(seg);
-          }
-        });
-
-        // Handle split - segments hitting obstacles are removed
-        if (validSegments.length === 0) {
-          // All segments lost - respawn at random position
-          const spawn = this.findValidSpawn();
-          this.player.segments = [spawn];
-          this.player.rigidMode = false;
-        } else {
-          this.player.segments = validSegments;
-          // Handle collisions for valid segments
-          validSegments.forEach(seg => {
-            this.handleCollision(seg.row, seg.col, true);
-          });
-        }
-
-        // Exit rigid mode after a split
-        this.player.rigidMode = false;
-
-        this.actionCount++;
-        this.updateVolatileCoins();
-        this.render();
       },
 
       findValidSpawn() {
@@ -1002,83 +946,32 @@
       },
 
       executeMove(newRow, newCol, isCollidable) {
-        const oldSegments = [...this.player.segments];
+        // Snake movement (same in normal and overcharge mode)
+        // Move head
+        const newHead = { row: newRow, col: newCol };
 
-        if (this.player.rigidMode) {
-          // Rigid mode: move entire body
-          const deltaRow = newRow - this.player.segments[0].row;
-          const deltaCol = newCol - this.player.segments[0].col;
+        // Check for self-collision (attached body)
+        const selfHit = this.player.segments.slice(1).findIndex(
+          seg => seg.row === newRow && seg.col === newCol
+        );
 
-          const newSegments = this.player.segments.map(seg => ({
-            row: seg.row + deltaRow,
-            col: seg.col + deltaCol
-          }));
-
-          // Check for portal collisions in rigid mode - causes split
-          const hitsPortal = newSegments.some((seg, i) =>
-            this.items.some(item =>
-              item.type === 'portal' && item.row === seg.row && item.col === seg.col
-            )
-          );
-
-          if (hitsPortal) {
-            // Handle portal split similar to obstacle split
-            const level = this.currentLevel;
-            const validSegments = [];
-
-            newSegments.forEach((seg, i) => {
-              const hitsPortalCell = this.items.some(item =>
-                item.type === 'portal' && item.row === seg.row && item.col === seg.col
-              );
-              const outOfBounds = seg.row < 0 || seg.row >= level.grid.rows ||
-                                  seg.col < 0 || seg.col >= level.grid.cols;
-
-              if (!hitsPortalCell && !outOfBounds) {
-                validSegments.push(seg);
-              }
-            });
-
-            if (validSegments.length === 0) {
-              const spawn = this.findValidSpawn();
-              this.player.segments = [spawn];
-            } else {
-              this.player.segments = validSegments;
-            }
-            this.player.rigidMode = false;
-          } else {
-            this.player.segments = newSegments;
-
-            // Check collisions for all segments
-            this.player.segments.forEach((seg, i) => {
-              this.handleCollision(seg.row, seg.col, isCollidable);
-            });
-
-            // Decrement rigid counter
-            this.player.rigidCounter--;
-            if (this.player.rigidCounter <= 0) {
-              this.player.rigidMode = false;
-            }
-          }
+        if (selfHit !== -1) {
+          // Attack: swap head and tail, reduce length
+          this.handleAttack(selfHit + 1);
         } else {
-          // Normal mode: snake movement
-          // Move head
-          const newHead = { row: newRow, col: newCol };
+          // Normal move
+          this.player.segments.unshift(newHead);
+          this.player.cacheTail = this.player.segments.pop();
 
-          // Check for self-collision (attached body)
-          const selfHit = this.player.segments.slice(1).findIndex(
-            seg => seg.row === newRow && seg.col === newCol
-          );
+          // Handle collision at new position
+          this.handleCollision(newRow, newCol, isCollidable);
+        }
 
-          if (selfHit !== -1) {
-            // Attack: swap head and tail, reduce length
-            this.handleAttack(selfHit + 1);
-          } else {
-            // Normal move
-            this.player.segments.unshift(newHead);
-            this.player.cacheTail = this.player.segments.pop();
-
-            // Handle collision at new position
-            this.handleCollision(newRow, newCol, isCollidable);
+        // Decrement overcharge counter if active
+        if (this.player.overchargeMode) {
+          this.player.overchargeCounter--;
+          if (this.player.overchargeCounter <= 0) {
+            this.player.overchargeMode = false;
           }
         }
 
@@ -1110,9 +1003,9 @@
           const hitIndex = detached.findIndex(seg => seg.row === row && seg.col === col);
 
           if (hitIndex !== -1) {
-            if (this.player.rigidMode) {
-              // In rigid mode, just get score for the detached part length
-              this.score += detached.length;
+            if (this.player.overchargeMode) {
+              // In overcharge mode, vanish detached parts and add time (+N seconds)
+              this.timer += detached.length;
               this.player.detachedSegments.splice(i, 1);
             } else {
               // Normal mode: reattach
@@ -1154,20 +1047,18 @@
         }
 
         // Calculate score booster based on body length
-        const bodyBonus = Math.min(
-          this.player.segments.length - 1,
-          this.config.gameplay.maxBonusScore
-        );
+        // In overcharge mode, no bonus cap
+        const bodyBonus = this.player.overchargeMode
+          ? this.player.segments.length - 1
+          : Math.min(this.player.segments.length - 1, this.config.gameplay.maxBonusScore);
 
         if (coin.type === 'volatileCoin') {
           this.score += 1 + (coin.counter || 0) + bodyBonus;
-          this.player.rigidMode = true;
-          this.player.rigidCounter = this.config.gameplay.volatileInitialCounter;
+          this.player.overchargeMode = true;
+          this.player.overchargeCounter = this.config.gameplay.overchargeCounter;
         } else {
           this.score += 1 + bodyBonus;
-          if (!this.player.rigidMode) {
-            this.growPlayer();
-          }
+          this.growPlayer();
         }
       },
 
@@ -1188,23 +1079,13 @@
 
         if (!pairedPortal) return;
 
-        if (this.player.rigidMode) {
-          // Rigid mode: split at portal
-          // For now, just teleport the whole body
-          const deltaRow = pairedPortal.row - this.player.segments[0].row;
-          const deltaCol = pairedPortal.col - this.player.segments[0].col;
-          this.player.segments = this.player.segments.map(seg => ({
-            row: seg.row + deltaRow,
-            col: seg.col + deltaCol
-          }));
-        } else {
-          // Normal mode: detach head, teleport to paired portal
-          if (this.player.segments.length > 1) {
-            // Leave body behind as detached
-            this.player.detachedSegments.push(this.player.segments.slice(1));
-          }
-          this.player.segments = [{ row: pairedPortal.row, col: pairedPortal.col }];
-        }
+        // Drag entire body through the portal
+        const deltaRow = pairedPortal.row - this.player.segments[0].row;
+        const deltaCol = pairedPortal.col - this.player.segments[0].col;
+        this.player.segments = this.player.segments.map(seg => ({
+          row: seg.row + deltaRow,
+          col: seg.col + deltaCol
+        }));
       },
 
       handleAttach(detachedIndex, hitIndex) {
@@ -1229,9 +1110,9 @@
         // Remove from detached list
         this.player.detachedSegments.splice(detachedIndex, 1);
 
-        // Score for reattaching
+        // Timer bonus for reattaching (+1 second)
         if (this.currentLevel.type !== 'demo') {
-          this.score += this.config.gameplay.reattachScore;
+          this.timer += 1;
         }
       },
 
@@ -1278,9 +1159,13 @@
 
         if (targetSigil) {
           // Sigil move is non-collidable, causes detachment
-          if (this.player.segments.length > 1 && !this.player.rigidMode) {
+          if (this.player.segments.length > 1 && !this.player.overchargeMode) {
             this.player.detachedSegments.push(this.player.segments.slice(1));
             this.player.segments = [{ row: targetSigil.row, col: targetSigil.col }];
+            // Timer bonus for detaching (+1 second)
+            if (this.currentLevel.type !== 'demo') {
+              this.timer += 1;
+            }
           } else {
             this.executeMove(targetSigil.row, targetSigil.col, false);
           }
@@ -1302,8 +1187,8 @@
         const level = this.currentLevel;
 
         if (this.state === GameState.IN_GAME) {
-          const rigidIndicator = this.player.rigidMode
-            ? `<div class="hud-row"><span class="hud-label" style="color:#ff6b6b">RIGID MODE:</span><span class="hud-value" style="color:#ff6b6b">${this.player.rigidCounter}</span></div>`
+          const overchargeIndicator = this.player.overchargeMode
+            ? `<div class="hud-row"><span class="hud-label" style="color:#ff6b6b">OVERCHARGE:</span><span class="hud-value" style="color:#ff6b6b">${this.player.overchargeCounter}</span></div>`
             : '';
           hudTop.innerHTML = `
             <div class="hud-row">
@@ -1316,7 +1201,7 @@
               <span class="hud-label">Time:</span>
               <span class="hud-value">${this.timer}s</span>
             </div>
-            ${rigidIndicator}
+            ${overchargeIndicator}
           `;
         } else {
           const isDemo = level.type === 'demo';
@@ -1358,17 +1243,17 @@
 
         // Check for player segments
         const headIndex = this.player.segments.findIndex(seg => seg.row === row && seg.col === col);
-        const rigidClass = this.player.rigidMode ? ' rigid' : '';
+        const overchargeClass = this.player.overchargeMode ? ' overcharge' : '';
         if (headIndex !== -1) {
           if (this.debugMode) {
             // Debug: show numeric index
-            content += `<span class="cell-content player${rigidClass}">${headIndex}</span>`;
+            content += `<span class="cell-content player${overchargeClass}">${headIndex}</span>`;
           } else if (headIndex === 0) {
-            content += `<span class="cell-content player${rigidClass}">\u25a2</span>`;
+            content += `<span class="cell-content player${overchargeClass}">\u25a2</span>`;
           } else if (headIndex === this.player.segments.length - 1 && this.player.segments.length > 1) {
-            content += `<span class="cell-content player-tail${rigidClass}">\u2a2f</span>`;
+            content += `<span class="cell-content player-tail${overchargeClass}">\u2a2f</span>`;
           } else {
-            content += `<span class="cell-content player-body${rigidClass}">\u25a2</span>`;
+            content += `<span class="cell-content player-body${overchargeClass}">\u25a2</span>`;
           }
         }
 
@@ -1457,8 +1342,8 @@
               <input type="number" class="config-input" id="cfg-obstacleDensity" value="${this.config.gameplay.obstacleDensity}" min="0" max="20">
             </div>
             <div class="config-row">
-              <span class="config-label">Sigil Density (%)</span>
-              <input type="number" class="config-input" id="cfg-sigilDensity" value="${this.config.gameplay.sigilDensity}" min="0" max="20">
+              <span class="config-label">Sigils Per Letter</span>
+              <input type="number" class="config-input" id="cfg-sigilDensity" value="${this.config.gameplay.sigilDensity}" min="1" max="10">
             </div>
             <div class="config-row">
               <span class="config-label">Portal Density (%)</span>
@@ -1492,6 +1377,10 @@
               <span class="config-label">Spawn Frequency (actions)</span>
               <input type="number" class="config-input" id="cfg-volatileSpawnFrequency" value="${this.config.gameplay.volatileSpawnFrequency}">
             </div>
+            <div class="config-row">
+              <span class="config-label">Overcharge Duration (moves)</span>
+              <input type="number" class="config-input" id="cfg-overchargeCounter" value="${this.config.gameplay.overchargeCounter}">
+            </div>
           </div>
 
           <div class="config-section">
@@ -1499,10 +1388,6 @@
             <div class="config-row">
               <span class="config-label">Max Bonus Score</span>
               <input type="number" class="config-input" id="cfg-maxBonusScore" value="${this.config.gameplay.maxBonusScore}">
-            </div>
-            <div class="config-row">
-              <span class="config-label">Reattach Score</span>
-              <input type="number" class="config-input" id="cfg-reattachScore" value="${this.config.gameplay.reattachScore}">
             </div>
           </div>
         `;
@@ -1568,15 +1453,15 @@
         this.config.gameplay.lineOfSight = parseInt(document.getElementById('cfg-lineOfSight').value) || 0;
         this.config.gameplay.sigilLetters = document.getElementById('cfg-sigilLetters').value || 'asdf';
         this.config.gameplay.obstacleDensity = parseInt(document.getElementById('cfg-obstacleDensity').value) || 10;
-        this.config.gameplay.sigilDensity = parseInt(document.getElementById('cfg-sigilDensity').value) || 10;
+        this.config.gameplay.sigilDensity = parseInt(document.getElementById('cfg-sigilDensity').value) || 2;
         this.config.gameplay.portalDensity = parseInt(document.getElementById('cfg-portalDensity').value) || 10;
         this.config.gameplay.maxCoins = parseInt(document.getElementById('cfg-maxCoins').value) || 10;
         this.config.gameplay.coinSpawnFrequency = parseInt(document.getElementById('cfg-coinSpawnFrequency').value) || 4;
         this.config.gameplay.volatileInitialCounter = parseInt(document.getElementById('cfg-volatileInitialCounter').value) || 5;
         this.config.gameplay.volatileDecrementalStep = parseInt(document.getElementById('cfg-volatileDecrementalStep').value) || 1;
         this.config.gameplay.volatileSpawnFrequency = parseInt(document.getElementById('cfg-volatileSpawnFrequency').value) || 8;
+        this.config.gameplay.overchargeCounter = parseInt(document.getElementById('cfg-overchargeCounter').value) || 5;
         this.config.gameplay.maxBonusScore = parseInt(document.getElementById('cfg-maxBonusScore').value) || 5;
-        this.config.gameplay.reattachScore = parseInt(document.getElementById('cfg-reattachScore').value) || 1;
 
         // Read keybindings
         const keybindingKeys = Object.keys(DEFAULT_CONFIG.keybindings);
