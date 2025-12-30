@@ -42,3 +42,11 @@ Let's address a few issues:
   - after the change, the swap should identify which part the head is attaching to
     - if attaching to the head of the detached part, swap the current head with the tail of the detached part
     - if attaching to the tail of the detached part, swap the current head with the head of the detached part
+
+## Revision 2
+
+I am trying to debug a weird problem, please add a debugging feature that:
+- render head and body parts by numeric indices instead of specific printable characters
+- make a flag to enable this debugging feature
+
+## Revision 3

@@ -164,6 +164,11 @@
       opacity: 0.8;
     }
 
+    /* Debug mode - smaller font for indices */
+    .cell-content {
+      font-size: 20px;
+    }
+
     /* Rigid mode styles */
     .player.rigid {
       color: #ff6b6b;
@@ -520,6 +525,9 @@
       currentLevel: null,
       config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)),
       currentSlot: 1,
+
+      // Debug mode: render segments with numeric indices
+      debugMode: true,
 
       // Player state
       player: {
@@ -1206,16 +1214,18 @@
         // hitIndex === 0: attaching to HEAD of detached → swap with TAIL
         // hitIndex === length-1: attaching to TAIL of detached → swap with HEAD
         const isHitOnHead = hitIndex === 0;
-        const swapTarget = isHitOnHead
-          ? detached[detached.length - 1]  // Swap with tail
-          : detached[0];                    // Swap with head
+        // const swapTarget = isHitOnHead
+        //   ? detached.pop()    // Swap with tail
+        //   : detached.shift(); // Swap with head
+        if (isHitOnHead) detached.reverse();
 
         // Swap: current head goes to the opposite end of detached
-        this.player.segments[0] = { ...swapTarget };
+        this.player.segments.shift();
+        this.player.segments.push(this.player.cacheTail);
+        this.player.cacheTail = null;
 
         // Reattach the segments
-        this.player.segments = [...this.player.segments, ...detached];
-
+        this.player.segments = [...detached, ...this.player.segments];
         // Remove from detached list
         this.player.detachedSegments.splice(detachedIndex, 1);
 
@@ -1349,10 +1359,13 @@
         // Check for player segments
         const headIndex = this.player.segments.findIndex(seg => seg.row === row && seg.col === col);
         const rigidClass = this.player.rigidMode ? ' rigid' : '';
-        if (headIndex === 0) {
-          content += `<span class="cell-content player${rigidClass}">\u25a2</span>`;
-        } else if (headIndex > 0) {
-          if (headIndex === this.player.segments.length - 1 && this.player.segments.length > 1) {
+        if (headIndex !== -1) {
+          if (this.debugMode) {
+            // Debug: show numeric index
+            content += `<span class="cell-content player${rigidClass}">${headIndex}</span>`;
+          } else if (headIndex === 0) {
+            content += `<span class="cell-content player${rigidClass}">\u25a2</span>`;
+          } else if (headIndex === this.player.segments.length - 1 && this.player.segments.length > 1) {
             content += `<span class="cell-content player-tail${rigidClass}">\u2a2f</span>`;
           } else {
             content += `<span class="cell-content player-body${rigidClass}">\u25a2</span>`;
@@ -1360,11 +1373,15 @@
         }
 
         // Check for detached segments
-        for (const detached of this.player.detachedSegments) {
+        for (let di = 0; di < this.player.detachedSegments.length; di++) {
+          const detached = this.player.detachedSegments[di];
           const detachedIndex = detached.findIndex(seg => seg.row === row && seg.col === col);
           if (detachedIndex !== -1) {
-            // Render head and tail of detached parts differently
-            if (detachedIndex === 0) {
+            if (this.debugMode) {
+              // Debug: show detached group and index (e.g., "d0:2" = detached group 0, index 2)
+              // d${di}:
+              content += `<span class="cell-content detached-head">${detachedIndex}</span>`;
+            } else if (detachedIndex === 0) {
               content += `<span class="cell-content detached-head">\u25a2</span>`;
             } else if (detachedIndex === detached.length - 1) {
               content += `<span class="cell-content detached-tail">\u2a2f</span>`;
@@ -1662,6 +1679,12 @@
           case 'Escape':
             e.preventDefault();
             this.openSettings();
+            return;
+          case '`':
+            e.preventDefault();
+            this.debugMode = !this.debugMode;
+            console.log('Debug mode:', this.debugMode ? 'ON' : 'OFF');
+            this.render();
             return;
         }
 
