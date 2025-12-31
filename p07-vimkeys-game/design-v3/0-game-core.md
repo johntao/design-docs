@@ -92,7 +92,7 @@ Extra notes:
   - all the decremental counter
   - the position of the player
 
-### 340:Reserved Keybindings
+### 310:Reserved Keybindings
 
 These keybindings are always active and cannot be remapped:
 

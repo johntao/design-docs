@@ -63,7 +63,7 @@ extra notes:
   - spawning at least one coin per grid at any given time
   - per N player's actions, spawning a new one (N defaults 4)
 
-## 700:collectable_volatile coin
+## 600:collectable_volatile coin
 
 a volatile coin also display a decremental counter on the coin
 picking up a volatile coin give player's (one + counter) score, and make the player enter rigid mode
@@ -72,22 +72,22 @@ extra notes:
 - a decremental counter is rendered on top of the coin
 - the coin vanish once the counter runs below 1
 
-## 800:Player Initialization
+## 700:Player Initialization
 
 When a game starts, the player must be initialized with the following properties:
 
-### 810:Starting Position
+### 710:Starting Position
 
 - for random level, the player spawn at a random unoccupied cell
 - for predefined level, the player spawn at a predefined position specified in the level data
 
-### 830:Spawn Constraints
+### 720:Spawn Constraints
 
 - The spawn cell must not contain an obstacle
 - The spawn cell must not contain a portal (to avoid immediate teleportation)
 - For random levels, ensure at least one collectable is reachable from spawn position
 
-## 900:Obstacle
+## 800:Obstacle
 
 The player cannot step onto a cell that contains an obstacle.
 
@@ -95,7 +95,7 @@ The game engine should not render an obstacle and any other item in the same cel
 - If a cell contains an obstacle, it cannot contain collectables, sigils, portals, or any other items
 - This ensures clear collision behavior and prevents ambiguous game states
 
-## a00:sigil_letter
+## 900:sigil_letter
 
 Sigils are printable characters that players may use special actions to interact with
 
@@ -106,7 +106,7 @@ Extra info:
   - e.g. if a level rendered (5,4,4) sigils and the sigil sequence is defined as `asdf`
   - then "a" appears 5 times, "s" appear 4 times, "d" appear 4 times, "f" appear 0 time
 
-## c00:portals
+## a00:portals
 
 A pair of portals that teleports the player on collision.
 
@@ -117,7 +117,7 @@ Extra notes:
   - e.g. A <=> A' colored red; B <=> B' colored blue;
 - in snake mode, hitting portals by the body part would remove the body part directly instead of teleporting
 
-## d00:Fog of War
+## b00:Fog of War
 
 The current gameplay displays the whole view entirely.
 

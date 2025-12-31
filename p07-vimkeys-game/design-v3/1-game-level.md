@@ -82,13 +82,13 @@ Players can cycle through levels using `[` and `]`:
 
 Refer to file [visual foreground](./6-visual-foreground.md) for more items information
 
-### Dynamic Generated Level
+### 410:Dynamic Generated Level
 
 The only way to regenerate the level is to hit `<backspace>`
 Restarting the game should not regenerate the level
 i.e. player can repeat the level as many times as they want
 
-### 410:Demo Level Details
+### 420:Demo Level Details
 
 The demo level is a special sandbox mode:
 - **Cannot be started** the level is always in a playable state without entering formal In-Game mode

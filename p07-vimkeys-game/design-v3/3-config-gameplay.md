@@ -1,6 +1,6 @@
 # config-gameplay
 
-## endgame condition: countdown timer
+## 100:endgame condition: countdown timer
 
 Start a countdown timer once the game is started.
 End the game once the timer count to zero.
@@ -15,7 +15,7 @@ Additional information:
 configurable options:
 - countdown timer defaults to 30 seconds
 
-## maximum coin amount
+## 200:maximum coin amount
 
 maximum displaying coins is capped by 10
 
@@ -31,13 +31,13 @@ Details:
 configurable options:
 - maximum displaying coins (defaults to 10)
 
-### design principle
+### 210:design principle
 
 if the value is TOO HIGH, the player would feel exhausted for failing to clear the screen
 
 if the value is TOO LOW, then, some of the advanced rewarding mechanism would be TOO HARD to trigger
 
-## coins spawning frequency
+## 300:coins spawning frequency
 
 two major rules for the frequency of spawning logic:
 1. ensure there's always at least one coin on the map
@@ -50,7 +50,7 @@ two major rules for the frequency of spawning logic:
 configurable options:
 - spawning new coins per X player actions (defaults to 4)
 
-## line of sight
+## 400:line of sight
 
 This feature is also stands as fog of war where the player now have limited vision for the surroundings
 
@@ -65,7 +65,7 @@ configurable options:
   - set to zero would disable this feature
   - defaults to zero
 
-## config slots
+## 500:config slots
 
 The game provides settings for users to configure their keybindings or gameplay.
 
@@ -77,7 +77,7 @@ Extra rules:
 configurable options:
 - none
 
-## collectable_volatile coin
+## 600:collectable_volatile coin
 
 Randomly drop a time-sensitive (volatile) coin per 8 player's actions
 
@@ -98,7 +98,7 @@ configurable options:
 - decremental step (defaults to 1)
 - respawn frequency per N player's action (defaults to 8)
 
-## score booster
+## 700:score booster
 
 get bonus score equals to the current body length
 - e.g. body length = 2, picking up a coin would give 1 + (2-1) score
@@ -116,14 +116,14 @@ configurable options:
   - set to zero to disable the maximum limit
 - score given when reattach to a body part (defaults to 1)
 
-## random level generation 
+## 800:random level generation
 
 configurable options:
 - obstacle_density (def: 10)
 - sigil_density (def: 10)
 - portal_density (def: 10)
 
-## sigil move
+## 900:sigil move
 
 configurable options:
 - sigil sequence: `asdf`

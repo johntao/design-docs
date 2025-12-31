@@ -1,17 +1,17 @@
 # action-move
 
-## Collision
+## 100:Collision
 
 There are a few meanings of "collision" in this game.
 The basic concept is that the player moves from cell A to cell B; if cell B contains another item, then the player "collides" with the item.
 Let's expand this statement further
 
-### multiple collision
+### 110:multiple collision
 
 If the distance between A and B is greater than 1, this indicates the move traverses multiple cells at a time
 This indicates the collision might occur multiple times during the process
 
-### collidable move
+### 120:collidable move
 
 If the move action is non-collidable (ignore collision in-between the destination and the origin), then only the destination cell is considered collidable
 
@@ -24,14 +24,14 @@ here's the table to illustrate if an action is teleport
 | portal             | passive |          | x          |
 | swap head and tail | passive |          | x          |
 
-### non-collidable item
+### 130:non-collidable item
 
 It is possible to set an item as non-collidable, which means it doesn't trigger a collision event even if the collision occurs
 - Collectables and obstacles are collidable
 - Sigils are non-collidable
 - If multiple collidable items occupy the same cell, all collision events for that cell are triggered
 
-### collision as event
+### 140:collision as event
 
 Collisions are basically events defined by the engine
 - When a player collides with a coin: the player picks up the coin
@@ -39,24 +39,24 @@ Collisions are basically events defined by the engine
 - When a player collides with an obstacle: push back the player in the opposite direction from where they came
   - i.e., the player cannot step onto an obstacle
 
-### collide on boundary
+### 150:collide on boundary
 
 If cell B is out of bounds of the current grid, it should also trigger a boundary-collision event
 The default behavior of the event is to move the player to a viable cell which is closest to the boundary
 
-### Case Study
+### 160:Case Study
 
 The player moves from cell A to cell C; cell B sits between A and C.
 Cell B contains an obstacle.
 The move type is teleport.
 Expectation: The player should teleport to cell C without being blocked by the obstacle in cell B.
 
-## Basic move
+## 200:Basic move
 
 The basic move is `hjkl`, which moves the player one cell at a time inside the grid.
 `hjkl` borrows the conventional directions from VIM: left, down, up, right.
 
-### Case Study
+### 210:Case Study
 
 Define what happens when the player hits the boundary of a grid:
 - Stay in the previous cell without moving
@@ -65,7 +65,7 @@ Define what happens when the player hits the boundary of a grid:
   - Move the player to the right boundary of the left grid
   - e.g., new-row-index == old-row-index; new-col-index == new-cols.at(-1)
 
-## Grid move
+## 300:Grid move
 
 A view may contain multiple grids.
 A grid move means the player teleports from grid A to grid B.
@@ -81,15 +81,15 @@ extra notes:
 - in normal mode (head-driven), the player's head is detached for using a grid move
   - in rigid mode (body-driven), the player move its whole body part at once
 
-## Sigil
+## 400:Sigil
 
 A sigil is an item that is not collidable but is interactable with certain move actions.
 
-### Sigil Properties Reference
+### 410:Sigil Properties Reference
 
 All foreground item (sigil, obstacle, portal, coins) properties are defined in [Visual Foreground](./6-visual-foreground.md)
 
-### Letters
+### 420:Letters
 
 Render a sigil-letters in the cell.
 Sigil letters is a small set of alphabet which is configurable (defaults to `asdf`)
@@ -121,7 +121,7 @@ Extra notes:
 - in normal mode (head-driven), the player's head is detached for using a sigil move
   - in rigid mode (body-driven), the player move its whole body part at once
 
-## snake feature set
+## 500:snake feature set
 
 picking up a coin let the player increase the body length by one just like the classic snake game
 
@@ -154,7 +154,7 @@ default attack event:
 - swap
 - body length reduce by one
 
-### swap head and tail
+### 510:swap head and tail
 
 both attach event and attack event cause the player to swap its head and tail position
 
@@ -162,7 +162,7 @@ if attach to a detached body part, then the current head position is swap with t
 
 if attack to a attached body part, then, the current head position is swap with the current tail position, then, the body length is reduced by one
 
-### rigid mode
+### 520:rigid mode
 
 this is a special mode when the player pick up a special collectable (i.e. volatile coin)
 normally, the body part is dragged by the head part, where only the head part react to player's action
@@ -185,7 +185,7 @@ extra notes for rigid mode:
     - restore the head to the randomly end of the segment
     - if all body parts vanished after the split, then, respawn to a random position before the split
 
-### detach
+### 530:detach
 
 in normal mode, the player is detached if the head hit onto portals or activating non-collidable moves (e.g. grid, sigil move)
 
@@ -196,7 +196,7 @@ extra note:
 
 in rigid mode, the player is detached by colliding onto portals or obstacles, this behavior is known as split where the body part splitting into multiple parts and the part hitting onto the items vanished
 
-### attach
+### 540:attach
 
 in normal mode, the player is attached if the head hitting onto detached body parts
 
@@ -206,7 +206,7 @@ extra note:
 
 in rigid mode, there's no attachment for hitting detached body parts, it simply give extra scores
 
-### attack
+### 550:attack
 
 in normal mode, the player is attacked if the head hitting onto attached body parts
 
@@ -216,11 +216,11 @@ extra note:
 
 in rigid mode, it is impossible to hit onto attached body parts
 
-### increase body length
+### 560:increase body length
 
 in normal mode, the player's body length is increased by one for picking up a coin
 
-### decrease body length
+### 570:decrease body length
 
 in normal mode, the player's body length is decreased by one for attacking its body
 
