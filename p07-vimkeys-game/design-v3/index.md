@@ -152,3 +152,6 @@ fix these two bugs
 
 ## revision 7
 
+I found out the color of random generated portals are very hard to distinguish.
+please use only the following color code for portals: `['#ff6b6b', '#00ff88', '#f7d794', '#a29bfe', '#636e72', '#d2691e']`
+also, change the random generation factor "portal density"; it should be a fixed number between 1 and 6 (capped by 6 based on the provided color code)

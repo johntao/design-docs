@@ -435,12 +435,13 @@
       background: #3dbdb5;
     }
 
-    /* Portal colors */
+    /* Portal colors - 6 distinct colors */
     .portal-1 { color: #ff6b6b; }
-    .portal-2 { color: #4ecdc4; }
+    .portal-2 { color: #00ff88; }
     .portal-3 { color: #f7d794; }
     .portal-4 { color: #a29bfe; }
-    .portal-5 { color: #fd79a8; }
+    .portal-5 { color: #636e72; }
+    .portal-6 { color: #d2691e; }
   </style>
 </head>
 <body>
@@ -523,7 +524,7 @@
         maxBonusScore: 5,
         obstacleDensity: 10,
         sigilDensity: 2,
-        portalDensity: 10
+        minPortalPairs: 2
       },
       keybindings: {
         moveLeft: 'h',
@@ -557,7 +558,7 @@
       currentSlot: 1,
 
       // Debug mode: render segments with numeric indices
-      debugMode: true,
+      debugMode: false,
 
       // Player state
       player: {
@@ -713,18 +714,22 @@
           this.items.push({ type: 'obstacle', row, col });
         }
 
-        // Generate portals (in pairs)
-        const portalCount = Math.floor(totalCells * this.config.gameplay.portalDensity / 100 / 2) * 2;
-        for (let i = 0; i < portalCount; i += 2) {
-          const pairId = Math.floor(i / 2) + 1;
+        // Generate portals (in pairs, capped at 6 pairs for distinct colors)
+        const portalPairs = Math.min(Math.max(this.config.gameplay.minPortalPairs, Math.floor(random() * 6) + 1), 6);
+        console.log("Generating", this.config.gameplay.minPortalPairs, "portal pairs");
+        for (let pairId = 1; pairId <= portalPairs; pairId++) {
           for (let j = 0; j < 2; j++) {
             let row, col;
+            let attempts = 0;
             do {
               row = Math.floor(random() * rows);
               col = Math.floor(random() * cols);
-            } while (occupied.has(`${row},${col}`));
-            occupied.add(`${row},${col}`);
-            this.items.push({ type: 'portal', pairId, row, col });
+              attempts++;
+            } while (occupied.has(`${row},${col}`) && attempts < 100);
+            if (attempts < 100) {
+              occupied.add(`${row},${col}`);
+              this.items.push({ type: 'portal', pairId, row, col });
+            }
           }
         }
 
@@ -743,7 +748,7 @@
             } while (occupied.has(`${row},${col}`) && attempts < 100);
 
             if (attempts < 100) {
-              // Sigils can overlap with other sigils but mark general area
+              occupied.add(`${row},${col}`);
               this.items.push({ type: 'sigil', letter: sigilLetters[i], row, col });
             }
           }
@@ -1105,7 +1110,7 @@
           case 'coinOrange':
             // Green (orange color): +1 score + bonus, +1 timer + bonus, no body length
             scoreGain = 1 + bodyBonus;
-            timerGain = 1 + bodyBonus;
+            timerGain = 1; // + bodyBonus;
             this.score += scoreGain;
             this.timer += timerGain;
             break;
@@ -1391,7 +1396,7 @@
               content += `<span class="cell-content obstacle">\u25ae</span>`;
               break;
             case 'portal':
-              const portalClass = `portal-${((item.pairId - 1) % 5) + 1}`;
+              const portalClass = `portal-${((item.pairId - 1) % 6) + 1}`;
               content += `<span class="cell-content portal ${portalClass}">\u25cb</span>`;
               break;
             case 'sigil':
@@ -1446,8 +1451,8 @@
               <input type="number" class="config-input" id="cfg-sigilDensity" value="${this.config.gameplay.sigilDensity}" min="1" max="10">
             </div>
             <div class="config-row">
-              <span class="config-label">Portal Density (%)</span>
-              <input type="number" class="config-input" id="cfg-portalDensity" value="${this.config.gameplay.portalDensity}" min="0" max="20">
+              <span class="config-label">Minimal Portal Pairs (1-6)</span>
+              <input type="number" class="config-input" id="cfg-portalPairs" value="${this.config.gameplay.minPortalPairs}" min="1" max="6">
             </div>
           </div>
 
@@ -1554,7 +1559,7 @@
         this.config.gameplay.sigilLetters = document.getElementById('cfg-sigilLetters').value || 'asdf';
         this.config.gameplay.obstacleDensity = parseInt(document.getElementById('cfg-obstacleDensity').value) || 10;
         this.config.gameplay.sigilDensity = parseInt(document.getElementById('cfg-sigilDensity').value) || 2;
-        this.config.gameplay.portalDensity = parseInt(document.getElementById('cfg-portalDensity').value) || 10;
+        this.config.gameplay.minPortalPairs = Math.min(Math.max(1, parseInt(document.getElementById('cfg-portalPairs').value) || 2), 6);
         this.config.gameplay.maxCoins = parseInt(document.getElementById('cfg-maxCoins').value) || 10;
         this.config.gameplay.coinSpawnFrequency = parseInt(document.getElementById('cfg-coinSpawnFrequency').value) || 4;
         this.config.gameplay.volatileInitialCounter = parseInt(document.getElementById('cfg-volatileInitialCounter').value) || 5;
