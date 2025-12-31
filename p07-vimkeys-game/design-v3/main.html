@@ -48,8 +48,40 @@
     }
 
     .hud-value {
-      color: #4ecdc4;
       font-weight: bold;
+    }
+
+    .hud-value.score {
+      color: #00ff88;
+    }
+
+    .hud-value.timer {
+      color: #ffd700;
+    }
+
+    .hud-value.length {
+      color: #4ecdc4;
+    }
+
+    .hud-gain {
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 4px;
+      animation: fadeOut 1.5s ease-out forwards;
+    }
+
+    .hud-gain.score {
+      color: #00ff88;
+    }
+
+    .hud-gain.timer {
+      color: #ffd700;
+    }
+
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      70% { opacity: 1; }
+      100% { opacity: 0; }
     }
 
     #level-display {
@@ -116,18 +148,21 @@
       z-index: 8;
     }
 
+    /* coinGreen: score + grow → green color (score-related) */
     .coin-yellow {
-      color: #ffd700;
-      font-size: 16px;
-    }
-
-    .coin-green {
       color: #00ff88;
       font-size: 16px;
     }
 
-    .coin-orange {
+    /* coinOrange: score + timer → orange color (both) */
+    .coin-green {
       color: #ff9f43;
+      font-size: 16px;
+    }
+
+    /* coinYellow: timer only → yellow color (time-related) */
+    .coin-orange {
+      color: #ffd700;
       font-size: 16px;
     }
 
@@ -534,6 +569,13 @@
         portalPending: null, // Track segments waiting to teleport
       },
 
+      // Last gains for HUD notification
+      lastGains: {
+        score: 0,
+        timer: 0,
+        timestamp: 0
+      },
+
       // Game data
       items: [], // Current items on grid
       score: 0,
@@ -730,8 +772,8 @@
 
         // Block existing coins
         this.items.forEach(item => {
-          if (item.type === 'coinYellow' || item.type === 'coinGreen' ||
-              item.type === 'coinOrange' || item.type === 'volatileCoin') {
+          if (item.type === 'coinGreen' || item.type === 'coinOrange' ||
+              item.type === 'coinYellow' || item.type === 'volatileCoin') {
             blocked.add(`${item.row},${item.col}`);
           }
         });
@@ -745,7 +787,7 @@
         } while (blocked.has(`${row},${col}`) && attempts < 100);
 
         if (attempts < 100) {
-          this.items.push({ type: 'coinYellow', row, col });
+          this.items.push({ type: 'coinGreen', row, col });
         }
       },
 
@@ -781,8 +823,8 @@
 
         // Block existing coins
         this.items.forEach(item => {
-          if (item.type === 'coinYellow' || item.type === 'coinGreen' ||
-              item.type === 'coinOrange' || item.type === 'volatileCoin') {
+          if (item.type === 'coinGreen' || item.type === 'coinOrange' ||
+              item.type === 'coinYellow' || item.type === 'volatileCoin') {
             blocked.add(`${item.row},${item.col}`);
           }
         });
@@ -981,7 +1023,7 @@
         if (this.state === GameState.IN_GAME &&
             this.actionCount % this.config.gameplay.coinSpawnFrequency === 0) {
           const coinCount = this.items.filter(i =>
-            i.type === 'coinYellow' || i.type === 'coinGreen' || i.type === 'coinOrange'
+            i.type === 'coinGreen' || i.type === 'coinOrange' || i.type === 'coinYellow'
           ).length;
           if (coinCount < this.config.gameplay.maxCoins) {
             this.spawnCoin();
@@ -1000,8 +1042,8 @@
       handleCollision(row, col, isCollidable) {
         // Check for coins (yellow, green, orange, volatile)
         const coinIndex = this.items.findIndex(item =>
-          (item.type === 'coinYellow' || item.type === 'coinGreen' ||
-           item.type === 'coinOrange' || item.type === 'volatileCoin') &&
+          (item.type === 'coinGreen' || item.type === 'coinOrange' ||
+           item.type === 'coinYellow' || item.type === 'volatileCoin') &&
           item.row === row && item.col === col
         );
 
@@ -1026,7 +1068,7 @@
       collectCoin(coin) {
         if (this.currentLevel.type === 'demo') {
           // Demo mode: just grow for yellow coins, no score
-          if (coin.type === 'coinYellow') {
+          if (coin.type === 'coinGreen') {
             this.growPlayer();
           }
           return;
@@ -1041,28 +1083,45 @@
           ? effectiveLength - 1
           : Math.min(effectiveLength - 1, this.config.gameplay.maxBonusScore);
 
+        // Reset gains for this action
+        let scoreGain = 0;
+        let timerGain = 0;
+
         switch (coin.type) {
-          case 'coinYellow':
-            // Yellow: +1 score + bonus, +1 body length
-            this.score += 1 + bodyBonus;
+          case 'coinGreen':
+            // Yellow (green color): +1 score + bonus, +1 body length
+            scoreGain = 1 + bodyBonus;
+            this.score += scoreGain;
             this.growPlayer();
             break;
-          case 'coinGreen':
-            // Green: +1 score + bonus, no body length increase
-            this.score += 1 + bodyBonus;
-            break;
           case 'coinOrange':
-            // Orange: +1 second timer, no score, no body length
-            this.timer += 1;
+            // Green (orange color): +1 score + bonus, +1 timer + bonus, no body length
+            scoreGain = 1 + bodyBonus;
+            timerGain = 1 + bodyBonus;
+            this.score += scoreGain;
+            this.timer += timerGain;
+            break;
+          case 'coinYellow':
+            // Orange (yellow color): +1 second timer, no score, no body length
+            timerGain = 1;
+            this.timer += timerGain;
             break;
           case 'volatileCoin':
             // Volatile: enter overcharge mode
-            this.score += 1 + (coin.counter || 0) + bodyBonus;
+            scoreGain = 1 + (coin.counter || 0) + bodyBonus;
+            this.score += scoreGain;
             this.player.overchargeMode = true;
             this.player.overchargeCounter = this.config.gameplay.overchargeCounter;
             this.player.overchargeMaxLength = this.player.segments.length;
             break;
         }
+
+        // Track gains for HUD notification
+        this.lastGains = {
+          score: scoreGain,
+          timer: timerGain,
+          timestamp: Date.now()
+        };
       },
 
       growPlayer() {
@@ -1128,7 +1187,7 @@
         const tailSegments = this.player.segments.slice(hitIndex + 1);
 
         // Determine coin type: orange in green mode, green in overcharge mode
-        const coinType = this.player.overchargeMode ? 'coinGreen' : 'coinOrange';
+        const coinType = this.player.overchargeMode ? 'coinOrange' : 'coinYellow';
 
         // Convert tail segments to coins
         for (const seg of tailSegments) {
@@ -1184,7 +1243,7 @@
             const bodySegments = this.player.segments.slice(1);
 
             // Determine coin type: orange in green mode, green in overcharge mode
-            const coinType = this.player.overchargeMode ? 'coinGreen' : 'coinOrange';
+            const coinType = this.player.overchargeMode ? 'coinOrange' : 'coinYellow';
 
             for (const seg of bodySegments) {
               this.spawnCoinAt(seg.row, seg.col, coinType);
@@ -1227,24 +1286,34 @@
           const overchargeIndicator = this.player.overchargeMode
             ? `<div class="hud-row"><span class="hud-label" style="color:#ff6b6b">OVERCHARGE:</span><span class="hud-value" style="color:#ff6b6b">${this.player.overchargeCounter}</span></div>`
             : '';
+
+          // Check if gains are recent (within 1.5 seconds)
+          const isRecentGain = Date.now() - this.lastGains.timestamp < 1500;
+          const scoreGainHtml = isRecentGain && this.lastGains.score > 0
+            ? `<span class="hud-gain score">+${this.lastGains.score}</span>`
+            : '';
+          const timerGainHtml = isRecentGain && this.lastGains.timer > 0
+            ? `<span class="hud-gain timer">+${this.lastGains.timer}</span>`
+            : '';
+
           hudTop.innerHTML = `
             <div class="hud-row">
               <span class="hud-label">Score:</span>
-              <span class="hud-value">${this.score}</span>
+              <span class="hud-value score">${this.score}</span>${scoreGainHtml}
               <span class="hud-label">Length:</span>
-              <span class="hud-value">${this.player.segments.length}</span>
+              <span class="hud-value length">${this.player.segments.length}</span>
             </div>
             <div class="hud-row">
               <span class="hud-label">Time:</span>
-              <span class="hud-value">${this.timer}s</span>
+              <span class="hud-value timer">${this.timer}s</span>${timerGainHtml}
             </div>
             ${overchargeIndicator}
           `;
         } else {
           const isDemo = level.type === 'demo';
           const demoStats = isDemo
-            ? `<div class="hud-row"><span class="hud-label">Length:</span><span class="hud-value">${this.player.segments.length}</span></div>`
-            : `<div class="hud-row"><span class="hud-label">Previous:</span><span class="hud-value">${this.previousScore}</span><span class="hud-label">High:</span><span class="hud-value">${this.highScore}</span></div>`;
+            ? `<div class="hud-row"><span class="hud-label">Length:</span><span class="hud-value length">${this.player.segments.length}</span></div>`
+            : `<div class="hud-row"><span class="hud-label">Previous:</span><span class="hud-value score">${this.previousScore}</span><span class="hud-label">High:</span><span class="hud-value score">${this.highScore}</span></div>`;
           hudTop.innerHTML = `
             ${demoStats}
             <div id="level-display">
@@ -1298,13 +1367,13 @@
         const items = this.items.filter(item => item.row === row && item.col === col);
         for (const item of items) {
           switch (item.type) {
-            case 'coinYellow':
+            case 'coinGreen':
               content += `<span class="cell-content coin-yellow">\u2022</span>`;
               break;
-            case 'coinGreen':
+            case 'coinOrange':
               content += `<span class="cell-content coin-green">\u2022</span>`;
               break;
-            case 'coinOrange':
+            case 'coinYellow':
               content += `<span class="cell-content coin-orange">\u2022</span>`;
               break;
             case 'volatileCoin':

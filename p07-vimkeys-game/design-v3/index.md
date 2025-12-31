@@ -112,3 +112,22 @@ let's tweak the gameplay again:
     - then the effective boosting factor should be: [3, 3, 4, 5, 5]
   - note that, red body mode should works identical to green body mode, except green dots and boosting factor
 
+## revision 5
+
+a few more things to tweak:
+- green coin
+  - previous design: give score, doesn't increase body length
+  - new design: give score, prolong the timer, doesn't increase body length
+    - the score boosting factor in overcharge mode also affect the timer
+    - e.g. body length equals to 4, then, picking up a green dot would prolong 1 + (4-1) seconds
+- UI UX improvement
+  - the game is not so obvious in terms of the coins and scores
+  - I would like to make this thing more obvious by unified color and small volatile notification
+  - green color code means score, make sure HUD display score number in green color
+    - change yellow coin color to green
+  - yellow color code means time, make sure HUD display timer in yellow color
+    - change orange coin color to yellow
+  - orange color code means time+score
+    - change green coin color to orange
+  - add a small +N notification near to the score and timer in the HUD section
+    - N is the amount of the value rewarded from the picking up the coin (bonus included)
