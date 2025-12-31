@@ -131,3 +131,24 @@ a few more things to tweak:
     - change green coin color to orange
   - add a small +N notification near to the score and timer in the HUD section
     - N is the amount of the value rewarded from the picking up the coin (bonus included)
+
+## revision 6
+
+fix these two bugs
+- while body length greater than 1, the snake cannot move in the direction of its body part
+  - i.e. while body length gt 1, then the head can only head toward the cell that doesn't contains its body part
+  - before the change, say that body is in the right side of the head
+  - the head can go all 4 directions (left, up, right, down)
+  - after the change, the head can only go three directions (left, up, down)
+  - i.e. the right direction is excluded
+- several bugs observed in the dynamic level
+  - the "Dynamic Level" doesn't come after the last predefined level
+    - instead, I must hit `\` twice (start, then, stop) to show the title "Dynamic Level" properly
+    - to be more specific, if I hit next switch from the last predefined level, then, the title display the last predefined level instead of dynamic level
+      - if I hit previous switch from the first demo level, then, the title display the first demo level instead of dynamic level
+  - hitting `<backspace>` doesn't regenerate the level
+  - although it is possible to enter the game `\`, but the timer doesn't countdown at all
+  - the game state doesn't reset properly (i.e. restart a game would reuse the state of previous game)
+
+## revision 7
+

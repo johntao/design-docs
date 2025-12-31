@@ -649,24 +649,28 @@
       resetLevel() {
         const level = this.currentLevel;
 
-        // Reset player
+        // For dynamic levels, generate first to set playerSpawn
+        if (level.type === 'dynamic') {
+          this.generateDynamicLevel();
+        } else {
+          this.items = JSON.parse(JSON.stringify(level.items || []));
+        }
+
+        // Reset player (now playerSpawn is guaranteed to exist)
         this.player.segments = [{ row: level.playerSpawn.row, col: level.playerSpawn.col }];
         this.player.overchargeMode = false;
         this.player.overchargeCounter = 0;
         this.player.overchargeMaxLength = 0;
         this.player.portalPending = null;
+        this.player.cacheTail = null;
 
         // Reset game data
         this.score = 0;
         this.actionCount = 0;
         this.timer = this.config.gameplay.countdownTimer;
 
-        // Load items
-        if (level.type === 'dynamic') {
-          this.generateDynamicLevel();
-        } else {
-          this.items = JSON.parse(JSON.stringify(level.items || []));
-        }
+        // Reset gains notification
+        this.lastGains = { score: 0, timer: 0, timestamp: 0 };
 
         this.render();
       },
@@ -917,14 +921,18 @@
         const head = this.player.segments[0];
         let newRow = head.row;
         let newCol = head.col;
-
         switch (direction) {
           case 'left':  newCol--; break;
           case 'right': newCol++; break;
           case 'up':    newRow--; break;
           case 'down':  newRow++; break;
         }
-
+        if (this.player.segments.length > 1) {
+          const neck = this.player.segments[1];
+          if (newRow === neck.row && newCol === neck.col) {
+            return; // Prevent reversing into self
+          }
+        }
         const level = this.currentLevel;
 
         // Boundary check
@@ -991,8 +999,8 @@
         );
 
         if (selfHit !== -1) {
-          // Attack: split body, convert tail part to coins
-          this.handleAttack(selfHit + 1);
+          // Attack: split body, convert tail part to coins, move head to new position
+          this.handleAttack(selfHit + 1, newRow, newCol);
         } else {
           // Normal move
           this.player.segments.unshift(newHead);
@@ -1175,7 +1183,7 @@
         this.player.portalPending = null;
       },
 
-      handleAttack(hitIndex) {
+      handleAttack(hitIndex, newRow, newCol) {
         // Attack: split body at hitIndex, convert tail part to coins
         // hitIndex is the index of the attacked segment (1-based from slice)
 
@@ -1186,7 +1194,7 @@
         // Convert segments from after attacked part to tail into coins
         const tailSegments = this.player.segments.slice(hitIndex + 1);
 
-        // Determine coin type: orange in green mode, green in overcharge mode
+        // Determine coin type: yellow (time) in green mode, orange (score+time) in overcharge mode
         const coinType = this.player.overchargeMode ? 'coinOrange' : 'coinYellow';
 
         // Convert tail segments to coins
@@ -1194,14 +1202,13 @@
           this.spawnCoinAt(seg.row, seg.col, coinType);
         }
 
+        // Move head to the new position (the attacked segment's position)
+        keptSegments[0] = { row: newRow, col: newCol };
+
         // Update player segments
         this.player.segments = keptSegments;
 
-        // If no segments left, respawn
-        if (this.player.segments.length === 0) {
-          const spawn = this.findValidSpawn();
-          this.player.segments = [spawn];
-        }
+        // If only head left (length 1), that's fine - no need to respawn
       },
 
       // Sigil movement
