@@ -116,8 +116,18 @@
       z-index: 8;
     }
 
-    .coin {
+    .coin-yellow {
       color: #ffd700;
+      font-size: 16px;
+    }
+
+    .coin-green {
+      color: #00ff88;
+      font-size: 16px;
+    }
+
+    .coin-orange {
+      color: #ff9f43;
       font-size: 16px;
     }
 
@@ -147,21 +157,6 @@
       color: #a29bfe;
       font-size: 16px;
       font-weight: bold;
-    }
-
-    .detached-body {
-      color: #ff9f43;
-      opacity: 0.5;
-    }
-
-    .detached-head {
-      color: #ff9f43;
-      opacity: 0.8;
-    }
-
-    .detached-tail {
-      color: #ff9f43;
-      opacity: 0.8;
     }
 
     /* Debug mode - smaller font for indices */
@@ -532,10 +527,11 @@
       // Player state
       player: {
         segments: [], // Array of {row, col} - head is [0], tail is last
-        detachedSegments: [], // Array of arrays of {row, col}
         overchargeMode: false,
         overchargeCounter: 0,
+        overchargeMaxLength: 0, // Cached max body length during overcharge
         cacheTail: null,
+        portalPending: null, // Track segments waiting to teleport
       },
 
       // Game data
@@ -613,9 +609,10 @@
 
         // Reset player
         this.player.segments = [{ row: level.playerSpawn.row, col: level.playerSpawn.col }];
-        this.player.detachedSegments = [];
         this.player.overchargeMode = false;
         this.player.overchargeCounter = 0;
+        this.player.overchargeMaxLength = 0;
+        this.player.portalPending = null;
 
         // Reset game data
         this.score = 0;
@@ -733,7 +730,8 @@
 
         // Block existing coins
         this.items.forEach(item => {
-          if (item.type === 'coin' || item.type === 'volatileCoin') {
+          if (item.type === 'coinYellow' || item.type === 'coinGreen' ||
+              item.type === 'coinOrange' || item.type === 'volatileCoin') {
             blocked.add(`${item.row},${item.col}`);
           }
         });
@@ -747,7 +745,19 @@
         } while (blocked.has(`${row},${col}`) && attempts < 100);
 
         if (attempts < 100) {
-          this.items.push({ type: 'coin', row, col });
+          this.items.push({ type: 'coinYellow', row, col });
+        }
+      },
+
+      // Spawn a coin at specific position (used when converting body parts)
+      spawnCoinAt(row, col, coinType) {
+        // Check if position is blocked by obstacle or portal
+        const blocked = this.items.some(item =>
+          (item.type === 'obstacle' || item.type === 'portal') &&
+          item.row === row && item.col === col
+        );
+        if (!blocked) {
+          this.items.push({ type: coinType, row, col });
         }
       },
 
@@ -771,7 +781,8 @@
 
         // Block existing coins
         this.items.forEach(item => {
-          if (item.type === 'coin' || item.type === 'volatileCoin') {
+          if (item.type === 'coinYellow' || item.type === 'coinGreen' ||
+              item.type === 'coinOrange' || item.type === 'volatileCoin') {
             blocked.add(`${item.row},${item.col}`);
           }
         });
@@ -880,27 +891,6 @@
           return; // Stay at boundary
         }
 
-        // Physics rule: cannot move toward own body parts (when length > 1)
-        if (this.player.segments.length > 1 && !this.player.overchargeMode) {
-          const hitsOwnBody = this.player.segments.slice(1).some(
-            seg => seg.row === newRow && seg.col === newCol
-          );
-          if (hitsOwnBody) {
-            return; // Cannot move into own body
-          }
-        }
-
-        // Physics rule: can only attach to head or tail of detached parts
-        // Middle parts are treated as obstacles
-        if (!this.player.overchargeMode) {
-          for (const detached of this.player.detachedSegments) {
-            const hitIndex = detached.findIndex(seg => seg.row === newRow && seg.col === newCol);
-            if (hitIndex !== -1 && hitIndex !== 0 && hitIndex !== detached.length - 1) {
-              return; // Cannot move into middle of detached body
-            }
-          }
-        }
-
         // Check for obstacle collision
         const obstacle = this.items.find(item =>
           item.type === 'obstacle' && item.row === newRow && item.col === newCol
@@ -946,17 +936,20 @@
       },
 
       executeMove(newRow, newCol, isCollidable) {
+        // Process any pending portal teleports first
+        this.processPortalPending();
+
         // Snake movement (same in normal and overcharge mode)
         // Move head
         const newHead = { row: newRow, col: newCol };
 
-        // Check for self-collision (attached body)
+        // Check for self-collision (attached body) - Attack in both modes
         const selfHit = this.player.segments.slice(1).findIndex(
           seg => seg.row === newRow && seg.col === newCol
         );
 
         if (selfHit !== -1) {
-          // Attack: swap head and tail, reduce length
+          // Attack: split body, convert tail part to coins
           this.handleAttack(selfHit + 1);
         } else {
           // Normal move
@@ -967,11 +960,17 @@
           this.handleCollision(newRow, newCol, isCollidable);
         }
 
-        // Decrement overcharge counter if active
+        // Update overcharge max length cache
         if (this.player.overchargeMode) {
+          this.player.overchargeMaxLength = Math.max(
+            this.player.overchargeMaxLength,
+            this.player.segments.length
+          );
+          // Decrement overcharge counter
           this.player.overchargeCounter--;
           if (this.player.overchargeCounter <= 0) {
             this.player.overchargeMode = false;
+            this.player.overchargeMaxLength = 0;
           }
         }
 
@@ -981,7 +980,9 @@
         // Spawn new coin periodically (only in-game and non-demo)
         if (this.state === GameState.IN_GAME &&
             this.actionCount % this.config.gameplay.coinSpawnFrequency === 0) {
-          const coinCount = this.items.filter(i => i.type === 'coin').length;
+          const coinCount = this.items.filter(i =>
+            i.type === 'coinYellow' || i.type === 'coinGreen' || i.type === 'coinOrange'
+          ).length;
           if (coinCount < this.config.gameplay.maxCoins) {
             this.spawnCoin();
           }
@@ -997,27 +998,10 @@
       },
 
       handleCollision(row, col, isCollidable) {
-        // Check for detached body parts
-        for (let i = 0; i < this.player.detachedSegments.length; i++) {
-          const detached = this.player.detachedSegments[i];
-          const hitIndex = detached.findIndex(seg => seg.row === row && seg.col === col);
-
-          if (hitIndex !== -1) {
-            if (this.player.overchargeMode) {
-              // In overcharge mode, vanish detached parts and add time (+N seconds)
-              this.timer += detached.length;
-              this.player.detachedSegments.splice(i, 1);
-            } else {
-              // Normal mode: reattach
-              this.handleAttach(i, hitIndex);
-            }
-            return;
-          }
-        }
-
-        // Check for coins
+        // Check for coins (yellow, green, orange, volatile)
         const coinIndex = this.items.findIndex(item =>
-          (item.type === 'coin' || item.type === 'volatileCoin') &&
+          (item.type === 'coinYellow' || item.type === 'coinGreen' ||
+           item.type === 'coinOrange' || item.type === 'volatileCoin') &&
           item.row === row && item.col === col
         );
 
@@ -1041,24 +1025,43 @@
 
       collectCoin(coin) {
         if (this.currentLevel.type === 'demo') {
-          // Demo mode: just grow, no score
-          this.growPlayer();
+          // Demo mode: just grow for yellow coins, no score
+          if (coin.type === 'coinYellow') {
+            this.growPlayer();
+          }
           return;
         }
 
         // Calculate score booster based on body length
-        // In overcharge mode, no bonus cap
+        // In overcharge mode, use cached max length (no cap)
+        const effectiveLength = this.player.overchargeMode
+          ? this.player.overchargeMaxLength
+          : this.player.segments.length;
         const bodyBonus = this.player.overchargeMode
-          ? this.player.segments.length - 1
-          : Math.min(this.player.segments.length - 1, this.config.gameplay.maxBonusScore);
+          ? effectiveLength - 1
+          : Math.min(effectiveLength - 1, this.config.gameplay.maxBonusScore);
 
-        if (coin.type === 'volatileCoin') {
-          this.score += 1 + (coin.counter || 0) + bodyBonus;
-          this.player.overchargeMode = true;
-          this.player.overchargeCounter = this.config.gameplay.overchargeCounter;
-        } else {
-          this.score += 1 + bodyBonus;
-          this.growPlayer();
+        switch (coin.type) {
+          case 'coinYellow':
+            // Yellow: +1 score + bonus, +1 body length
+            this.score += 1 + bodyBonus;
+            this.growPlayer();
+            break;
+          case 'coinGreen':
+            // Green: +1 score + bonus, no body length increase
+            this.score += 1 + bodyBonus;
+            break;
+          case 'coinOrange':
+            // Orange: +1 second timer, no score, no body length
+            this.timer += 1;
+            break;
+          case 'volatileCoin':
+            // Volatile: enter overcharge mode
+            this.score += 1 + (coin.counter || 0) + bodyBonus;
+            this.player.overchargeMode = true;
+            this.player.overchargeCounter = this.config.gameplay.overchargeCounter;
+            this.player.overchargeMaxLength = this.player.segments.length;
+            break;
         }
       },
 
@@ -1079,50 +1082,67 @@
 
         if (!pairedPortal) return;
 
-        // Drag entire body through the portal
-        const deltaRow = pairedPortal.row - this.player.segments[0].row;
-        const deltaCol = pairedPortal.col - this.player.segments[0].col;
-        this.player.segments = this.player.segments.map(seg => ({
-          row: seg.row + deltaRow,
-          col: seg.col + deltaCol
-        }));
+        // Teleport only the head to the destination
+        // The rest of the body stays - they will be dragged through on subsequent moves
+        this.player.segments[0] = { row: pairedPortal.row, col: pairedPortal.col };
+
+        // Mark that segments on source portal need to teleport on next move
+        this.player.portalPending = {
+          sourceRow: portal.row,
+          sourceCol: portal.col,
+          destRow: pairedPortal.row,
+          destCol: pairedPortal.col
+        };
       },
 
-      handleAttach(detachedIndex, hitIndex) {
-        const detached = this.player.detachedSegments[detachedIndex];
+      // Process pending portal teleports for body segments
+      processPortalPending() {
+        if (!this.player.portalPending) return;
 
-        // Determine swap position based on which end was hit
-        // hitIndex === 0: attaching to HEAD of detached → swap with TAIL
-        // hitIndex === length-1: attaching to TAIL of detached → swap with HEAD
-        const isHitOnHead = hitIndex === 0;
-        // const swapTarget = isHitOnHead
-        //   ? detached.pop()    // Swap with tail
-        //   : detached.shift(); // Swap with head
-        if (isHitOnHead) detached.reverse();
+        const pending = this.player.portalPending;
 
-        // Swap: current head goes to the opposite end of detached
-        this.player.segments.shift();
-        this.player.segments.push(this.player.cacheTail);
-        this.player.cacheTail = null;
-
-        // Reattach the segments
-        this.player.segments = [...detached, ...this.player.segments];
-        // Remove from detached list
-        this.player.detachedSegments.splice(detachedIndex, 1);
-
-        // Timer bonus for reattaching (+1 second)
-        if (this.currentLevel.type !== 'demo') {
-          this.timer += 1;
+        // Check if any segment (except head) is on the source portal
+        for (let i = 1; i < this.player.segments.length; i++) {
+          const seg = this.player.segments[i];
+          if (seg.row === pending.sourceRow && seg.col === pending.sourceCol) {
+            // Teleport this segment to destination
+            this.player.segments[i] = { row: pending.destRow, col: pending.destCol };
+            // Keep the pending state for the next segment
+            return;
+          }
         }
+
+        // No more segments on source portal, clear pending
+        this.player.portalPending = null;
       },
 
       handleAttack(hitIndex) {
-        // Swap head and tail positions
-        const tail = this.player.segments[this.player.segments.length - 1];
-        this.player.segments[0] = { ...tail };
+        // Attack: split body at hitIndex, convert tail part to coins
+        // hitIndex is the index of the attacked segment (1-based from slice)
 
-        // Reduce body length by 1
-        this.player.segments.pop();
+        // Keep segments from head to just before the attacked part
+        const keptSegments = this.player.segments.slice(0, hitIndex);
+
+        // The attacked part is vanished (not converted to coin)
+        // Convert segments from after attacked part to tail into coins
+        const tailSegments = this.player.segments.slice(hitIndex + 1);
+
+        // Determine coin type: orange in green mode, green in overcharge mode
+        const coinType = this.player.overchargeMode ? 'coinGreen' : 'coinOrange';
+
+        // Convert tail segments to coins
+        for (const seg of tailSegments) {
+          this.spawnCoinAt(seg.row, seg.col, coinType);
+        }
+
+        // Update player segments
+        this.player.segments = keptSegments;
+
+        // If no segments left, respawn
+        if (this.player.segments.length === 0) {
+          const spawn = this.findValidSpawn();
+          this.player.segments = [spawn];
+        }
       },
 
       // Sigil movement
@@ -1158,18 +1178,35 @@
         }
 
         if (targetSigil) {
-          // Sigil move is non-collidable, causes detachment
-          if (this.player.segments.length > 1 && !this.player.overchargeMode) {
-            this.player.detachedSegments.push(this.player.segments.slice(1));
-            this.player.segments = [{ row: targetSigil.row, col: targetSigil.col }];
-            // Timer bonus for detaching (+1 second)
-            if (this.currentLevel.type !== 'demo') {
-              this.timer += 1;
+          // Sigil move causes detachment - convert body parts to coins
+          if (this.player.segments.length > 1) {
+            // Convert all body parts (except head) to coins
+            const bodySegments = this.player.segments.slice(1);
+
+            // Determine coin type: orange in green mode, green in overcharge mode
+            const coinType = this.player.overchargeMode ? 'coinGreen' : 'coinOrange';
+
+            for (const seg of bodySegments) {
+              this.spawnCoinAt(seg.row, seg.col, coinType);
             }
-          } else {
-            this.executeMove(targetSigil.row, targetSigil.col, false);
           }
+
+          // Move head to target sigil
+          this.player.segments = [{ row: targetSigil.row, col: targetSigil.col }];
+          this.player.portalPending = null; // Clear any pending portal
+
           this.actionCount++;
+          this.updateVolatileCoins();
+
+          // Decrement overcharge counter if active
+          if (this.player.overchargeMode) {
+            this.player.overchargeCounter--;
+            if (this.player.overchargeCounter <= 0) {
+              this.player.overchargeMode = false;
+              this.player.overchargeMaxLength = 0;
+            }
+          }
+
           this.render();
         }
       },
@@ -1257,31 +1294,18 @@
           }
         }
 
-        // Check for detached segments
-        for (let di = 0; di < this.player.detachedSegments.length; di++) {
-          const detached = this.player.detachedSegments[di];
-          const detachedIndex = detached.findIndex(seg => seg.row === row && seg.col === col);
-          if (detachedIndex !== -1) {
-            if (this.debugMode) {
-              // Debug: show detached group and index (e.g., "d0:2" = detached group 0, index 2)
-              // d${di}:
-              content += `<span class="cell-content detached-head">${detachedIndex}</span>`;
-            } else if (detachedIndex === 0) {
-              content += `<span class="cell-content detached-head">\u25a2</span>`;
-            } else if (detachedIndex === detached.length - 1) {
-              content += `<span class="cell-content detached-tail">\u2a2f</span>`;
-            } else {
-              content += `<span class="cell-content detached-body">\u25a2</span>`;
-            }
-          }
-        }
-
         // Check for items
         const items = this.items.filter(item => item.row === row && item.col === col);
         for (const item of items) {
           switch (item.type) {
-            case 'coin':
-              content += `<span class="cell-content coin">\u2022</span>`;
+            case 'coinYellow':
+              content += `<span class="cell-content coin-yellow">\u2022</span>`;
+              break;
+            case 'coinGreen':
+              content += `<span class="cell-content coin-green">\u2022</span>`;
+              break;
+            case 'coinOrange':
+              content += `<span class="cell-content coin-orange">\u2022</span>`;
               break;
             case 'volatileCoin':
               content += `<span class="cell-content volatile-coin">\u22c6</span>`;

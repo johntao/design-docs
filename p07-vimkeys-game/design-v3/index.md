@@ -72,3 +72,43 @@ we need to rework the game mechanism. here's the new spec:
 - in the original design, attach to a detached body part also grant one score; detach head in the other hand give nothing
   - new design, instead of getting one score, make the countdown timer +1 second
   - detach head and body also make the countdown timer +1 second
+
+## revision 4
+
+let's tweak the gameplay again:
+- there should be three types of coins (i.e. yellow dot, green dot, orange dot)
+  - the first type is the existing one that grant the player 1 score, and increase the body length by one (the yellow dot)
+  - the second type is very similar to yellow dot, except that it doesn't increase player's body length (the green dot)
+  - the third type is the new one that prolong the timer by 1 second, and doesn't increase the body length (the organge dot)
+- there should be two types of state (i.e. green body and red body)
+  - the first type is the initial on starting the game (green body)
+  - the second type is overcharged on picking up a volatile coin (red body)
+- I would like to make the green body also supports "attack" which means the head hitting onto attached body parts
+  - use this algorithm:
+  - when the attack happened, the body is split into two parts
+  - the first part: from the head to the attacked part; the second part: from the attacked part to the tail
+  - the attacked part is vanished
+  - the second part convert into orange coins
+- similarly, the detach algorithm should be rework
+  - the game currently use sigil/ grid move to detach head and body
+  - the body is left behind which is also stands as detached part
+  - the head can then "reattach" to the part, grant one score, reconnect as a whole, and then, swap head/ tail position
+  - the new design:
+  - convert all the detached part as orange dots. no more complicated algorithm for "segment, reattach, detach, and swap"
+- the portal doesn't work as expected
+  - the current one: once the HEAD hit onto the portal, the HEAD including the rest of the body teleport to the other side
+  - the expected one: the rest of the body parts are dragged piece by piece
+    - e.g. given a player with body length of three (HEAD, BODY, TAIL)
+    - 1. HEAD hit onto the portal, the HEAD is teleported to the destination; the BODY left behind on the source portal without teleporting; the TAIL is somewhere connected with the BODY
+    - 2. the player move HEAD toward any direction; the BODY is now dragged and teleported to the destination; the TAIL is left behind on the source portal without teleporting
+    - 3. the player move HEAD toward any direction; the BODY move accordingly as usual; the TAIL is dragged and teleported to the destination
+- finally, let's rework the overcharge mode (i.e. red body mode)
+  - in green mode, both "attack" and "detach" convert the rest of the body part to orange dots
+    - in red mode, convert the rest of the body part to green dots instead of orange
+  - in overcharge mode, the score boosting factor works a bit different
+  - normally, the factor is based on current body length
+  - however, in overcharge mode, the factor is cached and the MAX value is used
+    - given an array to represent how current body length changes during the overcharge mode: [3, 2, 4, 5, 1]
+    - then the effective boosting factor should be: [3, 3, 4, 5, 5]
+  - note that, red body mode should works identical to green body mode, except green dots and boosting factor
+
