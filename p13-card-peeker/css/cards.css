@@ -4,11 +4,13 @@
   grid-template-columns: repeat(5, 1fr);
   grid-template-rows: repeat(5, 1fr);
   gap: var(--spacing-xs);
-  width: 320px;
-  height: 320px;
+  /* width: 320px;
+  height: 320px; */
   padding: var(--spacing-sm);
   background-color: rgba(255, 255, 255, 0.02);
   border-radius: var(--radius-lg);
+  flex-grow: 1;
+  flex-basis: 30%;
 }
 
 /* Top-Down Card Base */
@@ -38,8 +40,8 @@
 
 /* Center Node (Level 0) */
 .card.center {
-  grid-column: 2 / 5;
-  grid-row: 2 / 5;
+  grid-column: 3 / 4;
+  grid-row: 3 / 4;
   background-color: var(--color-card-center);
   font-size: 14px;
 }

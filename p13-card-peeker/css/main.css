@@ -13,7 +13,7 @@
   --color-drop-invalid: #f87171;
 
   --split-left: 70%;
-  --split-right: 30%;
+  --split-right: 15%;
 
   --spacing-xs: 4px;
   --spacing-sm: 8px;
@@ -57,13 +57,13 @@ body {
 
 /* Left Panel - Canvas */
 .canvas {
-  flex: 0 0 var(--split-left);
+  flex: 1 0 var(--split-left);
   width: var(--split-left);
   padding: var(--spacing-lg);
   overflow-y: auto;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
   align-content: flex-start;
 }
 
