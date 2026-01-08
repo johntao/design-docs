@@ -4,25 +4,14 @@
 const Canvas = {
   container: null,
 
-  // Ring positions in 5x5 grid (row, col)
-  // Ring 1: 8 positions (items 1-8) - inner ring around center
-  // Ring 2: 16 positions (items 9-24) - outer ring
-  RING_POSITIONS: {
-    // Ring 1: clockwise from top-left of inner ring
-    1: [
-      [1, 1], [1, 2], [1, 3],  // top row of ring 1
-      [2, 3],                   // right side
-      [3, 3], [3, 2], [3, 1],  // bottom row of ring 1
-      [2, 1]                    // left side
-    ],
-    // Ring 2: clockwise from top-left corner
-    2: [
-      [0, 0], [0, 1], [0, 2], [0, 3], [0, 4],  // top row
-      [1, 4], [2, 4], [3, 4],                   // right side
-      [4, 4], [4, 3], [4, 2], [4, 1], [4, 0],  // bottom row
-      [3, 0], [2, 0], [1, 0]                    // left side
-    ]
-  },
+  // Ring positions in 3x3 grid (row, col)
+  // 8 positions around center, clockwise from top-left
+  RING_POSITIONS: [
+    [0, 0], [0, 1], [0, 2],  // top row
+    [1, 2],                   // right side
+    [2, 2], [2, 1], [2, 0],  // bottom row
+    [1, 0]                    // left side
+  ],
 
   /**
    * Initialize canvas
@@ -58,18 +47,11 @@ const Canvas = {
     const centerEl = this.renderCenterNode(namespace, graph.centerTitle);
     graphEl.appendChild(centerEl);
 
-    // Render child nodes - fill ring 1 first, then ring 2
+    // Render child nodes (max 8 per graph in 3x3 grid)
     graph.children.forEach((fullPath, index) => {
+      if (index >= 8) return; // Skip if more than 8 children
       const card = Data.topDown.cards[fullPath];
-      let pos;
-      if (index < 8) {
-        // Ring 1: positions 0-7 (items 1-8)
-        pos = this.RING_POSITIONS[1][index];
-      } else {
-        // Ring 2: positions 8-23 (items 9-24)
-        pos = this.RING_POSITIONS[2][index - 8];
-      }
-      pos = pos || [0, 0];
+      const pos = this.RING_POSITIONS[index];
       const childEl = this.renderChildNode(card, pos);
       graphEl.appendChild(childEl);
     });

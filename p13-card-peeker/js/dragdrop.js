@@ -148,8 +148,16 @@ const DragDrop = {
       return;
     }
 
-    // If from canvas, remove from original position first
-    if (this.dragSource === 'canvas' && this.originalParentPath) {
+    // Check if this card is already nested somewhere in the same graph
+    // (applies to both library and canvas drags)
+    const namespace = Utils.parseNamespace(targetPath);
+    const existingPath = Data.getNestedPathInGraph(this.draggedCardId, namespace);
+    if (existingPath) {
+      Canvas.removeNestedCard(existingPath);
+    }
+
+    // If from canvas and moving to a different graph, also remove from original
+    if (this.dragSource === 'canvas' && this.originalParentPath && this.originalParentPath !== existingPath) {
       Canvas.removeNestedCard(this.originalParentPath);
     }
 

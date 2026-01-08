@@ -199,3 +199,15 @@ we need to tweak the layout a bit
 let's tweak the layout again
 
 I think it's better to make the container
+
+## revision 3
+
+I found a few problems
+
+1. there is a violation of "a bottom-up card should not appear twice in a same star graph"
+  - the data-wise and the right panel are both correct
+  - however, the nested card in the left panel didn't clear out the previous one properly
+  - please make sure the visualization part of nested cards also comply to the rule
+2. I would like to remove the second ring of the mandala chart (the outmost ring of the grid)
+  - the reason is that our test dataset doesn't exceed 8 items per star graph
+  - it seems to be a waste to preserved all this unused space
