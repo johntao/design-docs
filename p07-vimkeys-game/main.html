@@ -32,6 +32,7 @@
     #hud-top {
       display: flex;
       flex-direction: column;
+      justify-content: end;
       align-items: center;
       gap: 8px;
       min-height: 80px;
@@ -517,10 +518,10 @@
         sigilLetters: 'asdf',
         maxCoins: 10,
         coinSpawnFrequency: 4,
-        volatileInitialCounter: 5,
+        volatileInitialCounter: 12,
         volatileDecrementalStep: 1,
-        volatileSpawnFrequency: 8,
-        overchargeCounter: 5,
+        volatileSpawnFrequency: 20,
+        overchargeCounter: 12,
         maxBonusScore: 5,
         obstacleDensity: 10,
         sigilDensity: 2,
@@ -558,7 +559,7 @@
       currentSlot: 1,
 
       // Debug mode: render segments with numeric indices
-      debugMode: false,
+      debugMode: true,
 
       // Player state
       player: {
@@ -1003,17 +1004,16 @@
           seg => seg.row === newRow && seg.col === newCol
         );
 
+        // Normal move
+        this.player.segments.unshift(newHead);
         if (selfHit !== -1) {
           // Attack: split body, convert tail part to coins, move head to new position
-          this.handleAttack(selfHit + 1, newRow, newCol);
+          this.handleAttack(selfHit + 1);
         } else {
-          // Normal move
-          this.player.segments.unshift(newHead);
           this.player.cacheTail = this.player.segments.pop();
-
-          // Handle collision at new position
-          this.handleCollision(newRow, newCol, isCollidable);
         }
+        // Handle collision at new position
+        this.handleCollision(newRow, newCol, isCollidable);
 
         // Update overcharge max length cache
         if (this.player.overchargeMode) {
@@ -1188,7 +1188,7 @@
         this.player.portalPending = null;
       },
 
-      handleAttack(hitIndex, newRow, newCol) {
+      handleAttack(hitIndex) {
         // Attack: split body at hitIndex, convert tail part to coins
         // hitIndex is the index of the attacked segment (1-based from slice)
 
@@ -1206,9 +1206,6 @@
         for (const seg of tailSegments) {
           this.spawnCoinAt(seg.row, seg.col, coinType);
         }
-
-        // Move head to the new position (the attacked segment's position)
-        keptSegments[0] = { row: newRow, col: newCol };
 
         // Update player segments
         this.player.segments = keptSegments;
@@ -1309,17 +1306,15 @@
             : '';
 
           hudTop.innerHTML = `
+            ${overchargeIndicator}
             <div class="hud-row">
               <span class="hud-label">Score:</span>
               <span class="hud-value score">${this.score}</span>${scoreGainHtml}
+              <span class="hud-label">Time:</span>
+              <span class="hud-value timer">${this.timer}s</span>${timerGainHtml}
               <span class="hud-label">Length:</span>
               <span class="hud-value length">${this.player.segments.length}</span>
             </div>
-            <div class="hud-row">
-              <span class="hud-label">Time:</span>
-              <span class="hud-value timer">${this.timer}s</span>${timerGainHtml}
-            </div>
-            ${overchargeIndicator}
           `;
         } else {
           const isDemo = level.type === 'demo';
@@ -1380,13 +1375,13 @@
         for (const item of items) {
           switch (item.type) {
             case 'coinGreen':
-              content += `<span class="cell-content coin-yellow">\u2022</span>`;
+              content += `<span class="cell-content coin-yellow">\u2022</span>`; //💲
               break;
             case 'coinOrange':
-              content += `<span class="cell-content coin-green">\u2022</span>`;
+              content += `<span class="cell-content coin-green">\u2022</span>`; //🪙
               break;
             case 'coinYellow':
-              content += `<span class="cell-content coin-orange">\u2022</span>`;
+              content += `<span class="cell-content coin-orange">\u2022</span>`; //⏳
               break;
             case 'volatileCoin':
               content += `<span class="cell-content volatile-coin">\u22c6</span>`;
