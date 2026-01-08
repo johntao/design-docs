@@ -211,3 +211,10 @@ I found a few problems
 2. I would like to remove the second ring of the mandala chart (the outmost ring of the grid)
   - the reason is that our test dataset doesn't exceed 8 items per star graph
   - it seems to be a waste to preserved all this unused space
+
+## revision 4
+
+one last problem
+it is possible to nest multiple bottom-up cards in a same top-down card as long as each bottom-up cards are unique in the same graph
+however, the current implementation doesn't allow to have multiple bottom-up cards in a same top-down card
+please fix it

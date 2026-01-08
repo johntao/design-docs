@@ -93,11 +93,17 @@ const Canvas = {
     titleEl.textContent = card.title;
     cardEl.appendChild(titleEl);
 
-    // Check for nested card
-    const nestedId = Data.getNestedCardAt(card.fullPath);
-    if (nestedId) {
-      const nestedEl = this.renderNestedCard(nestedId);
-      cardEl.appendChild(nestedEl);
+    // Check for nested cards (multiple allowed)
+    const nestedIds = Data.getNestedCardsAt(card.fullPath);
+    if (nestedIds.length > 0) {
+      const containerEl = Utils.createElement('div', ['nested-cards-container']);
+      nestedIds.forEach(nestedId => {
+        const nestedEl = this.renderNestedCard(nestedId);
+        if (nestedEl) {
+          containerEl.appendChild(nestedEl);
+        }
+      });
+      cardEl.appendChild(containerEl);
     }
 
     return cardEl;
@@ -127,9 +133,11 @@ const Canvas = {
     // Double-click to remove
     nestedEl.addEventListener('dblclick', (e) => {
       e.stopPropagation();
-      const parentPath = Utils.getData(nestedEl.parentElement, 'path');
+      const container = nestedEl.closest('.nested-cards-container');
+      const parentCard = container ? container.parentElement : nestedEl.parentElement;
+      const parentPath = Utils.getData(parentCard, 'path');
       if (parentPath) {
-        Data.unnestCard(parentPath);
+        Data.unnestCard(bottomUpId, parentPath);
         this.render();
         Library.render();
       }
@@ -171,30 +179,42 @@ const Canvas = {
     const cardEl = this.getCardElement(topDownPath);
     if (!cardEl) return;
 
-    // Remove existing nested card if any
-    const existing = cardEl.querySelector('.nested-card');
-    if (existing) {
-      existing.remove();
+    // Get or create container
+    let containerEl = cardEl.querySelector('.nested-cards-container');
+    if (!containerEl) {
+      containerEl = Utils.createElement('div', ['nested-cards-container']);
+      cardEl.appendChild(containerEl);
     }
+
+    // Check if card already exists in this container
+    const existing = containerEl.querySelector(`.nested-card[data-card-id="${bottomUpId}"]`);
+    if (existing) return;
 
     // Add new nested card
     const nestedEl = this.renderNestedCard(bottomUpId);
     if (nestedEl) {
-      cardEl.appendChild(nestedEl);
+      containerEl.appendChild(nestedEl);
     }
   },
 
   /**
-   * Remove nested card from a top-down card element
+   * Remove a specific nested card from a top-down card element
    * @param {string} topDownPath
+   * @param {string} bottomUpId
    */
-  removeNestedCard(topDownPath) {
+  removeNestedCard(topDownPath, bottomUpId) {
     const cardEl = this.getCardElement(topDownPath);
     if (!cardEl) return;
 
-    const nestedEl = cardEl.querySelector('.nested-card');
+    const nestedEl = cardEl.querySelector(`.nested-card[data-card-id="${bottomUpId}"]`);
     if (nestedEl) {
       nestedEl.remove();
+    }
+
+    // Clean up empty container
+    const containerEl = cardEl.querySelector('.nested-cards-container');
+    if (containerEl && containerEl.children.length === 0) {
+      containerEl.remove();
     }
   }
 };

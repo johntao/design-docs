@@ -153,12 +153,12 @@ const DragDrop = {
     const namespace = Utils.parseNamespace(targetPath);
     const existingPath = Data.getNestedPathInGraph(this.draggedCardId, namespace);
     if (existingPath) {
-      Canvas.removeNestedCard(existingPath);
+      Canvas.removeNestedCard(existingPath, this.draggedCardId);
     }
 
     // If from canvas and moving to a different graph, also remove from original
     if (this.dragSource === 'canvas' && this.originalParentPath && this.originalParentPath !== existingPath) {
-      Canvas.removeNestedCard(this.originalParentPath);
+      Canvas.removeNestedCard(this.originalParentPath, this.draggedCardId);
     }
 
     // Nest the card
@@ -182,10 +182,10 @@ const DragDrop = {
     }
 
     // Remove the nesting
-    Data.unnestCard(this.originalParentPath);
+    Data.unnestCard(this.draggedCardId, this.originalParentPath);
 
     // Update canvas
-    Canvas.removeNestedCard(this.originalParentPath);
+    Canvas.removeNestedCard(this.originalParentPath, this.draggedCardId);
 
     // Update library
     Library.updateCard(this.draggedCardId);

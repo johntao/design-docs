@@ -39,7 +39,7 @@ const Data = {
     cards: {}     // { id: { id, title, content, tags: [] } }
   },
 
-  nestingState: {}, // { topDownPath: bottomUpId }
+  nestingState: {}, // { topDownPath: [bottomUpId1, bottomUpId2, ...] }
 
   /**
    * Initialize data - parse and load from storage
@@ -173,23 +173,12 @@ const Data = {
   },
 
   /**
-   * Get nested card ID at a top-down path
+   * Get nested card IDs at a top-down path
    * @param {string} topDownPath
-   * @returns {string|null}
+   * @returns {string[]}
    */
-  getNestedCardAt(topDownPath) {
-    return this.nestingState[topDownPath] || null;
-  },
-
-  /**
-   * Check if a graph already has a nested card
-   * @param {string} namespace
-   * @returns {boolean}
-   */
-  graphHasNestedCard(namespace) {
-    return Object.keys(this.nestingState).some(
-      path => Utils.parseNamespace(path) === namespace
-    );
+  getNestedCardsAt(topDownPath) {
+    return this.nestingState[topDownPath] || [];
   },
 
   /**
@@ -199,9 +188,22 @@ const Data = {
    * @returns {string|null}
    */
   getNestedPathInGraph(bottomUpId, namespace) {
-    return Object.entries(this.nestingState).find(
-      ([path, id]) => id === bottomUpId && Utils.parseNamespace(path) === namespace
-    )?.[0] || null;
+    for (const [path, ids] of Object.entries(this.nestingState)) {
+      if (Utils.parseNamespace(path) === namespace && ids.includes(bottomUpId)) {
+        return path;
+      }
+    }
+    return null;
+  },
+
+  /**
+   * Check if a bottom-up card is already in a graph
+   * @param {string} bottomUpId
+   * @param {string} namespace
+   * @returns {boolean}
+   */
+  isCardInGraph(bottomUpId, namespace) {
+    return this.getNestedPathInGraph(bottomUpId, namespace) !== null;
   },
 
   /**
@@ -224,18 +226,15 @@ const Data = {
     }
 
     const namespace = Utils.parseNamespace(targetPath);
-    const existingPath = this.getNestedPathInGraph(bottomUpId, namespace);
 
-    // If card is already in this graph, it's a move operation (allowed)
-    if (existingPath) {
+    // Check if this specific card is already in this graph
+    // If so, it's a move operation (allowed)
+    if (this.isCardInGraph(bottomUpId, namespace)) {
       return { valid: true };
     }
 
-    // Check if graph already has a different nested card
-    if (this.graphHasNestedCard(namespace)) {
-      return { valid: false, reason: 'Graph already has a nested card' };
-    }
-
+    // Multiple different cards can be nested in the same top-down card
+    // so no need to check if target already has cards
     return { valid: true };
   },
 
@@ -257,12 +256,17 @@ const Data = {
 
     // Remove from previous position in this graph if exists
     if (existingPath) {
-      delete this.nestingState[existingPath];
+      this.removeCardFromPath(bottomUpId, existingPath);
       this.removeTag(bottomUpId, existingPath);
     }
 
     // Add to new position
-    this.nestingState[targetPath] = bottomUpId;
+    if (!this.nestingState[targetPath]) {
+      this.nestingState[targetPath] = [];
+    }
+    if (!this.nestingState[targetPath].includes(bottomUpId)) {
+      this.nestingState[targetPath].push(bottomUpId);
+    }
     this.addTag(bottomUpId, targetPath);
 
     this.saveNesting();
@@ -270,13 +274,27 @@ const Data = {
   },
 
   /**
-   * Remove a nested card from a top-down path
+   * Remove a specific bottom-up card from a top-down path
+   * @param {string} bottomUpId
    * @param {string} topDownPath
    */
-  unnestCard(topDownPath) {
-    const bottomUpId = this.nestingState[topDownPath];
-    if (bottomUpId) {
-      delete this.nestingState[topDownPath];
+  removeCardFromPath(bottomUpId, topDownPath) {
+    if (this.nestingState[topDownPath]) {
+      this.nestingState[topDownPath] = this.nestingState[topDownPath].filter(id => id !== bottomUpId);
+      if (this.nestingState[topDownPath].length === 0) {
+        delete this.nestingState[topDownPath];
+      }
+    }
+  },
+
+  /**
+   * Remove a nested card from a top-down path (by bottomUpId)
+   * @param {string} bottomUpId
+   * @param {string} topDownPath
+   */
+  unnestCard(bottomUpId, topDownPath) {
+    if (this.nestingState[topDownPath] && this.nestingState[topDownPath].includes(bottomUpId)) {
+      this.removeCardFromPath(bottomUpId, topDownPath);
       this.removeTag(bottomUpId, topDownPath);
       this.saveNesting();
     }
