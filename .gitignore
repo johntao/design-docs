@@ -1,6 +1,7 @@
 /*
 !/.gitignore
 !/p07-vimkeys-game/
+!/p13-card-peeker/
 /p07-vimkeys-game/material/
 [._]*
 *.ods
