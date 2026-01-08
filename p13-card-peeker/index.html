@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Card Peeker</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/modal.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Left Panel: Canvas with Star Topology Graphs -->
+    <main class="canvas" id="canvas">
+      <!-- Star topology graphs will be rendered here -->
+    </main>
+
+    <!-- Right Panel: Card Library -->
+    <aside class="side-panel" id="side-panel">
+      <div class="tabs">
+        <button class="tab active">Card Library</button>
+      </div>
+      <div class="card-library" id="card-library">
+        <!-- Bottom-up cards will be rendered here -->
+      </div>
+    </aside>
+  </div>
+
+  <!-- Inspection Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal">
+      <button class="modal-close" id="modal-close">&times;</button>
+      <div class="modal-content">
+        <div class="form-group">
+          <label for="card-title">Title</label>
+          <input type="text" id="card-title" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Tags</label>
+          <div class="tags-display" id="card-tags"></div>
+        </div>
+        <div class="form-group">
+          <label for="card-content">Content</label>
+          <textarea id="card-content" class="form-textarea" rows="8"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts in dependency order -->
+  <script src="js/utils.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/canvas.js"></script>
+  <script src="js/library.js"></script>
+  <script src="js/dragdrop.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
