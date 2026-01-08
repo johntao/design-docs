@@ -14,10 +14,6 @@ the left panel also stands as the main canvas which is responsible for rendering
 
 these cards are "top-down" cards
 
-canvas are bound to a path, the default path is the root
-
-switching the path would trigger a re-render and also load the cards of the path onto the canvas
-
 top-down cards following star topology
 
 here's the example data for the left panel:
@@ -36,26 +32,47 @@ income-type/slow_relic
 
 given the above data:
 - each line represent a record for a top-down card
-- each record contains a single field which stands as title
-- a title may contains zero-to-many slashes which stands as namespace separator
+- each record contains a single field which is the title of the card
+- a title may contains zero-to-many slashes which is a namespace separator
 
-left panel should render three graphs in star topology based on the data
+left panel should render three graphs in star topology based on the given data
 each node (vertex) is a "top-down" card
-edges are defined by parsing the title of each record
-if a namespace is presented, then, the base segment of the namespace is treated as the center node in the star topology
+if a namespace is presented, then, the base segment of the namespace is treated as the center node in a star topology
 
 expected result:
 - the first graph render 'user-type' in the center surrounding by 'user', 'dev' and 'org'
 - the second graph render 'dev-type' in the center surrounding by 'generic', 'support' and 'core'
 - the third graph render 'income-type' in the center surrounding by 'fast', 'slow_shiny' and 'slow_relic'
 
+### data flow
+
+- top-down cards are read-only
+- on page load, read through the pre-defined data, then render all top-down cards
+
+### rendernig logic
+
+render the star topology in a simple grid
+
+this would make the result looks very similar to mandala chart except the graph allows surrounding nodes to exceed over 8 items
+
+refer the following text:
+```txt
+2 2 2 2 2
+2 1 1 1 2
+2 1 0 1 2
+2 1 1 1 2
+2 2 2 2 2
+```
+- 0: denotes the center of the star
+- 1: denotes the first ring around the star
+- 2: denotes the second ring around the star
+  - items render in the second ring when all the seats in the first ring are unavailable
+
 ## UI: Right Panel
 
-the right panel stands as a functional tabbed panel
+the right panel stands as a functional tabbed panel (only one tab is available for now)
 
 the default tab is "card library" where users can drag-n-drop bottom-up cards into the main canvas
-
-one tab is enough for now, we'll introduce new tabs in the future
 
 here's the example data for the right panel:
 
@@ -70,7 +87,7 @@ bx-tool4
 
 given the above data:
 - each line represent a record for a bottom-up card
-- each record contains a single field which stands as title
+- each record contains a single field which is the title of the card
 
 right panel should render all bottom-up cards based on the data
 
@@ -98,9 +115,15 @@ if succeed:
   - e.g. drop "vscode-ext1" at "income-type/slow_shiny", "dev-type/support", "user-type/dev";
     - then, add "tags: income-type/slow_relic, dev-type/support, user-type/dev" to "vscode-ext1" in the right panel
 
+data/ visual flow:
+- drag card1 from right panel
+- drop card1 on cardA in the left panel
+- right panel: the card1 now appear "tags: cardA" below the title
+- left panel: nest card1 inside the cardA
+
 ### action 2
 
-users drag nested cards in the left panel, then, drop it on a top-down card in the left panel
+users drag nested cards in the left panel, then, drop it on another top-down card in the left panel
 
 action 2 is almost identical to action 1, except that the previous state is removed after a successful drop
 
@@ -112,10 +135,27 @@ if succeed:
   - in the left panel, the previous nested card is removed
   - in the right panel, the previous tags value is removed
 
-### todo
+data/ visual flow: (assume cardA and cardB are in the same graph)
+- drag card1 from left panel
+- drop card1 on cardB in the left panel
+- right panel:
+  - "tags: cardA" is removed from card1
+  - "tags: cardB" is inserted into card1
+- left panel:
+  - remove nested card1 from cardA
+  - insert nested card1 into cardB
 
-- drop at background
-- define data flow
+### action 3
+
+users drag nested cards in the left panel, then, drop it in the background of left panel
+
+then it is equivalent to double-click on a nested card (the card is removed)
+
+data/ visual flow: (assume cardA and cardB are in the same graph)
+- drag card1 from left panel
+- drop card1 on the background of left panel
+- right panel: "tags: cardA" is removed from card1
+- left panel: remove nested card1 from cardA
 
 ## Feature: Inspection
 
@@ -136,14 +176,3 @@ to leave a popup:
 - press ESC
 - click the backdrop area of the popup
 - click the top-right "cross sign" on the popup
-
-### todo
-
-- inspect by hover
-- define ellipsis
-- Inspect Top-Down Cards
-- top-down cards editable
-
-## Future
-
-- multiple levels
