@@ -176,3 +176,26 @@ to leave a popup:
 - press ESC
 - click the backdrop area of the popup
 - click the top-right "cross sign" on the popup
+
+## revision 1
+
+we need to tweak the layout a bit
+1. let's make the container of star-graph a fixed 3 columns layout
+   - e.g. given three star-graphs inside canvas
+   - the three star-graphs should appear in the same row having width ratio of 1:1:1
+2. we need to rework the ring layout inside the star-graph
+   - the CSS is good to go. however, the items should follow a specific order, then map to the existing CSS rule
+   - item1 should be placed at pos-1-1, which is the first position of ring 1
+   - item2 should be placed at pos-1-2, which is the second position of ring 1
+   - ...
+   - item8 should be placed at pos-3-3, which is the last position of ring 1
+   - item9 should be placed at pos-0-0, which is the first position of ring 2
+   - item10 should be placed at pos-0-1, which is the second position of ring 2
+   - ...
+   - item24 should be placed at pos-4-4, which is the last position of ring 2
+
+## revision 2
+
+let's tweak the layout again
+
+I think it's better to make the container

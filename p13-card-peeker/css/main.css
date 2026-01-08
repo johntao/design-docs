@@ -61,8 +61,8 @@ body {
   width: var(--split-left);
   padding: var(--spacing-lg);
   overflow-y: auto;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-md);
   align-content: flex-start;
 }
