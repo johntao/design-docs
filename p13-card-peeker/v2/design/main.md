@@ -39,8 +39,4 @@ Users may manage many domains as they want (limited to 5 domains at max in the P
 - chapter3
   - define popup modals and displaying fields
 - chapter4
-  - keyboard shortcuts for power users
-- chapter5
-  - advanced features
-- chapter6
   - sample data
