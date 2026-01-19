@@ -181,7 +181,8 @@ interactable objects:
   - inspect the tag at the center of the subgrid of the current focused maingrid
 - hit `<enter>` on a focused maincell (toggle)
   - toggle the tag at the center of the subgrid of the current focused maingrid
-  - if the tag doesn't have children tags, then, nothing happen
+  - toggle only affects grandchildren (depth 2+); first-layer children are always visible
+  - if the tag doesn't have grandchildren, then, nothing happen
 - hit `<delete>` on a focused maincell
   - remove tags from the focused maincell
   - the rest of the occupied maincell are push forward by one cell unit
@@ -215,7 +216,8 @@ interactable objects:
   - inspect the tag inside the subcell
 - hit `<enter>` on a focused subcell (toggle)
   - toggle the tag inside the subcell
-  - if the tag doesn't have children tags, then, nothing happen
+  - toggle only affects grandchildren (depth 2+); first-layer children are always visible
+  - if the tag doesn't have grandchildren, then, nothing happen
 - hit `<delete>` on a focused subcell
   - if the subcell is at the center of the subgrid, then, the deletion is identical to delete a focused maincell
   - if the subcell is NOT at the center of the subgrid, then, remove tag from the focused subcell

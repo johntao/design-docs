@@ -76,7 +76,7 @@ given tag #animal which contains children tag #animal/dog and #animal/cat
 #animal/dog is placed in the first cell of the first row `subgrid[0,0]`  
 #animal/cat is placed in the second cell of the first row `subgrid[0,1]`
 
-noted that the tag hierarchy auto-expansion trigger automatically, it cannot be disabled or collapsed
+noted that the first layer of children auto-expands and cannot be collapsed; deeper layers (grandchildren) are collapsed by default and can be toggled by the user
 
 ### interaction with notes and right panel
 

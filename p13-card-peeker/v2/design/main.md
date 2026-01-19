@@ -27,7 +27,7 @@ To make the top-down approach more flexible, the app introduce a new concept "do
 
 Users may put related tags into a group which stand as a domain
 
-Users may manage many domains as they want (limited to 5 domains at max in the POC phase)
+Users may manage many domains as they want
 
 ## index
 
