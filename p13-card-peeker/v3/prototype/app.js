@@ -9,9 +9,10 @@ const state = {
     currentNavNode: null, // current node being viewed in canvas (for nav-into/nav-up)
     activePanel: null,    // 'left' | 'midTab' | 'midCanvas' | 'right'
     focus: {
-        left: null,    // focused TypeA id
-        mid: null,     // focused element: { type: 'tab'|'subcell'|'typeB2', id, maincell?, subcell?, nodeId? }
-        right: null    // focused TypeC id
+        left: null,      // focused TypeA id
+        midTab: null,    // focused tab id
+        midCanvas: null, // focused element: { type: 'subcell'|'typeB2', maincell?, subcell?, nodeId?, id? }
+        right: null      // focused TypeC id
     }
 };
 
@@ -131,7 +132,7 @@ function renderTypeBTabs() {
 
 function handleTypeBTabClick(e, id) {
     e.stopPropagation();
-    setFocus('midTab', { type: 'tab', id });
+    setFocus('midTab', id);
 }
 
 function handleTypeBDoubleClick(e, item) {
@@ -324,8 +325,10 @@ function setFocus(panel, focusData) {
     // Update focus data based on panel
     if (panel === 'left') {
         state.focus.left = focusData;
-    } else if (panel === 'midTab' || panel === 'midCanvas') {
-        state.focus.mid = focusData;
+    } else if (panel === 'midTab') {
+        state.focus.midTab = focusData;
+    } else if (panel === 'midCanvas') {
+        state.focus.midCanvas = focusData;
     } else if (panel === 'right') {
         state.focus.right = focusData;
     }
@@ -346,15 +349,22 @@ function updateFocusVisuals() {
     elements.tabBar?.classList.remove('panel-active');
     elements.canvas?.classList.remove('panel-active');
 
-    // Update element focus based on active panel
-    if (state.activePanel === 'left' && state.focus.left) {
+    // Apply focused class to each panel's focused element (all panels, not just active)
+    // Left panel
+    if (state.focus.left) {
         const el = elements.typeAList.querySelector(`[data-id="${state.focus.left}"]`);
         if (el) el.classList.add('focused');
-    } else if (state.activePanel === 'midTab' && state.focus.mid?.type === 'tab') {
-        const el = elements.typeBTabs.querySelector(`[data-id="${state.focus.mid.id}"]`);
+    }
+
+    // Mid tab bar
+    if (state.focus.midTab) {
+        const el = elements.typeBTabs.querySelector(`[data-id="${state.focus.midTab}"]`);
         if (el) el.classList.add('focused');
-    } else if (state.activePanel === 'midCanvas' && state.focus.mid) {
-        const focus = state.focus.mid;
+    }
+
+    // Mid canvas
+    if (state.focus.midCanvas) {
+        const focus = state.focus.midCanvas;
         if (focus.type === 'subcell') {
             const maincell = document.querySelector(`[data-maincell="${focus.maincell}"]`);
             if (maincell) {
@@ -365,12 +375,15 @@ function updateFocusVisuals() {
             const el = document.querySelector(`.typeB2-entity[data-id="${focus.id}"]`);
             if (el) el.classList.add('focused');
         }
-    } else if (state.activePanel === 'right' && state.focus.right) {
+    }
+
+    // Right panel
+    if (state.focus.right) {
         const el = elements.typeCList.querySelector(`[data-id="${state.focus.right}"]`);
         if (el) el.classList.add('focused');
     }
 
-    // Debug: Highlight active panel
+    // Debug: Highlight active panel only
     if (DEBUG_PANEL_HIGHLIGHT && state.activePanel) {
         switch (state.activePanel) {
             case 'left':
@@ -824,11 +837,11 @@ function handleSpaceKey() {
     if (state.activePanel === 'left' && state.focus.left) {
         const item = DATA.typeA.find(a => a.id === state.focus.left);
         if (item) openModal('typeA', 'update', item);
-    } else if (state.activePanel === 'midTab' && state.focus.mid?.type === 'tab') {
-        const item = DATA.typeB.find(b => b.id === state.focus.mid.id);
+    } else if (state.activePanel === 'midTab' && state.focus.midTab) {
+        const item = DATA.typeB.find(b => b.id === state.focus.midTab);
         if (item) openModal('typeB', 'update', item);
-    } else if (state.activePanel === 'midCanvas' && state.focus.mid) {
-        const focus = state.focus.mid;
+    } else if (state.activePanel === 'midCanvas' && state.focus.midCanvas) {
+        const focus = state.focus.midCanvas;
         if (focus.type === 'subcell' && focus.nodeId) {
             // Open TypeA modal for the B1's typeA
             const tree = DATA.typeB1[state.currentTab];
@@ -862,10 +875,10 @@ function findTypeB2ById(b2Id) {
 function handleDeleteKey() {
     if (state.activePanel === 'left' && state.focus.left) {
         deleteTypeA(state.focus.left);
-    } else if (state.activePanel === 'midTab' && state.focus.mid?.type === 'tab') {
-        deleteTypeB(state.focus.mid.id);
-    } else if (state.activePanel === 'midCanvas' && state.focus.mid) {
-        const focus = state.focus.mid;
+    } else if (state.activePanel === 'midTab' && state.focus.midTab) {
+        deleteTypeB(state.focus.midTab);
+    } else if (state.activePanel === 'midCanvas' && state.focus.midCanvas) {
+        const focus = state.focus.midCanvas;
         if (focus.type === 'subcell' && focus.nodeId) {
             deleteTypeB1(state.currentTab, focus.nodeId);
         } else if (focus.type === 'typeB2') {
@@ -884,12 +897,12 @@ function handleEnterKey() {
     } else if (state.activePanel === 'right' && state.focus.right) {
         // Insert TypeC into canvas (creates TypeB2)
         insertTypeCIntoCanvas(state.focus.right);
-    } else if (state.activePanel === 'midTab' && state.focus.mid?.type === 'tab') {
+    } else if (state.activePanel === 'midTab' && state.focus.midTab) {
         // Load details: only works when mid top bar is active
-        selectTab(state.focus.mid.id);
-    } else if (state.activePanel === 'midCanvas' && state.focus.mid?.type === 'subcell') {
+        selectTab(state.focus.midTab);
+    } else if (state.activePanel === 'midCanvas' && state.focus.midCanvas?.type === 'subcell') {
         // Nav-into: only works when mid canvas is active
-        navInto(state.focus.mid.nodeId);
+        navInto(state.focus.midCanvas.nodeId);
     }
 }
 
@@ -981,7 +994,7 @@ function deleteTypeB(id) {
     delete DATA.typeB1[id];
     delete DATA.typeB2[id];
 
-    state.focus.mid = null;
+    state.focus.midTab = null;
     state.activePanel = null;
 
     // Switch to another tab if the deleted one was active
@@ -1040,7 +1053,7 @@ function deleteTypeB1(typeBId, nodeId) {
     // Delete the node
     delete tree[nodeId];
 
-    state.focus.mid = null;
+    state.focus.midCanvas = null;
     state.activePanel = null;
     renderCanvas();
     updateFocusVisuals();
@@ -1082,7 +1095,7 @@ function deleteTypeB2(typeBId, b2Id) {
     if (!foundB2) return;
 
     b2Data[foundNodeId].splice(foundIndex, 1);
-    state.focus.mid = null;
+    state.focus.midCanvas = null;
     state.activePanel = null;
     renderCanvas();
     updateFocusVisuals();
@@ -1191,8 +1204,8 @@ function insertTypeCIntoCanvas(typeCId) {
 
     // Need a target B1 - use the focused subcell from midCanvas if available
     let targetNodeId = null;
-    if (state.focus.mid?.type === 'subcell' && state.focus.mid.nodeId) {
-        targetNodeId = state.focus.mid.nodeId;
+    if (state.focus.midCanvas?.type === 'subcell' && state.focus.midCanvas.nodeId) {
+        targetNodeId = state.focus.midCanvas.nodeId;
     }
 
     if (!targetNodeId) {
