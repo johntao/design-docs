@@ -34,6 +34,7 @@ const elements = {
 document.addEventListener('DOMContentLoaded', () => {
     initializeElements();
     setupAddButtons();
+    setupKeyboardHandlers();
     renderTypeAList();
     renderTypeBTabs();
     renderTypeCList();
@@ -769,6 +770,497 @@ function setupAddButtons() {
     document.getElementById('add-typeC')?.addEventListener('click', () => {
         openModal('typeC', 'create');
     });
+}
+
+// ==================== Keyboard Handlers ====================
+
+function setupKeyboardHandlers() {
+    document.addEventListener('keydown', handleKeydown);
+}
+
+function handleKeydown(e) {
+    // Don't handle keys when typing in input/textarea
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+        return;
+    }
+
+    switch (e.key) {
+        case 'Escape':
+            closeModal();
+            break;
+        case ' ':
+            e.preventDefault();
+            handleSpaceKey();
+            break;
+        case 'Delete':
+            e.preventDefault();
+            handleDeleteKey();
+            break;
+        case 'Enter':
+            e.preventDefault();
+            handleEnterKey();
+            break;
+        case 'Backspace':
+            e.preventDefault();
+            handleBackspaceKey();
+            break;
+    }
+}
+
+function handleSpaceKey() {
+    // Open inspect/update modal on focused element
+    if (state.focus.left) {
+        const item = DATA.typeA.find(a => a.id === state.focus.left);
+        if (item) openModal('typeA', 'update', item);
+    } else if (state.focus.mid) {
+        const focus = state.focus.mid;
+        if (focus.type === 'tab') {
+            const item = DATA.typeB.find(b => b.id === focus.id);
+            if (item) openModal('typeB', 'update', item);
+        } else if (focus.type === 'subcell' && focus.nodeId) {
+            // Open TypeA modal for the B1's typeA
+            const tree = DATA.typeB1[state.currentTab];
+            const node = tree?.[focus.nodeId];
+            if (node) {
+                const typeA = DATA.typeA.find(a => a.id === node.typeAId);
+                if (typeA) openModal('typeA', 'update', typeA);
+            }
+        } else if (focus.type === 'typeB2') {
+            // Open TypeB2 details modal
+            const b2 = findTypeB2ById(focus.id);
+            if (b2) openModal('typeB2', 'update', b2);
+        }
+    } else if (state.focus.right) {
+        const item = DATA.typeC.find(c => c.id === state.focus.right);
+        if (item) openModal('typeC', 'update', item);
+    }
+}
+
+function findTypeB2ById(b2Id) {
+    for (const typeBId of Object.keys(DATA.typeB2)) {
+        const b2Data = DATA.typeB2[typeBId];
+        for (const nodeId of Object.keys(b2Data)) {
+            const b2 = b2Data[nodeId].find(b => b.id === b2Id);
+            if (b2) return b2;
+        }
+    }
+    return null;
+}
+
+function handleDeleteKey() {
+    if (state.focus.left) {
+        deleteTypeA(state.focus.left);
+    } else if (state.focus.mid) {
+        const focus = state.focus.mid;
+        if (focus.type === 'tab') {
+            deleteTypeB(focus.id);
+        } else if (focus.type === 'subcell' && focus.nodeId) {
+            deleteTypeB1(state.currentTab, focus.nodeId);
+        } else if (focus.type === 'typeB2') {
+            deleteTypeB2(state.currentTab, focus.id);
+        }
+    } else if (state.focus.right) {
+        deleteTypeC(state.focus.right);
+    }
+}
+
+function handleEnterKey() {
+    if (state.focus.left) {
+        // Insert TypeA into canvas at previous focused position
+        insertTypeAIntoCanvas(state.focus.left);
+    } else if (state.focus.mid) {
+        const focus = state.focus.mid;
+        if (focus.type === 'tab') {
+            // Load details - already happens on click, but confirm it
+            selectTab(focus.id);
+        } else if (focus.type === 'subcell' && focus.nodeId) {
+            // Nav-into: navigate into the B1 node
+            navInto(focus.nodeId);
+        }
+    } else if (state.focus.right) {
+        // Insert TypeC into canvas (create B2)
+        insertTypeCIntoCanvas(state.focus.right);
+    }
+}
+
+function handleBackspaceKey() {
+    // Nav-up: return to parent B1
+    if (state.currentNavNode !== 'root') {
+        navUp();
+    }
+}
+
+// ==================== Navigation (nav-into / nav-up) ====================
+
+function navInto(nodeId) {
+    const tree = DATA.typeB1[state.currentTab];
+    if (!tree) return;
+
+    const node = tree[nodeId];
+    if (!node || node.children.length === 0) return;
+
+    state.currentNavNode = nodeId;
+    renderCanvas();
+}
+
+function navUp() {
+    const tree = DATA.typeB1[state.currentTab];
+    if (!tree) return;
+
+    const currentNode = tree[state.currentNavNode];
+    if (!currentNode || !currentNode.parentId) {
+        state.currentNavNode = 'root';
+    } else {
+        state.currentNavNode = currentNode.parentId;
+    }
+
+    renderCanvas();
+}
+
+// ==================== Delete Operations ====================
+
+let pendingDelete = null;
+
+function deleteTypeA(id) {
+    const item = DATA.typeA.find(a => a.id === id);
+    if (!item) return;
+
+    // Check if it's in use
+    const usageCount = getTypeAUsageCount(id);
+    if (usageCount > 0) {
+        showToast(`Cannot delete "${item.title}" - it's used ${usageCount} times`, null, 3000);
+        return;
+    }
+
+    const index = DATA.typeA.findIndex(a => a.id === id);
+    if (index === -1) return;
+
+    DATA.typeA.splice(index, 1);
+    state.focus.left = null;
+    renderTypeAList();
+
+    showToast(`Deleted "${item.title}"`, () => {
+        // Undo
+        DATA.typeA.splice(index, 0, item);
+        renderTypeAList();
+    });
+}
+
+function deleteTypeB(id) {
+    const item = DATA.typeB.find(b => b.id === id);
+    if (!item) return;
+
+    // Check if it has children (B1 nodes)
+    const tree = DATA.typeB1[id] || {};
+    const nodeCount = Object.keys(tree).length;
+    if (nodeCount > 1) { // more than just root
+        if (!confirm(`Delete "${item.title}" and all its ${nodeCount - 1} child nodes?`)) {
+            return;
+        }
+    }
+
+    const index = DATA.typeB.findIndex(b => b.id === id);
+    if (index === -1) return;
+
+    const savedTree = { ...DATA.typeB1[id] };
+    const savedB2 = { ...DATA.typeB2[id] };
+
+    DATA.typeB.splice(index, 1);
+    delete DATA.typeB1[id];
+    delete DATA.typeB2[id];
+
+    state.focus.mid = null;
+
+    // Switch to another tab if the deleted one was active
+    if (state.currentTab === id) {
+        if (DATA.typeB.length > 0) {
+            selectTab(DATA.typeB[0].id);
+        } else {
+            state.currentTab = null;
+            renderCanvas();
+        }
+    }
+
+    renderTypeBTabs();
+
+    showToast(`Deleted "${item.title}"`, () => {
+        // Undo
+        DATA.typeB.splice(index, 0, item);
+        DATA.typeB1[id] = savedTree;
+        DATA.typeB2[id] = savedB2;
+        renderTypeBTabs();
+        if (state.currentTab === null) {
+            selectTab(id);
+        }
+    });
+}
+
+function deleteTypeB1(typeBId, nodeId) {
+    const tree = DATA.typeB1[typeBId];
+    if (!tree || nodeId === 'root') return;
+
+    const node = tree[nodeId];
+    if (!node) return;
+
+    // Check for children
+    if (node.children.length > 0) {
+        showToast(`Cannot delete - has ${node.children.length} children`, null, 3000);
+        return;
+    }
+
+    // Remove from parent's children
+    const parent = tree[node.parentId];
+    if (parent) {
+        const childIndex = parent.children.indexOf(nodeId);
+        if (childIndex !== -1) {
+            parent.children.splice(childIndex, 1);
+        }
+    }
+
+    // Delete B2 relations
+    const savedB2 = DATA.typeB2[typeBId]?.[nodeId] || [];
+    if (DATA.typeB2[typeBId]) {
+        delete DATA.typeB2[typeBId][nodeId];
+    }
+
+    // Delete the node
+    delete tree[nodeId];
+
+    state.focus.mid = null;
+    renderCanvas();
+
+    const typeA = DATA.typeA.find(a => a.id === node.typeAId);
+    const title = typeA?.title || node.typeAId;
+
+    showToast(`Deleted "${title}"`, () => {
+        // Undo
+        tree[nodeId] = node;
+        if (parent) {
+            parent.children.push(nodeId);
+        }
+        if (savedB2.length > 0) {
+            DATA.typeB2[typeBId][nodeId] = savedB2;
+        }
+        renderCanvas();
+    });
+}
+
+function deleteTypeB2(typeBId, b2Id) {
+    const b2Data = DATA.typeB2[typeBId];
+    if (!b2Data) return;
+
+    let foundB2 = null;
+    let foundNodeId = null;
+    let foundIndex = -1;
+
+    for (const nodeId of Object.keys(b2Data)) {
+        const index = b2Data[nodeId].findIndex(b => b.id === b2Id);
+        if (index !== -1) {
+            foundB2 = b2Data[nodeId][index];
+            foundNodeId = nodeId;
+            foundIndex = index;
+            break;
+        }
+    }
+
+    if (!foundB2) return;
+
+    b2Data[foundNodeId].splice(foundIndex, 1);
+    state.focus.mid = null;
+    renderCanvas();
+
+    showToast(`Deleted TypeB2 "${foundB2.char}"`, () => {
+        // Undo
+        b2Data[foundNodeId].splice(foundIndex, 0, foundB2);
+        renderCanvas();
+    });
+}
+
+function deleteTypeC(id) {
+    const item = DATA.typeC.find(c => c.id === id);
+    if (!item) return;
+
+    // Also delete all B2 relations
+    const usageList = getTypeCUsageList(id);
+    if (usageList.length > 0) {
+        if (!confirm(`Delete "${item.title}" and its ${usageList.length} TypeB2 relations?`)) {
+            return;
+        }
+    }
+
+    const index = DATA.typeC.findIndex(c => c.id === id);
+    if (index === -1) return;
+
+    // Save B2 relations for undo
+    const savedB2Relations = [];
+    Object.keys(DATA.typeB2).forEach(typeBId => {
+        const b2Data = DATA.typeB2[typeBId];
+        Object.keys(b2Data).forEach(nodeId => {
+            const toRemove = b2Data[nodeId].filter(b => b.typeCId === id);
+            toRemove.forEach(b2 => {
+                savedB2Relations.push({ typeBId, nodeId, b2, index: b2Data[nodeId].indexOf(b2) });
+            });
+            b2Data[nodeId] = b2Data[nodeId].filter(b => b.typeCId !== id);
+        });
+    });
+
+    DATA.typeC.splice(index, 1);
+    state.focus.right = null;
+    renderTypeCList();
+    renderCanvas();
+
+    showToast(`Deleted "${item.title}"`, () => {
+        // Undo
+        DATA.typeC.splice(index, 0, item);
+        savedB2Relations.forEach(({ typeBId, nodeId, b2, index }) => {
+            DATA.typeB2[typeBId][nodeId].splice(index, 0, b2);
+        });
+        renderTypeCList();
+        renderCanvas();
+    });
+}
+
+// ==================== Insert Operations ====================
+
+function insertTypeAIntoCanvas(typeAId) {
+    const typeA = DATA.typeA.find(a => a.id === typeAId);
+    if (!typeA || !state.currentTab) return;
+
+    const tree = DATA.typeB1[state.currentTab];
+    if (!tree) return;
+
+    // Determine target position from previous mid focus
+    let targetNodeId = state.currentNavNode || 'root';
+    if (state.previousFocus.mid?.type === 'subcell' && state.previousFocus.mid.nodeId) {
+        targetNodeId = state.previousFocus.mid.nodeId;
+    }
+
+    const parentNode = tree[targetNodeId];
+    if (!parentNode) return;
+
+    // Check duplication among siblings
+    const isDuplicate = parentNode.children.some(childId => {
+        const child = tree[childId];
+        return child && child.typeAId === typeAId;
+    });
+
+    if (isDuplicate) {
+        showToast(`"${typeA.title}" already exists at this level`, null, 3000);
+        return;
+    }
+
+    // Create new B1 node
+    const newNodeId = `${targetNodeId}-${typeAId}-${Date.now()}`;
+    tree[newNodeId] = {
+        id: newNodeId,
+        typeAId: typeAId,
+        parentId: targetNodeId,
+        children: []
+    };
+    parentNode.children.push(newNodeId);
+
+    renderCanvas();
+    showToast(`Inserted "${typeA.title}"`, () => {
+        // Undo
+        const idx = parentNode.children.indexOf(newNodeId);
+        if (idx !== -1) parentNode.children.splice(idx, 1);
+        delete tree[newNodeId];
+        renderCanvas();
+    });
+}
+
+function insertTypeCIntoCanvas(typeCId) {
+    const typeC = DATA.typeC.find(c => c.id === typeCId);
+    if (!typeC || !state.currentTab) return;
+
+    // Get target B1 from previous mid focus
+    let targetNodeId = null;
+    if (state.previousFocus.mid?.type === 'subcell' && state.previousFocus.mid.nodeId) {
+        targetNodeId = state.previousFocus.mid.nodeId;
+    }
+
+    if (!targetNodeId) {
+        showToast('No target position selected', null, 3000);
+        return;
+    }
+
+    // Check duplication
+    const b2Data = DATA.typeB2[state.currentTab];
+    if (!b2Data[targetNodeId]) {
+        b2Data[targetNodeId] = [];
+    }
+
+    const isDuplicate = b2Data[targetNodeId].some(b2 => b2.typeCId === typeCId);
+    if (isDuplicate) {
+        showToast(`"${typeC.title}" already linked here`, null, 3000);
+        return;
+    }
+
+    // Create new B2
+    const newB2 = {
+        id: `b2-${state.currentTab}-${targetNodeId}-${Date.now()}`,
+        typeCId: typeCId,
+        color: DATA.colorPalette[Math.floor(Math.random() * DATA.colorPalette.length)],
+        char: DATA.charPreset[Math.floor(Math.random() * DATA.charPreset.length)]
+    };
+
+    b2Data[targetNodeId].push(newB2);
+    renderCanvas();
+
+    showToast(`Linked "${typeC.title}"`, () => {
+        // Undo
+        const idx = b2Data[targetNodeId].indexOf(newB2);
+        if (idx !== -1) b2Data[targetNodeId].splice(idx, 1);
+        renderCanvas();
+    });
+}
+
+// ==================== Toast Notification System ====================
+
+let toastCounter = 0;
+
+function showToast(message, undoCallback = null, duration = 5000) {
+    const toastId = ++toastCounter;
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.dataset.id = toastId;
+
+    let html = `<span class="toast-message">${escapeHtml(message)}</span>`;
+    if (undoCallback) {
+        html += `<button class="btn-undo">Undo</button>`;
+    }
+    toast.innerHTML = html;
+
+    if (undoCallback) {
+        const undoBtn = toast.querySelector('.btn-undo');
+        undoBtn.addEventListener('click', () => {
+            undoCallback();
+            removeToast(toastId);
+        });
+    }
+
+    elements.toastContainer.appendChild(toast);
+
+    // Auto-dismiss
+    setTimeout(() => {
+        removeToast(toastId);
+    }, duration);
+
+    return toastId;
+}
+
+function removeToast(toastId) {
+    const toast = elements.toastContainer.querySelector(`[data-id="${toastId}"]`);
+    if (toast) {
+        toast.classList.add('hiding');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }
 }
 
 // ==================== Utility Functions ====================
