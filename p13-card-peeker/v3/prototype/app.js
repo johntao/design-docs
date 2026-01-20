@@ -1,32 +1,30 @@
 // Note-Taking App Prototype
 
+// Debug flag - set to true to highlight active panel
+const DEBUG_PANEL_HIGHLIGHT = true;
+
 // App State
 const state = {
     currentTab: null,
     currentNavNode: null, // current node being viewed in canvas (for nav-into/nav-up)
+    activePanel: null,    // 'left' | 'midTab' | 'midCanvas' | 'right'
     focus: {
         left: null,    // focused TypeA id
-        mid: null,     // focused element: { type: 'tab'|'maincell'|'subcell'|'typeB2', id, maincell?, subcell? }
+        mid: null,     // focused element: { type: 'tab'|'subcell'|'typeB2', id, maincell?, subcell?, nodeId? }
         right: null    // focused TypeC id
-    },
-    previousFocus: {
-        left: null,
-        mid: null,
-        right: null
-    },
-    drag: {
-        active: false,
-        source: null,  // { type, id, element }
-        mode: 'grab'   // 'grab', 'copy', 'move'
     }
 };
 
 // DOM Elements
 const elements = {
+    panelLeft: null,
+    panelMid: null,
+    tabBar: null,
+    canvas: null,
+    panelRight: null,
     typeAList: null,
     typeBTabs: null,
     typeCList: null,
-    canvas: null,
     modalOverlay: null,
     modal: null,
     modalTitle: null,
@@ -40,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeElements();
     setupAddButtons();
     setupKeyboardHandlers();
-    setupDragDropHandlers();
     renderTypeAList();
     renderTypeBTabs();
     renderTypeCList();
@@ -55,10 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Initialize DOM element references
 function initializeElements() {
+    elements.panelLeft = document.querySelector('.panel-left');
+    elements.panelMid = document.querySelector('.panel-mid');
+    elements.tabBar = document.querySelector('.tab-bar');
+    elements.canvas = document.getElementById('canvas');
+    elements.panelRight = document.querySelector('.panel-right');
     elements.typeAList = document.getElementById('typeA-list');
     elements.typeBTabs = document.getElementById('typeB-tabs');
     elements.typeCList = document.getElementById('typeC-list');
-    elements.canvas = document.getElementById('canvas');
     elements.modalOverlay = document.getElementById('modal-overlay');
     elements.modal = document.getElementById('modal');
     elements.modalTitle = document.getElementById('modal-title');
@@ -84,7 +85,6 @@ function renderTypeAList() {
         `;
         div.addEventListener('click', (e) => handleTypeAClick(e, item.id));
         div.addEventListener('dblclick', (e) => handleTypeADoubleClick(e, item));
-        div.setAttribute('draggable', 'true');
         elements.typeAList.appendChild(div);
     });
 }
@@ -131,8 +131,7 @@ function renderTypeBTabs() {
 
 function handleTypeBTabClick(e, id) {
     e.stopPropagation();
-    setFocus('mid', { type: 'tab', id });
-    selectTab(id);
+    setFocus('midTab', { type: 'tab', id });
 }
 
 function handleTypeBDoubleClick(e, item) {
@@ -167,7 +166,6 @@ function renderTypeCList() {
         `;
         div.addEventListener('click', (e) => handleTypeCClick(e, item.id));
         div.addEventListener('dblclick', (e) => handleTypeCDoubleClick(e, item));
-        div.setAttribute('draggable', 'true');
         elements.typeCList.appendChild(div);
     });
 }
@@ -304,7 +302,7 @@ function handleSubcellClick(e, nodeId, cell) {
     const maincellIndex = maincell.dataset.maincell;
     const subcellIndex = cell.dataset.subcell;
 
-    setFocus('mid', {
+    setFocus('midCanvas', {
         type: 'subcell',
         nodeId,
         maincell: maincellIndex,
@@ -314,42 +312,50 @@ function handleSubcellClick(e, nodeId, cell) {
 
 function handleTypeB2Click(e, b2Id, nodeId) {
     e.stopPropagation();
-    setFocus('mid', { type: 'typeB2', id: b2Id, nodeId });
+    setFocus('midCanvas', { type: 'typeB2', id: b2Id, nodeId });
 }
 
 // ==================== Focus Management ====================
 
 function setFocus(panel, focusData) {
-    // Store previous focus
-    state.previousFocus[panel] = state.focus[panel];
-    state.focus[panel] = focusData;
+    // Update active panel
+    state.activePanel = panel;
+
+    // Update focus data based on panel
+    if (panel === 'left') {
+        state.focus.left = focusData;
+    } else if (panel === 'midTab' || panel === 'midCanvas') {
+        state.focus.mid = focusData;
+    } else if (panel === 'right') {
+        state.focus.right = focusData;
+    }
 
     updateFocusVisuals();
 }
 
 function updateFocusVisuals() {
     // Clear all focus classes
-    document.querySelectorAll('.focused, .previous-focused').forEach(el => {
-        el.classList.remove('focused', 'previous-focused');
+    document.querySelectorAll('.focused').forEach(el => {
+        el.classList.remove('focused');
     });
 
-    // Update left panel focus
-    if (state.focus.left) {
+    // Clear panel highlight classes
+    document.querySelectorAll('.panel-active').forEach(el => {
+        el.classList.remove('panel-active');
+    });
+    elements.tabBar?.classList.remove('panel-active');
+    elements.canvas?.classList.remove('panel-active');
+
+    // Update element focus based on active panel
+    if (state.activePanel === 'left' && state.focus.left) {
         const el = elements.typeAList.querySelector(`[data-id="${state.focus.left}"]`);
         if (el) el.classList.add('focused');
-    }
-    if (state.previousFocus.left) {
-        const el = elements.typeAList.querySelector(`[data-id="${state.previousFocus.left}"]`);
-        if (el) el.classList.add('previous-focused');
-    }
-
-    // Update mid panel focus
-    if (state.focus.mid) {
+    } else if (state.activePanel === 'midTab' && state.focus.mid?.type === 'tab') {
+        const el = elements.typeBTabs.querySelector(`[data-id="${state.focus.mid.id}"]`);
+        if (el) el.classList.add('focused');
+    } else if (state.activePanel === 'midCanvas' && state.focus.mid) {
         const focus = state.focus.mid;
-        if (focus.type === 'tab') {
-            const el = elements.typeBTabs.querySelector(`[data-id="${focus.id}"]`);
-            if (el) el.classList.add('focused');
-        } else if (focus.type === 'subcell') {
+        if (focus.type === 'subcell') {
             const maincell = document.querySelector(`[data-maincell="${focus.maincell}"]`);
             if (maincell) {
                 const subcell = maincell.querySelector(`[data-subcell="${focus.subcell}"]`);
@@ -359,32 +365,27 @@ function updateFocusVisuals() {
             const el = document.querySelector(`.typeB2-entity[data-id="${focus.id}"]`);
             if (el) el.classList.add('focused');
         }
-    }
-    if (state.previousFocus.mid) {
-        const focus = state.previousFocus.mid;
-        if (focus.type === 'tab') {
-            const el = elements.typeBTabs.querySelector(`[data-id="${focus.id}"]`);
-            if (el && !el.classList.contains('focused')) el.classList.add('previous-focused');
-        } else if (focus.type === 'subcell') {
-            const maincell = document.querySelector(`[data-maincell="${focus.maincell}"]`);
-            if (maincell) {
-                const subcell = maincell.querySelector(`[data-subcell="${focus.subcell}"]`);
-                if (subcell && !subcell.classList.contains('focused')) subcell.classList.add('previous-focused');
-            }
-        } else if (focus.type === 'typeB2') {
-            const el = document.querySelector(`.typeB2-entity[data-id="${focus.id}"]`);
-            if (el && !el.classList.contains('focused')) el.classList.add('previous-focused');
-        }
-    }
-
-    // Update right panel focus
-    if (state.focus.right) {
+    } else if (state.activePanel === 'right' && state.focus.right) {
         const el = elements.typeCList.querySelector(`[data-id="${state.focus.right}"]`);
         if (el) el.classList.add('focused');
     }
-    if (state.previousFocus.right) {
-        const el = elements.typeCList.querySelector(`[data-id="${state.previousFocus.right}"]`);
-        if (el) el.classList.add('previous-focused');
+
+    // Debug: Highlight active panel
+    if (DEBUG_PANEL_HIGHLIGHT && state.activePanel) {
+        switch (state.activePanel) {
+            case 'left':
+                elements.panelLeft?.classList.add('panel-active');
+                break;
+            case 'midTab':
+                elements.tabBar?.classList.add('panel-active');
+                break;
+            case 'midCanvas':
+                elements.canvas?.classList.add('panel-active');
+                break;
+            case 'right':
+                elements.panelRight?.classList.add('panel-active');
+                break;
+        }
     }
 }
 
@@ -443,7 +444,7 @@ function getTypeAModalBody(mode, data) {
     let html = `
         <div class="form-group">
             <label for="modal-title-input">Title</label>
-            <input type="text" id="modal-title-input" value="${escapeHtml(title)}" ${mode === 'update' ? '' : ''}>
+            <input type="text" id="modal-title-input" value="${escapeHtml(title)}">
         </div>
         <div class="form-group">
             <label for="modal-desc-input">Description</label>
@@ -820,15 +821,15 @@ function handleKeydown(e) {
 
 function handleSpaceKey() {
     // Open inspect/update modal on focused element
-    if (state.focus.left) {
+    if (state.activePanel === 'left' && state.focus.left) {
         const item = DATA.typeA.find(a => a.id === state.focus.left);
         if (item) openModal('typeA', 'update', item);
-    } else if (state.focus.mid) {
+    } else if (state.activePanel === 'midTab' && state.focus.mid?.type === 'tab') {
+        const item = DATA.typeB.find(b => b.id === state.focus.mid.id);
+        if (item) openModal('typeB', 'update', item);
+    } else if (state.activePanel === 'midCanvas' && state.focus.mid) {
         const focus = state.focus.mid;
-        if (focus.type === 'tab') {
-            const item = DATA.typeB.find(b => b.id === focus.id);
-            if (item) openModal('typeB', 'update', item);
-        } else if (focus.type === 'subcell' && focus.nodeId) {
+        if (focus.type === 'subcell' && focus.nodeId) {
             // Open TypeA modal for the B1's typeA
             const tree = DATA.typeB1[state.currentTab];
             const node = tree?.[focus.nodeId];
@@ -841,7 +842,7 @@ function handleSpaceKey() {
             const b2 = findTypeB2ById(focus.id);
             if (b2) openModal('typeB2', 'update', b2);
         }
-    } else if (state.focus.right) {
+    } else if (state.activePanel === 'right' && state.focus.right) {
         const item = DATA.typeC.find(c => c.id === state.focus.right);
         if (item) openModal('typeC', 'update', item);
     }
@@ -859,45 +860,45 @@ function findTypeB2ById(b2Id) {
 }
 
 function handleDeleteKey() {
-    if (state.focus.left) {
+    if (state.activePanel === 'left' && state.focus.left) {
         deleteTypeA(state.focus.left);
-    } else if (state.focus.mid) {
+    } else if (state.activePanel === 'midTab' && state.focus.mid?.type === 'tab') {
+        deleteTypeB(state.focus.mid.id);
+    } else if (state.activePanel === 'midCanvas' && state.focus.mid) {
         const focus = state.focus.mid;
-        if (focus.type === 'tab') {
-            deleteTypeB(focus.id);
-        } else if (focus.type === 'subcell' && focus.nodeId) {
+        if (focus.type === 'subcell' && focus.nodeId) {
             deleteTypeB1(state.currentTab, focus.nodeId);
         } else if (focus.type === 'typeB2') {
             deleteTypeB2(state.currentTab, focus.id);
         }
-    } else if (state.focus.right) {
+    } else if (state.activePanel === 'right' && state.focus.right) {
         deleteTypeC(state.focus.right);
     }
 }
 
 function handleEnterKey() {
-    if (state.focus.left) {
-        // Insert TypeA into canvas at previous focused position
+    // Insert: only works when left or right panel is active
+    if (state.activePanel === 'left' && state.focus.left) {
+        // Insert TypeA into canvas (creates TypeB1)
         insertTypeAIntoCanvas(state.focus.left);
-    } else if (state.focus.mid) {
-        const focus = state.focus.mid;
-        if (focus.type === 'tab') {
-            // Load details - already happens on click, but confirm it
-            selectTab(focus.id);
-        } else if (focus.type === 'subcell' && focus.nodeId) {
-            // Nav-into: navigate into the B1 node
-            navInto(focus.nodeId);
-        }
-    } else if (state.focus.right) {
-        // Insert TypeC into canvas (create B2)
+    } else if (state.activePanel === 'right' && state.focus.right) {
+        // Insert TypeC into canvas (creates TypeB2)
         insertTypeCIntoCanvas(state.focus.right);
+    } else if (state.activePanel === 'midTab' && state.focus.mid?.type === 'tab') {
+        // Load details: only works when mid top bar is active
+        selectTab(state.focus.mid.id);
+    } else if (state.activePanel === 'midCanvas' && state.focus.mid?.type === 'subcell') {
+        // Nav-into: only works when mid canvas is active
+        navInto(state.focus.mid.nodeId);
     }
 }
 
 function handleBackspaceKey() {
-    // Nav-up: return to parent B1
-    if (state.currentNavNode !== 'root') {
-        navUp();
+    // Nav-up: only works when mid canvas is active
+    if (state.activePanel === 'midCanvas') {
+        if (state.currentNavNode !== 'root') {
+            navUp();
+        }
     }
 }
 
@@ -930,8 +931,6 @@ function navUp() {
 
 // ==================== Delete Operations ====================
 
-let pendingDelete = null;
-
 function deleteTypeA(id) {
     const item = DATA.typeA.find(a => a.id === id);
     if (!item) return;
@@ -948,7 +947,9 @@ function deleteTypeA(id) {
 
     DATA.typeA.splice(index, 1);
     state.focus.left = null;
+    state.activePanel = null;
     renderTypeAList();
+    updateFocusVisuals();
 
     showToast(`Deleted "${item.title}"`, () => {
         // Undo
@@ -981,6 +982,7 @@ function deleteTypeB(id) {
     delete DATA.typeB2[id];
 
     state.focus.mid = null;
+    state.activePanel = null;
 
     // Switch to another tab if the deleted one was active
     if (state.currentTab === id) {
@@ -993,6 +995,7 @@ function deleteTypeB(id) {
     }
 
     renderTypeBTabs();
+    updateFocusVisuals();
 
     showToast(`Deleted "${item.title}"`, () => {
         // Undo
@@ -1038,7 +1041,9 @@ function deleteTypeB1(typeBId, nodeId) {
     delete tree[nodeId];
 
     state.focus.mid = null;
+    state.activePanel = null;
     renderCanvas();
+    updateFocusVisuals();
 
     const typeA = DATA.typeA.find(a => a.id === node.typeAId);
     const title = typeA?.title || node.typeAId;
@@ -1078,7 +1083,9 @@ function deleteTypeB2(typeBId, b2Id) {
 
     b2Data[foundNodeId].splice(foundIndex, 1);
     state.focus.mid = null;
+    state.activePanel = null;
     renderCanvas();
+    updateFocusVisuals();
 
     showToast(`Deleted TypeB2 "${foundB2.char}"`, () => {
         // Undo
@@ -1117,8 +1124,10 @@ function deleteTypeC(id) {
 
     DATA.typeC.splice(index, 1);
     state.focus.right = null;
+    state.activePanel = null;
     renderTypeCList();
     renderCanvas();
+    updateFocusVisuals();
 
     showToast(`Deleted "${item.title}"`, () => {
         // Undo
@@ -1140,12 +1149,8 @@ function insertTypeAIntoCanvas(typeAId) {
     const tree = DATA.typeB1[state.currentTab];
     if (!tree) return;
 
-    // Determine target position from previous mid focus
-    let targetNodeId = state.currentNavNode || 'root';
-    if (state.previousFocus.mid?.type === 'subcell' && state.previousFocus.mid.nodeId) {
-        targetNodeId = state.previousFocus.mid.nodeId;
-    }
-
+    // Target is always the current nav node (the node we're viewing)
+    const targetNodeId = state.currentNavNode || 'root';
     const parentNode = tree[targetNodeId];
     if (!parentNode) return;
 
@@ -1171,7 +1176,7 @@ function insertTypeAIntoCanvas(typeAId) {
     parentNode.children.push(newNodeId);
 
     renderCanvas();
-    showToast(`Inserted "${typeA.title}"`, () => {
+    showToast(`Inserted "${typeA.title}" as TypeB1`, () => {
         // Undo
         const idx = parentNode.children.indexOf(newNodeId);
         if (idx !== -1) parentNode.children.splice(idx, 1);
@@ -1184,14 +1189,14 @@ function insertTypeCIntoCanvas(typeCId) {
     const typeC = DATA.typeC.find(c => c.id === typeCId);
     if (!typeC || !state.currentTab) return;
 
-    // Get target B1 from previous mid focus
+    // Need a target B1 - use the focused subcell from midCanvas if available
     let targetNodeId = null;
-    if (state.previousFocus.mid?.type === 'subcell' && state.previousFocus.mid.nodeId) {
-        targetNodeId = state.previousFocus.mid.nodeId;
+    if (state.focus.mid?.type === 'subcell' && state.focus.mid.nodeId) {
+        targetNodeId = state.focus.mid.nodeId;
     }
 
     if (!targetNodeId) {
-        showToast('No target position selected', null, 3000);
+        showToast('First click a cell in the canvas to select target', null, 3000);
         return;
     }
 
@@ -1218,7 +1223,7 @@ function insertTypeCIntoCanvas(typeCId) {
     b2Data[targetNodeId].push(newB2);
     renderCanvas();
 
-    showToast(`Linked "${typeC.title}"`, () => {
+    showToast(`Linked "${typeC.title}" as TypeB2`, () => {
         // Undo
         const idx = b2Data[targetNodeId].indexOf(newB2);
         if (idx !== -1) b2Data[targetNodeId].splice(idx, 1);
@@ -1269,243 +1274,6 @@ function removeToast(toastId) {
             toast.remove();
         }, 300);
     }
-}
-
-// ==================== Drag and Drop ====================
-
-function setupDragDropHandlers() {
-    // Track modifier keys for cursor mode
-    document.addEventListener('keydown', updateDragMode);
-    document.addEventListener('keyup', updateDragMode);
-
-    // Setup drag-drop zones
-    setupCanvasDragDrop();
-}
-
-function updateDragMode(e) {
-    if (e.ctrlKey || e.metaKey) {
-        state.drag.mode = 'copy';
-        document.body.classList.remove('cursor-grab', 'cursor-move');
-        document.body.classList.add('cursor-copy');
-    } else if (e.shiftKey) {
-        state.drag.mode = 'move';
-        document.body.classList.remove('cursor-grab', 'cursor-copy');
-        document.body.classList.add('cursor-move');
-    } else {
-        state.drag.mode = 'grab';
-        document.body.classList.remove('cursor-copy', 'cursor-move');
-        if (state.drag.active) {
-            document.body.classList.add('cursor-grab');
-        }
-    }
-}
-
-function setupCanvasDragDrop() {
-    // Make TypeA items draggable
-    elements.typeAList.addEventListener('dragstart', handleTypeADragStart);
-    elements.typeAList.addEventListener('dragend', handleDragEnd);
-
-    // Make TypeC items draggable
-    elements.typeCList.addEventListener('dragstart', handleTypeCDragStart);
-    elements.typeCList.addEventListener('dragend', handleDragEnd);
-
-    // Setup canvas as drop target
-    elements.canvas.addEventListener('dragover', handleCanvasDragOver);
-    elements.canvas.addEventListener('drop', handleCanvasDrop);
-    elements.canvas.addEventListener('dragleave', handleCanvasDragLeave);
-}
-
-function handleTypeADragStart(e) {
-    const item = e.target.closest('.list-item');
-    if (!item) return;
-
-    const id = item.dataset.id;
-    state.drag.active = true;
-    state.drag.source = { type: 'typeA', id };
-
-    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'typeA', id }));
-    e.dataTransfer.effectAllowed = 'copyMove';
-
-    item.classList.add('dragging');
-    document.body.classList.add('cursor-grab');
-}
-
-function handleTypeCDragStart(e) {
-    const item = e.target.closest('.list-item');
-    if (!item) return;
-
-    const id = item.dataset.id;
-    state.drag.active = true;
-    state.drag.source = { type: 'typeC', id };
-
-    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'typeC', id }));
-    e.dataTransfer.effectAllowed = 'copyMove';
-
-    item.classList.add('dragging');
-    document.body.classList.add('cursor-grab');
-}
-
-function handleDragEnd(e) {
-    state.drag.active = false;
-    state.drag.source = null;
-
-    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-    document.body.classList.remove('cursor-grab', 'cursor-copy', 'cursor-move');
-}
-
-function handleCanvasDragOver(e) {
-    e.preventDefault();
-
-    const subcell = e.target.closest('.subcell');
-    if (subcell) {
-        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-        subcell.classList.add('drag-over');
-
-        if (state.drag.mode === 'copy') {
-            e.dataTransfer.dropEffect = 'copy';
-        } else {
-            e.dataTransfer.dropEffect = 'move';
-        }
-    }
-}
-
-function handleCanvasDragLeave(e) {
-    const subcell = e.target.closest('.subcell');
-    if (subcell && !subcell.contains(e.relatedTarget)) {
-        subcell.classList.remove('drag-over');
-    }
-}
-
-function handleCanvasDrop(e) {
-    e.preventDefault();
-
-    const subcell = e.target.closest('.subcell');
-    if (!subcell) return;
-
-    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-
-    try {
-        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-
-        if (data.type === 'typeA') {
-            handleTypeADropOnCanvas(data.id, subcell);
-        } else if (data.type === 'typeC') {
-            handleTypeCDropOnCanvas(data.id, subcell);
-        }
-    } catch (err) {
-        console.error('Drop error:', err);
-    }
-
-    handleDragEnd(e);
-}
-
-function handleTypeADropOnCanvas(typeAId, subcell) {
-    const typeA = DATA.typeA.find(a => a.id === typeAId);
-    if (!typeA || !state.currentTab) return;
-
-    const tree = DATA.typeB1[state.currentTab];
-    if (!tree) return;
-
-    // Determine target parent from subcell
-    let targetNodeId = subcell.dataset.nodeId;
-    let parentNodeId = state.currentNavNode || 'root';
-
-    // If dropping on an occupied cell, use that cell's parent
-    if (targetNodeId) {
-        const targetNode = tree[targetNodeId];
-        if (targetNode && targetNode.parentId) {
-            parentNodeId = targetNode.parentId;
-        }
-    }
-
-    const parentNode = tree[parentNodeId];
-    if (!parentNode) return;
-
-    // Check duplication
-    const isDuplicate = parentNode.children.some(childId => {
-        const child = tree[childId];
-        return child && child.typeAId === typeAId;
-    });
-
-    if (isDuplicate) {
-        showToast(`"${typeA.title}" already exists at this level`, null, 3000);
-        return;
-    }
-
-    // Create new B1 node
-    const newNodeId = `${parentNodeId}-${typeAId}-${Date.now()}`;
-    tree[newNodeId] = {
-        id: newNodeId,
-        typeAId: typeAId,
-        parentId: parentNodeId,
-        children: []
-    };
-
-    // Push-back logic: if cell is occupied, insert at position
-    const maincell = subcell.closest('.maincell');
-    const subcellIndex = parseInt(subcell.dataset.subcell);
-
-    if (targetNodeId && parentNode.children.includes(targetNodeId)) {
-        // Insert before the target node
-        const targetIndex = parentNode.children.indexOf(targetNodeId);
-        parentNode.children.splice(targetIndex, 0, newNodeId);
-    } else {
-        parentNode.children.push(newNodeId);
-    }
-
-    renderCanvas();
-    showToast(`Inserted "${typeA.title}"`, () => {
-        const idx = parentNode.children.indexOf(newNodeId);
-        if (idx !== -1) parentNode.children.splice(idx, 1);
-        delete tree[newNodeId];
-        renderCanvas();
-    });
-}
-
-function handleTypeCDropOnCanvas(typeCId, subcell) {
-    const typeC = DATA.typeC.find(c => c.id === typeCId);
-    if (!typeC || !state.currentTab) return;
-
-    const targetNodeId = subcell.dataset.nodeId;
-    if (!targetNodeId) {
-        showToast('Drop on an occupied cell', null, 3000);
-        return;
-    }
-
-    const b2Data = DATA.typeB2[state.currentTab];
-    if (!b2Data[targetNodeId]) {
-        b2Data[targetNodeId] = [];
-    }
-
-    // Check duplication
-    const isDuplicate = b2Data[targetNodeId].some(b2 => b2.typeCId === typeCId);
-    if (isDuplicate) {
-        showToast(`"${typeC.title}" already linked here`, null, 3000);
-        return;
-    }
-
-    // Create new B2
-    const newB2 = {
-        id: `b2-${state.currentTab}-${targetNodeId}-${Date.now()}`,
-        typeCId: typeCId,
-        color: DATA.colorPalette[Math.floor(Math.random() * DATA.colorPalette.length)],
-        char: DATA.charPreset[Math.floor(Math.random() * DATA.charPreset.length)]
-    };
-
-    b2Data[targetNodeId].push(newB2);
-    renderCanvas();
-
-    showToast(`Linked "${typeC.title}"`, () => {
-        const idx = b2Data[targetNodeId].indexOf(newB2);
-        if (idx !== -1) b2Data[targetNodeId].splice(idx, 1);
-        renderCanvas();
-    });
-}
-
-// Make list items draggable on render
-function makeListItemDraggable(element) {
-    element.setAttribute('draggable', 'true');
 }
 
 // ==================== Utility Functions ====================
