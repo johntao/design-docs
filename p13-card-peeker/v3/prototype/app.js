@@ -13,6 +13,11 @@ const state = {
         left: null,
         mid: null,
         right: null
+    },
+    drag: {
+        active: false,
+        source: null,  // { type, id, element }
+        mode: 'grab'   // 'grab', 'copy', 'move'
     }
 };
 
@@ -35,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeElements();
     setupAddButtons();
     setupKeyboardHandlers();
+    setupDragDropHandlers();
     renderTypeAList();
     renderTypeBTabs();
     renderTypeCList();
@@ -78,6 +84,7 @@ function renderTypeAList() {
         `;
         div.addEventListener('click', (e) => handleTypeAClick(e, item.id));
         div.addEventListener('dblclick', (e) => handleTypeADoubleClick(e, item));
+        div.setAttribute('draggable', 'true');
         elements.typeAList.appendChild(div);
     });
 }
@@ -160,6 +167,7 @@ function renderTypeCList() {
         `;
         div.addEventListener('click', (e) => handleTypeCClick(e, item.id));
         div.addEventListener('dblclick', (e) => handleTypeCDoubleClick(e, item));
+        div.setAttribute('draggable', 'true');
         elements.typeCList.appendChild(div);
     });
 }
@@ -1261,6 +1269,243 @@ function removeToast(toastId) {
             toast.remove();
         }, 300);
     }
+}
+
+// ==================== Drag and Drop ====================
+
+function setupDragDropHandlers() {
+    // Track modifier keys for cursor mode
+    document.addEventListener('keydown', updateDragMode);
+    document.addEventListener('keyup', updateDragMode);
+
+    // Setup drag-drop zones
+    setupCanvasDragDrop();
+}
+
+function updateDragMode(e) {
+    if (e.ctrlKey || e.metaKey) {
+        state.drag.mode = 'copy';
+        document.body.classList.remove('cursor-grab', 'cursor-move');
+        document.body.classList.add('cursor-copy');
+    } else if (e.shiftKey) {
+        state.drag.mode = 'move';
+        document.body.classList.remove('cursor-grab', 'cursor-copy');
+        document.body.classList.add('cursor-move');
+    } else {
+        state.drag.mode = 'grab';
+        document.body.classList.remove('cursor-copy', 'cursor-move');
+        if (state.drag.active) {
+            document.body.classList.add('cursor-grab');
+        }
+    }
+}
+
+function setupCanvasDragDrop() {
+    // Make TypeA items draggable
+    elements.typeAList.addEventListener('dragstart', handleTypeADragStart);
+    elements.typeAList.addEventListener('dragend', handleDragEnd);
+
+    // Make TypeC items draggable
+    elements.typeCList.addEventListener('dragstart', handleTypeCDragStart);
+    elements.typeCList.addEventListener('dragend', handleDragEnd);
+
+    // Setup canvas as drop target
+    elements.canvas.addEventListener('dragover', handleCanvasDragOver);
+    elements.canvas.addEventListener('drop', handleCanvasDrop);
+    elements.canvas.addEventListener('dragleave', handleCanvasDragLeave);
+}
+
+function handleTypeADragStart(e) {
+    const item = e.target.closest('.list-item');
+    if (!item) return;
+
+    const id = item.dataset.id;
+    state.drag.active = true;
+    state.drag.source = { type: 'typeA', id };
+
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'typeA', id }));
+    e.dataTransfer.effectAllowed = 'copyMove';
+
+    item.classList.add('dragging');
+    document.body.classList.add('cursor-grab');
+}
+
+function handleTypeCDragStart(e) {
+    const item = e.target.closest('.list-item');
+    if (!item) return;
+
+    const id = item.dataset.id;
+    state.drag.active = true;
+    state.drag.source = { type: 'typeC', id };
+
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'typeC', id }));
+    e.dataTransfer.effectAllowed = 'copyMove';
+
+    item.classList.add('dragging');
+    document.body.classList.add('cursor-grab');
+}
+
+function handleDragEnd(e) {
+    state.drag.active = false;
+    state.drag.source = null;
+
+    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    document.body.classList.remove('cursor-grab', 'cursor-copy', 'cursor-move');
+}
+
+function handleCanvasDragOver(e) {
+    e.preventDefault();
+
+    const subcell = e.target.closest('.subcell');
+    if (subcell) {
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        subcell.classList.add('drag-over');
+
+        if (state.drag.mode === 'copy') {
+            e.dataTransfer.dropEffect = 'copy';
+        } else {
+            e.dataTransfer.dropEffect = 'move';
+        }
+    }
+}
+
+function handleCanvasDragLeave(e) {
+    const subcell = e.target.closest('.subcell');
+    if (subcell && !subcell.contains(e.relatedTarget)) {
+        subcell.classList.remove('drag-over');
+    }
+}
+
+function handleCanvasDrop(e) {
+    e.preventDefault();
+
+    const subcell = e.target.closest('.subcell');
+    if (!subcell) return;
+
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+
+    try {
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+
+        if (data.type === 'typeA') {
+            handleTypeADropOnCanvas(data.id, subcell);
+        } else if (data.type === 'typeC') {
+            handleTypeCDropOnCanvas(data.id, subcell);
+        }
+    } catch (err) {
+        console.error('Drop error:', err);
+    }
+
+    handleDragEnd(e);
+}
+
+function handleTypeADropOnCanvas(typeAId, subcell) {
+    const typeA = DATA.typeA.find(a => a.id === typeAId);
+    if (!typeA || !state.currentTab) return;
+
+    const tree = DATA.typeB1[state.currentTab];
+    if (!tree) return;
+
+    // Determine target parent from subcell
+    let targetNodeId = subcell.dataset.nodeId;
+    let parentNodeId = state.currentNavNode || 'root';
+
+    // If dropping on an occupied cell, use that cell's parent
+    if (targetNodeId) {
+        const targetNode = tree[targetNodeId];
+        if (targetNode && targetNode.parentId) {
+            parentNodeId = targetNode.parentId;
+        }
+    }
+
+    const parentNode = tree[parentNodeId];
+    if (!parentNode) return;
+
+    // Check duplication
+    const isDuplicate = parentNode.children.some(childId => {
+        const child = tree[childId];
+        return child && child.typeAId === typeAId;
+    });
+
+    if (isDuplicate) {
+        showToast(`"${typeA.title}" already exists at this level`, null, 3000);
+        return;
+    }
+
+    // Create new B1 node
+    const newNodeId = `${parentNodeId}-${typeAId}-${Date.now()}`;
+    tree[newNodeId] = {
+        id: newNodeId,
+        typeAId: typeAId,
+        parentId: parentNodeId,
+        children: []
+    };
+
+    // Push-back logic: if cell is occupied, insert at position
+    const maincell = subcell.closest('.maincell');
+    const subcellIndex = parseInt(subcell.dataset.subcell);
+
+    if (targetNodeId && parentNode.children.includes(targetNodeId)) {
+        // Insert before the target node
+        const targetIndex = parentNode.children.indexOf(targetNodeId);
+        parentNode.children.splice(targetIndex, 0, newNodeId);
+    } else {
+        parentNode.children.push(newNodeId);
+    }
+
+    renderCanvas();
+    showToast(`Inserted "${typeA.title}"`, () => {
+        const idx = parentNode.children.indexOf(newNodeId);
+        if (idx !== -1) parentNode.children.splice(idx, 1);
+        delete tree[newNodeId];
+        renderCanvas();
+    });
+}
+
+function handleTypeCDropOnCanvas(typeCId, subcell) {
+    const typeC = DATA.typeC.find(c => c.id === typeCId);
+    if (!typeC || !state.currentTab) return;
+
+    const targetNodeId = subcell.dataset.nodeId;
+    if (!targetNodeId) {
+        showToast('Drop on an occupied cell', null, 3000);
+        return;
+    }
+
+    const b2Data = DATA.typeB2[state.currentTab];
+    if (!b2Data[targetNodeId]) {
+        b2Data[targetNodeId] = [];
+    }
+
+    // Check duplication
+    const isDuplicate = b2Data[targetNodeId].some(b2 => b2.typeCId === typeCId);
+    if (isDuplicate) {
+        showToast(`"${typeC.title}" already linked here`, null, 3000);
+        return;
+    }
+
+    // Create new B2
+    const newB2 = {
+        id: `b2-${state.currentTab}-${targetNodeId}-${Date.now()}`,
+        typeCId: typeCId,
+        color: DATA.colorPalette[Math.floor(Math.random() * DATA.colorPalette.length)],
+        char: DATA.charPreset[Math.floor(Math.random() * DATA.charPreset.length)]
+    };
+
+    b2Data[targetNodeId].push(newB2);
+    renderCanvas();
+
+    showToast(`Linked "${typeC.title}"`, () => {
+        const idx = b2Data[targetNodeId].indexOf(newB2);
+        if (idx !== -1) b2Data[targetNodeId].splice(idx, 1);
+        renderCanvas();
+    });
+}
+
+// Make list items draggable on render
+function makeListItemDraggable(element) {
+    element.setAttribute('draggable', 'true');
 }
 
 // ==================== Utility Functions ====================
