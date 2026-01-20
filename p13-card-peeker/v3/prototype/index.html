@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note-Taking App Prototype</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left Panel: TypeA entities -->
+        <aside class="panel panel-left">
+            <div class="panel-header">
+                <h2>TypeA</h2>
+                <button class="btn-add" id="add-typeA" title="Add TypeA">+</button>
+            </div>
+            <div class="panel-content" id="typeA-list">
+                <!-- TypeA items rendered here -->
+            </div>
+        </aside>
+
+        <!-- Mid Panel: TypeB tabs + Canvas -->
+        <main class="panel panel-mid">
+            <!-- Tab Bar -->
+            <div class="tab-bar">
+                <button class="btn-add" id="add-typeB" title="Add TypeB">+</button>
+                <div class="tab-list" id="typeB-tabs">
+                    <!-- TypeB tabs rendered here -->
+                </div>
+            </div>
+
+            <!-- Canvas: 3x3 maingrid -->
+            <div class="canvas" id="canvas">
+                <div class="maingrid">
+                    <!-- 9 maincells, each containing a 3x3 subgrid -->
+                    <div class="maincell" data-maincell="0">
+                        <div class="subgrid">
+                            <div class="subcell" data-subcell="0"></div>
+                            <div class="subcell" data-subcell="1"></div>
+                            <div class="subcell" data-subcell="2"></div>
+                            <div class="subcell" data-subcell="3"></div>
+                            <div class="subcell" data-subcell="4"></div>
+                            <div class="subcell" data-subcell="5"></div>
+                            <div class="subcell" data-subcell="6"></div>
+                            <div class="subcell" data-subcell="7"></div>
+                            <div class="subcell" data-subcell="8"></div>
+                        </div>
+                    </div>
+                    <div class="maincell" data-maincell="1">
+                        <div class="subgrid">
+                            <div class="subcell" data-subcell="0"></div>
+                            <div class="subcell" data-subcell="1"></div>
+                            <div class="subcell" data-subcell="2"></div>
+                            <div class="subcell" data-subcell="3"></div>
+                            <div class="subcell" data-subcell="4"></div>
+                            <div class="subcell" data-subcell="5"></div>
+                            <div class="subcell" data-subcell="6"></div>
+                            <div class="subcell" data-subcell="7"></div>
+                            <div class="subcell" data-subcell="8"></div>
+                        </div>
+                    </div>
+                    <div class="maincell" data-maincell="2">
+                        <div class="subgrid">
+                            <div class="subcell" data-subcell="0"></div>
+                            <div class="subcell" data-subcell="1"></div>
+                            <div class="subcell" data-subcell="2"></div>
+                            <div class="subcell" data-subcell="3"></div>
+                            <div class="subcell" data-subcell="4"></div>
+                            <div class="subcell" data-subcell="5"></div>
+                            <div class="subcell" data-subcell="6"></div>
+                            <div class="subcell" data-subcell="7"></div>
+                            <div class="subcell" data-subcell="8"></div>
+                        </div>
+                    </div>
+                    <div class="maincell" data-maincell="3">
+                        <div class="subgrid">
+                            <div class="subcell" data-subcell="0"></div>
+                            <div class="subcell" data-subcell="1"></div>
+                            <div class="subcell" data-subcell="2"></div>
+                            <div class="subcell" data-subcell="3"></div>
+                            <div class="subcell" data-subcell="4"></div>
+                            <div class="subcell" data-subcell="5"></div>
+                            <div class="subcell" data-subcell="6"></div>
+                            <div class="subcell" data-subcell="7"></div>
+                            <div class="subcell" data-subcell="8"></div>
+                        </div>
+                    </div>
+                    <div class="maincell" data-maincell="4">
+                        <div class="subgrid">
+                            <div class="subcell" data-subcell="0"></div>
+                            <div class="subcell" data-subcell="1"></div>
+                            <div class="subcell" data-subcell="2"></div>
+                            <div class="subcell" data-subcell="3"></div>
+                            <div class="subcell" data-subcell="4"></div>
+                            <div class="subcell" data-subcell="5"></div>
+                            <div class="subcell" data-subcell="6"></div>
+                            <div class="subcell" data-subcell="7"></div>
+                            <div class="subcell" data-subcell="8"></div>
+                        </div>
+                    </div>
+                    <div class="maincell" data-maincell="5">
+                        <div class="subgrid">
+                            <div class="subcell" data-subcell="0"></div>
+                            <div class="subcell" data-subcell="1"></div>
+                            <div class="subcell" data-subcell="2"></div>
+                            <div class="subcell" data-subcell="3"></div>
+                            <div class="subcell" data-subcell="4"></div>
+                            <div class="subcell" data-subcell="5"></div>
+                            <div class="subcell" data-subcell="6"></div>
+                            <div class="subcell" data-subcell="7"></div>
+                            <div class="subcell" data-subcell="8"></div>
+                        </div>
+                    </div>
+                    <div class="maincell" data-maincell="6">
+                        <div class="subgrid">
+                            <div class="subcell" data-subcell="0"></div>
+                            <div class="subcell" data-subcell="1"></div>
+                            <div class="subcell" data-subcell="2"></div>
+                            <div class="subcell" data-subcell="3"></div>
+                            <div class="subcell" data-subcell="4"></div>
+                            <div class="subcell" data-subcell="5"></div>
+                            <div class="subcell" data-subcell="6"></div>
+                            <div class="subcell" data-subcell="7"></div>
+                            <div class="subcell" data-subcell="8"></div>
+                        </div>
+                    </div>
+                    <div class="maincell" data-maincell="7">
+                        <div class="subgrid">
+                            <div class="subcell" data-subcell="0"></div>
+                            <div class="subcell" data-subcell="1"></div>
+                            <div class="subcell" data-subcell="2"></div>
+                            <div class="subcell" data-subcell="3"></div>
+                            <div class="subcell" data-subcell="4"></div>
+                            <div class="subcell" data-subcell="5"></div>
+                            <div class="subcell" data-subcell="6"></div>
+                            <div class="subcell" data-subcell="7"></div>
+                            <div class="subcell" data-subcell="8"></div>
+                        </div>
+                    </div>
+                    <div class="maincell" data-maincell="8">
+                        <div class="subgrid">
+                            <div class="subcell" data-subcell="0"></div>
+                            <div class="subcell" data-subcell="1"></div>
+                            <div class="subcell" data-subcell="2"></div>
+                            <div class="subcell" data-subcell="3"></div>
+                            <div class="subcell" data-subcell="4"></div>
+                            <div class="subcell" data-subcell="5"></div>
+                            <div class="subcell" data-subcell="6"></div>
+                            <div class="subcell" data-subcell="7"></div>
+                            <div class="subcell" data-subcell="8"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: TypeC entities -->
+        <aside class="panel panel-right">
+            <div class="panel-header">
+                <h2>TypeC</h2>
+                <button class="btn-add" id="add-typeC" title="Add TypeC">+</button>
+            </div>
+            <div class="panel-content" id="typeC-list">
+                <!-- TypeC items rendered here -->
+            </div>
+        </aside>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Modal Title</h3>
+                <button class="btn-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Modal content rendered here -->
+            </div>
+            <div class="modal-footer" id="modal-footer">
+                <!-- Modal buttons rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container">
+        <!-- Toasts rendered here -->
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
