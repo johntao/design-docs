@@ -1,0 +1,422 @@
+# sample data
+
+## typeA
+
+- app
+- app-near
+- application
+- audio-designer
+- blog
+- blog-posts
+- book
+- club
+- competitors
+- conf
+- cost
+- course
+- course-near
+- crowd-funding
+- customer-development
+- demography
+- deployment-cost
+- design-docs
+- development-cost
+- editor
+- edu
+- environment
+- event-exp
+- freelance
+- game
+- game-designer
+- game-near
+- goal
+- government-investment
+- homebrew
+- industry-value
+- input
+- input-model
+- input-valuable
+- investor
+- investors
+- market-size
+- marketing-specialist
+- output
+- output-valuable
+- people
+- people-near
+- pkm
+- podcast
+- producer
+- products
+- programmer
+- public-speak
+- publish-cost
+- published-app
+- published-articles
+- published-book
+- published-course
+- published-game
+- published-videos
+- publisher
+- revenue
+- skill-roadmap-coverage
+- students
+- studio
+- studio-near
+- tool
+- tool-near
+- tutor
+- uncat
+- users
+- visual-designer
+- website
+- YT-channel
+
+## typeB
+
+- game
+- edu
+- pkm
+- freelance
+
+## typeB1
+
+- game(typeB)
+  - input
+    - book
+    - conf
+    - club
+    - blog
+    - website
+    - podcast
+    - YT-channel
+  - input-model
+    - people-near
+    - people
+    - studio-near
+    - studio
+    - game-near
+    - game
+  - input-valuable
+    - visual-designer
+    - programmer
+    - publisher
+    - audio-designer
+    - game-designer
+    - investor
+  - output
+    - event-exp
+    - design-docs
+    - prototype
+    - website
+    - blog-posts
+  - output-valuable
+    - published-game
+    - published-articles
+    - published-book
+    - public-speak
+  - goal
+    - revenue
+    - input-valuable
+    - output-valuable
+    - skill-roadmap-coverage
+  - environment
+    - market-size
+      - industry-value
+      - demography
+    - competitors
+      - demography
+      - products
+    - cost
+      - development-cost
+      - deployment-cost
+      - publish-cost
+    - investors
+      - government-investment
+      - crowd-funding
+  - uncat
+- edu(typeB)
+  - input
+    - book
+    - conf
+    - club
+    - blog
+    - website
+    - podcast
+    - YT-channel
+  - input-model
+    - people-near
+    - people
+    - studio-near
+    - studio
+    - course-near
+    - course
+  - input-valuable
+    - visual-designer
+    - marketing-specialist
+    - publisher
+    - producer
+    - editor
+    - investor
+  - output
+    - event-exp
+    - blog-posts
+    - tutor
+  - output-valuable
+    - published-course
+    - published-articles
+    - published-videos
+    - published-book
+    - public-speak
+  - goal
+    - revenue
+    - input-valuable
+    - output-valuable
+    - skill-roadmap-coverage
+  - environment
+    - market-size
+      - industry-value
+      - demography
+    - competitors
+      - demography
+      - products
+    - cost
+      - development-cost
+      - publish-cost
+    - investors
+      - government-investment
+  - uncat
+- pkm(typeB)
+  - input
+    - book
+    - conf
+    - club
+    - blog
+    - website
+    - podcast
+    - YT-channel
+  - input-model
+    - people-near
+    - people
+    - studio-near
+    - studio
+    - app-near
+    - app
+    - course-near
+    - course
+  - input-valuable
+    - visual-designer
+    - programmer
+    - publisher
+    - investor
+  - output
+    - design-docs
+    - course
+    - prototype
+    - event-exp
+    - blog-posts
+  - output-valuable
+    - published-app
+    - published-articles
+    - published-book
+    - public-speak
+  - goal
+    - revenue
+    - input-valuable
+    - output-valuable
+    - skill-roadmap-coverage
+  - environment
+    - market-size
+      - industry-value
+      - demography
+    - competitors
+      - demography
+      - products
+    - cost
+      - development-cost
+      - deployment-cost
+      - publish-cost
+    - investors
+      - government-investment
+      - crowd-funding
+- freelance(typeB)
+  - input
+    - book
+    - conf
+    - club
+    - blog
+    - website
+    - podcast
+    - YT-channel
+  - input-model
+    - people-near
+    - people
+    - studio-near
+    - studio
+    - tool-near
+    - tool
+  - input-valuable
+    - visual-designer
+    - programmer
+    - users
+    - investor
+  - output
+    - n8n-app
+    - event-exp
+    - internal-web
+    - website
+    - ec-ga
+    - rpa-app
+    - office-workflow
+    - web-scraper
+  - output-valuable
+    - published-app
+    - published-articles
+    - published-book
+    - public-speak
+  - goal
+    - revenue
+    - input-valuable
+    - output-valuable
+    - skill-roadmap-coverage
+  - environment
+    - market-size
+      - industry-value
+      - demography
+    - competitors
+      - demography
+      - products
+      - homebrew
+      - students
+    - cost
+      - development-cost
+      - deployment-cost
+      - customer-development
+    - investors
+      - government-investment
+      - crowd-funding
+  - uncat
+- uncat
+
+## typeB2
+
+- game
+  - output
+    - prototype
+      - I made video games VIM Keys Game
+    - blog-posts
+      - I post articles personal blog x30 writing
+- edu
+  - output
+    - event-exp
+      - I do education teach LangChain
+    - blog-posts
+      - I post articles personal blog x30 writing
+- pkm
+  - output
+    - blog-posts
+      - I post articles personal blog x30 writing
+    - prototype
+      - I do pkm Word Count
+      - I do pkm KB catalog
+      - I do pkm mandala app
+      - I do pkm gantt chart app
+- freelance
+  - input
+    - club
+      - I freelance attended BNI
+  - output
+    - internal-web
+      - I freelance pig farm eform
+      - I made service integration cyber security intl
+      - I made web apps EIP 4.0
+      - I made web apps Logistic admin platform
+      - I made web apps TSC Fit
+    - ec-ga
+      - I freelance ecpay module upgrade
+    - website
+      - I made web apps CMS 2.0
+      - I freelance company-website logo biz-card
+      - I made web apps blog (next, astro, starlight, astro)
+    - rpa-app
+      - I made RPA apps Cross platform data transfer blog post
+      - I made RPA apps Cross platform data transfer ezcard data
+      - I made RPA apps Elearning auto-click
+      - I made RPA apps Infinitode Parser
+      - I made RPA apps One-shot ordering bot
+      - I made RPA apps Punch clock automation
+      - I made RPA apps SSO AD EIP Account Sync
+    - office-workflow
+      - I freelance AWS workflow
+      - I freelance sales workflow
+      - I do office automation 2020 RTF parser rework
+      - I do office automation RTF parser
+      - I do office automation VBA Gantt
+      - I do office automation VBA Refactor Andy Hsieh
+    - web-scraper
+      - I made web scraper 104 Parser
+      - I made web scraper 591 Parser
+      - I made web scraper Movie Parser
+- uncat
+  - I made backend stuff ELK
+  - I made backend stuff suspicious autobot report
+  - I maintained backend stuff API Wrapper for native-app client
+  - I maintained backend stuff Statement, Result, Onebook member
+  - I maintained backend stuff postman integration test
+  - I maintained web apps TSC EForm
+  - I maintained web apps TSC MyReport
+  - I maintained web apps SMART
+  - I made devops tools config signalR
+  - I made devops tools query site stuff
+  - I made devops tools TSC Fit admin tool
+  - I made devops tools UM services update automation
+  - I made devops tools vscode md ext
+
+## typeC
+
+- I made web apps EIP 4.0
+- I made web apps CMS 2.0
+- I made web apps TSC Fit
+- I made web apps Logistic admin platform
+- I made web apps blog (next, astro, starlight, astro)
+- I made video games VIM Keys Game
+- I made service integration cyber security intl
+- I made backend stuff ELK
+- I made backend stuff suspicious autobot report
+- I maintained backend stuff API Wrapper for native-app client
+- I maintained backend stuff Statement, Result, Onebook member
+- I maintained backend stuff postman integration test
+- I maintained web apps Eform
+- I maintained web apps MyReport
+- I maintained web apps SMART
+- I made devops tools vscode md ext
+- I made devops tools TSC Fit admin tool
+- I made devops tools query site stuff
+- I made devops tools config signalR
+- I made devops tools UM services update automation
+- I do office automation VBA Refactor Andy Hsieh
+- I do office automation VBA Gantt
+- I do office automation RTF Transformer
+- I do office automation 2020 RTF parser rework
+- I made RPA apps Cross platform data transfer blog post
+- I made RPA apps Cross platform data transfer ezcard data
+- I made RPA apps Punch clock automation
+- I made RPA apps Infinitode Parser
+- I made RPA apps SSO AD EIP Account Sync
+- I made RPA apps Elearning auto-click
+- I made RPA apps One-shot ordering bot
+- I made web scraper 104 Parser
+- I made web scraper Movie Parser
+- I made web scraper 591 Parser
+- I freelance pig farm eform
+- I freelance company-website logo biz-card
+- I freelance ecpay module upgrade
+- I freelance sales workflow
+- I freelance AWS workflow
+- I freelance attended BNI
+- I post articles personal blog x30 writing
+- I do pkm Word Count
+- I do pkm KB catalog
+- I do pkm mandala app
+- I do pkm gantt chart app
+- I do education teach LangChain
