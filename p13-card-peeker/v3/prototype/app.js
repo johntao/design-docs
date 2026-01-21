@@ -323,15 +323,16 @@ function renderTypeB1InCell(node, cell, isCenter = false) {
     const showNavUp = isCenter && hasParent;
 
     if (showNavIn || showNavUp) {
-        let indicatorHtml = '<div class="nav-indicator">';
+        let indicatorHtml = '';
         if (showNavIn) {
-            indicatorHtml += `<span class="nav-in" title="Nav In (Enter)">[+]</span>`;
+            indicatorHtml = `<span class="nav-in" title="Nav In (Enter)">[+]</span>`;
         }
         if (showNavUp) {
-            indicatorHtml += `<span class="nav-up" title="Nav Up (Backspace)">[^]</span>`;
+            indicatorHtml = `<span class="nav-up" title="Nav Up (Backspace)">[^]</span>`;
         }
-        indicatorHtml += '</div>';
-        titleHtml += indicatorHtml;
+        titleHtml = `<div class="title">${escapeHtml(title)}${indicatorHtml}</div>`;
+    } else {
+        titleHtml = `<div class="title">${escapeHtml(title)}</div>`;
     }
 
     entityDiv.innerHTML = titleHtml;

@@ -218,13 +218,12 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: var(--spacing-sm);
-    min-height: 150px;
 }
 
-.maincell.focused {
+/* .maincell.focused {
     outline: 3px solid var(--focus-current);
     outline-offset: 2px;
-}
+} */
 
 /* Sub Grid - 3x3 inside each maincell */
 .subgrid {
@@ -240,7 +239,7 @@ body {
     background-color: var(--bg-secondary);
     border: 1px dashed var(--border-color-light);
     border-radius: 4px;
-    min-height: 40px;
+    min-height: 100px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -275,7 +274,7 @@ body {
 .typeB1-entity {
     width: 100%;
     text-align: center;
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
     padding: var(--spacing-xs);
@@ -325,11 +324,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 9px;
+    font-size: 12px;
     font-weight: bold;
     color: white;
     cursor: pointer;
     text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+    max-height: 18px;
 }
 
 .typeB2-entity.focused {
