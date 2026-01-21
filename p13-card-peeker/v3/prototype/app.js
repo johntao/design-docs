@@ -912,6 +912,22 @@ function handleKeydown(e) {
             e.preventDefault();
             handleBackspaceKey();
             break;
+        case 'ArrowUp':
+            e.preventDefault();
+            handleArrowKey('up');
+            break;
+        case 'ArrowDown':
+            e.preventDefault();
+            handleArrowKey('down');
+            break;
+        case 'ArrowLeft':
+            e.preventDefault();
+            handleArrowKey('left');
+            break;
+        case 'ArrowRight':
+            e.preventDefault();
+            handleArrowKey('right');
+            break;
     }
 }
 
@@ -1000,6 +1016,161 @@ function handleBackspaceKey() {
             navUp();
         }
     }
+}
+
+function handleArrowKey(direction) {
+    switch (state.activePanel) {
+        case 'left':
+            if (direction === 'up' || direction === 'down') {
+                navigateList('left', direction);
+            }
+            break;
+        case 'midTab':
+            if (direction === 'left' || direction === 'right') {
+                navigateTabBar(direction);
+            }
+            break;
+        case 'midCanvas':
+            navigateCanvas(direction);
+            break;
+        case 'right':
+            if (direction === 'up' || direction === 'down') {
+                navigateList('right', direction);
+            }
+            break;
+    }
+}
+
+function navigateList(panel, direction) {
+    const listEl = panel === 'left' ? elements.typeAList : elements.typeCList;
+    const dataArr = panel === 'left' ? DATA.typeA : DATA.typeC;
+    const currentFocus = panel === 'left' ? state.focus.left : state.focus.right;
+
+    if (dataArr.length === 0) return;
+
+    // Find current index
+    let currentIndex = dataArr.findIndex(item => item.id === currentFocus);
+    if (currentIndex === -1) currentIndex = 0;
+
+    // Calculate new index
+    let newIndex;
+    if (direction === 'up') {
+        newIndex = currentIndex > 0 ? currentIndex - 1 : dataArr.length - 1;
+    } else {
+        newIndex = currentIndex < dataArr.length - 1 ? currentIndex + 1 : 0;
+    }
+
+    // Set new focus
+    setFocus(panel, dataArr[newIndex].id);
+
+    // Scroll into view
+    const newEl = listEl.querySelector(`[data-id="${dataArr[newIndex].id}"]`);
+    if (newEl) newEl.scrollIntoView({ block: 'nearest' });
+}
+
+function navigateTabBar(direction) {
+    if (DATA.typeB.length === 0) return;
+
+    // Find current index
+    let currentIndex = DATA.typeB.findIndex(item => item.id === state.focus.midTab);
+    if (currentIndex === -1) currentIndex = 0;
+
+    // Calculate new index
+    let newIndex;
+    if (direction === 'left') {
+        newIndex = currentIndex > 0 ? currentIndex - 1 : DATA.typeB.length - 1;
+    } else {
+        newIndex = currentIndex < DATA.typeB.length - 1 ? currentIndex + 1 : 0;
+    }
+
+    // Set new focus (this will also load the tab due to auto-load on focus)
+    setFocus('midTab', DATA.typeB[newIndex].id);
+
+    // Scroll into view
+    const newEl = elements.typeBTabs.querySelector(`[data-id="${DATA.typeB[newIndex].id}"]`);
+    if (newEl) newEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+function navigateCanvas(direction) {
+    const focus = state.focus.midCanvas;
+    if (!focus || focus.type !== 'subcell') return;
+
+    const maincellIndex = parseInt(focus.maincell);
+    const subcellIndex = parseInt(focus.subcell);
+
+    // Subcell grid layout (3x3):
+    // 0 1 2
+    // 3 4 5
+    // 6 7 8
+    const subcellRow = Math.floor(subcellIndex / 3);
+    const subcellCol = subcellIndex % 3;
+
+    // Maincell grid layout (3x3):
+    // 0 1 2
+    // 3 4 5
+    // 6 7 8
+    const maincellRow = Math.floor(maincellIndex / 3);
+    const maincellCol = maincellIndex % 3;
+
+    let newSubcellRow = subcellRow;
+    let newSubcellCol = subcellCol;
+    let newMaincellRow = maincellRow;
+    let newMaincellCol = maincellCol;
+
+    switch (direction) {
+        case 'up':
+            if (subcellRow > 0) {
+                newSubcellRow = subcellRow - 1;
+            } else if (maincellRow > 0) {
+                newMaincellRow = maincellRow - 1;
+                newSubcellRow = 2; // Bottom row of upper maincell
+            }
+            break;
+        case 'down':
+            if (subcellRow < 2) {
+                newSubcellRow = subcellRow + 1;
+            } else if (maincellRow < 2) {
+                newMaincellRow = maincellRow + 1;
+                newSubcellRow = 0; // Top row of lower maincell
+            }
+            break;
+        case 'left':
+            if (subcellCol > 0) {
+                newSubcellCol = subcellCol - 1;
+            } else if (maincellCol > 0) {
+                newMaincellCol = maincellCol - 1;
+                newSubcellCol = 2; // Right column of left maincell
+            }
+            break;
+        case 'right':
+            if (subcellCol < 2) {
+                newSubcellCol = subcellCol + 1;
+            } else if (maincellCol < 2) {
+                newMaincellCol = maincellCol + 1;
+                newSubcellCol = 0; // Left column of right maincell
+            }
+            break;
+    }
+
+    const newMaincellIndex = newMaincellRow * 3 + newMaincellCol;
+    const newSubcellIndex = newSubcellRow * 3 + newSubcellCol;
+
+    // Check if the target cell exists and is occupied
+    const targetMaincell = document.querySelector(`[data-maincell="${newMaincellIndex}"]`);
+    if (!targetMaincell) return;
+
+    const targetSubcell = targetMaincell.querySelector(`[data-subcell="${newSubcellIndex}"]`);
+    if (!targetSubcell) return;
+
+    // Get the nodeId from the target cell (may be empty)
+    const nodeId = targetSubcell.dataset.nodeId || null;
+
+    setFocus('midCanvas', {
+        type: 'subcell',
+        nodeId: nodeId,
+        maincell: String(newMaincellIndex),
+        subcell: String(newSubcellIndex)
+    });
 }
 
 // ==================== Navigation (nav-into / nav-up) ====================
