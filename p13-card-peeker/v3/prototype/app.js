@@ -13,7 +13,10 @@ const state = {
         midTab: null,    // focused tab id
         midCanvas: null, // focused element: { type: 'subcell'|'typeB2', maincell?, subcell?, nodeId?, id? }
         right: null      // focused TypeC id
-    }
+    },
+    // Track local navigation within each maincell (for zoom-in without changing global view)
+    // { maincellIndex: nodeId } - the node being viewed as center in that maincell
+    subNavState: {}
 };
 
 // DOM Elements
@@ -48,8 +51,55 @@ document.addEventListener('DOMContentLoaded', () => {
         selectTab(DATA.typeB[0].id);
     }
 
+    // Set initial focus for all panels
+    initializeAllPanelFocus();
+
     console.log('Note-Taking App Prototype initialized');
 });
+
+// Initialize focus for all panels so each has at least one focused element
+function initializeAllPanelFocus() {
+    // Left panel - focus first TypeA
+    if (DATA.typeA.length > 0 && !state.focus.left) {
+        state.focus.left = DATA.typeA[0].id;
+    }
+
+    // Mid tab - focus first TypeB (and current tab)
+    if (DATA.typeB.length > 0 && !state.focus.midTab) {
+        state.focus.midTab = DATA.typeB[0].id;
+    }
+
+    // Right panel - focus first TypeC
+    if (DATA.typeC.length > 0 && !state.focus.right) {
+        state.focus.right = DATA.typeC[0].id;
+    }
+
+    // Mid canvas - will be set after canvas renders
+    // Set default to first occupied subcell if exists
+    setTimeout(() => {
+        if (!state.focus.midCanvas) {
+            const firstOccupied = document.querySelector('.subcell.occupied');
+            if (firstOccupied) {
+                const maincell = firstOccupied.closest('.maincell');
+                const nodeId = firstOccupied.dataset.nodeId;
+                state.focus.midCanvas = {
+                    type: 'subcell',
+                    nodeId: nodeId,
+                    maincell: maincell.dataset.maincell,
+                    subcell: firstOccupied.dataset.subcell
+                };
+            }
+        }
+        updateFocusVisuals();
+    }, 0);
+
+    // Set initial active panel
+    if (!state.activePanel) {
+        state.activePanel = 'midCanvas';
+    }
+
+    updateFocusVisuals();
+}
 
 // Initialize DOM element references
 function initializeElements() {
@@ -143,11 +193,7 @@ function handleTypeBDoubleClick(e, item) {
 function selectTab(typeBId) {
     state.currentTab = typeBId;
     state.currentNavNode = 'root';
-
-    // Update tab active state
-    document.querySelectorAll('.tab-item').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.id === typeBId);
-    });
+    state.subNavState = {};  // Clear local nav states when changing tabs
 
     renderCanvas();
 }
@@ -203,7 +249,6 @@ function renderCanvas() {
     const children = currentNode.children.slice(0, 8);
 
     // Layout: children around the center in 3x3 subgrids
-    // We'll use the first maincell for now, showing the root node's immediate children
     const maincells = document.querySelectorAll('.maincell');
 
     // Distribute children across maincells (max 9)
@@ -219,15 +264,22 @@ function renderCanvas() {
         const subgrid = maincell.querySelector('.subgrid');
         const subcells = subgrid.querySelectorAll('.subcell');
 
-        // Render the node and its children in the subgrid
-        renderNodeInSubgrid(childNode, tree, subcells);
+        // Check if this maincell has a local nav state (zoomed in)
+        const localNavNodeId = state.subNavState[index];
+        if (localNavNodeId && tree[localNavNodeId]) {
+            // Render the zoomed-in node as center with its children
+            renderNodeInSubgrid(tree[localNavNodeId], tree, subcells);
+        } else {
+            // Render the default node and its children in the subgrid
+            renderNodeInSubgrid(childNode, tree, subcells);
+        }
     });
 }
 
 function renderNodeInSubgrid(node, tree, subcells) {
     // Center cell (index 4) for the parent node
     const centerCell = subcells[4];
-    renderTypeB1InCell(node, centerCell);
+    renderTypeB1InCell(node, centerCell, true); // isCenter = true
 
     // Get children (max 8 for surrounding positions)
     const childIds = node.children.slice(0, 8);
@@ -242,11 +294,11 @@ function renderNodeInSubgrid(node, tree, subcells) {
         const cell = subcells[positions[index]];
         if (!cell) return;
 
-        renderTypeB1InCell(childNode, cell);
+        renderTypeB1InCell(childNode, cell, false); // isCenter = false
     });
 }
 
-function renderTypeB1InCell(node, cell) {
+function renderTypeB1InCell(node, cell, isCenter = false) {
     const typeA = DATA.typeA.find(a => a.id === node.typeAId);
     const title = typeA ? typeA.title : node.typeAId;
 
@@ -257,7 +309,32 @@ function renderTypeB1InCell(node, cell) {
     const entityDiv = document.createElement('div');
     entityDiv.className = 'typeB1-entity';
     entityDiv.dataset.nodeId = node.id;
-    entityDiv.innerHTML = `<div class="title">${escapeHtml(title)}</div>`;
+
+    // Build title and indicators
+    let titleHtml = `<div class="title">${escapeHtml(title)}</div>`;
+
+    // Add nav indicators
+    const hasChildren = node.children && node.children.length > 0;
+    const hasParent = node.parentId && node.parentId !== 'root';
+
+    // [+] only shows on NON-center nodes with children (center is already expanded)
+    // [^] only shows on center nodes that have a parent to go up to
+    const showNavIn = hasChildren && !isCenter;
+    const showNavUp = isCenter && hasParent;
+
+    if (showNavIn || showNavUp) {
+        let indicatorHtml = '<div class="nav-indicator">';
+        if (showNavIn) {
+            indicatorHtml += `<span class="nav-in" title="Nav In (Enter)">[+]</span>`;
+        }
+        if (showNavUp) {
+            indicatorHtml += `<span class="nav-up" title="Nav Up (Backspace)">[^]</span>`;
+        }
+        indicatorHtml += '</div>';
+        titleHtml += indicatorHtml;
+    }
+
+    entityDiv.innerHTML = titleHtml;
 
     // Add TypeB2 container if there are any
     const typeB2List = getTypeB2ForNode(state.currentTab, node.id);
@@ -327,6 +404,10 @@ function setFocus(panel, focusData) {
         state.focus.left = focusData;
     } else if (panel === 'midTab') {
         state.focus.midTab = focusData;
+        // Auto-load details when tab becomes focused
+        if (focusData && focusData !== state.currentTab) {
+            selectTab(focusData);
+        }
     } else if (panel === 'midCanvas') {
         state.focus.midCanvas = focusData;
     } else if (panel === 'right') {
@@ -897,19 +978,23 @@ function handleEnterKey() {
     } else if (state.activePanel === 'right' && state.focus.right) {
         // Insert TypeC into canvas (creates TypeB2)
         insertTypeCIntoCanvas(state.focus.right);
-    } else if (state.activePanel === 'midTab' && state.focus.midTab) {
-        // Load details: only works when mid top bar is active
-        selectTab(state.focus.midTab);
     } else if (state.activePanel === 'midCanvas' && state.focus.midCanvas?.type === 'subcell') {
         // Nav-into: only works when mid canvas is active
         navInto(state.focus.midCanvas.nodeId);
     }
+    // Note: midTab no longer needs Enter to load details - it's automatic on focus
 }
 
 function handleBackspaceKey() {
     // Nav-up: only works when mid canvas is active
     if (state.activePanel === 'midCanvas') {
-        if (state.currentNavNode !== 'root') {
+        // Check if there's any local zoom state in the focused maincell
+        const focus = state.focus.midCanvas;
+        const hasLocalZoom = focus && focus.type === 'subcell' &&
+            state.subNavState[parseInt(focus.maincell)];
+
+        // Allow nav-up if not at root OR if there's local zoom to undo
+        if (state.currentNavNode !== 'root' || hasLocalZoom) {
             navUp();
         }
     }
@@ -924,14 +1009,85 @@ function navInto(nodeId) {
     const node = tree[nodeId];
     if (!node || node.children.length === 0) return;
 
-    state.currentNavNode = nodeId;
-    renderCanvas();
+    // Check if the focused node is in a subcell (not center)
+    const focus = state.focus.midCanvas;
+    if (focus && focus.type === 'subcell' && focus.subcell !== '4') {
+        // Local nav-in: zoom within the same maincell
+        const maincellIndex = parseInt(focus.maincell);
+        state.subNavState[maincellIndex] = nodeId;
+
+        // Update focus to the center of this maincell (where the node will be)
+        state.focus.midCanvas = {
+            type: 'subcell',
+            nodeId: nodeId,
+            maincell: focus.maincell,
+            subcell: '4'  // center
+        };
+
+        renderCanvas();
+        updateFocusVisuals();
+    } else if (focus && focus.type === 'subcell' && focus.subcell === '4') {
+        // Node is at center - it's already expanded, don't nav-in again
+        // Center nodes already show their children around them
+        // Use nav-up (Backspace) to go back, or click a child to nav into it
+        return;
+    } else {
+        // Fallback: global nav-in
+        state.currentNavNode = nodeId;
+        state.subNavState = {};
+        renderCanvas();
+    }
 }
 
 function navUp() {
     const tree = DATA.typeB1[state.currentTab];
     if (!tree) return;
 
+    // Check if focused on a center cell with local nav state
+    const focus = state.focus.midCanvas;
+    if (focus && focus.type === 'subcell' && focus.subcell === '4') {
+        const maincellIndex = parseInt(focus.maincell);
+        const localNavNodeId = state.subNavState[maincellIndex];
+
+        if (localNavNodeId) {
+            // We're zoomed in locally - nav up within the maincell
+            const localNavNode = tree[localNavNodeId];
+            if (localNavNode && localNavNode.parentId) {
+                // Check if parent is the default node for this maincell
+                const currentNavNode = tree[state.currentNavNode];
+                const defaultNodeForMaincell = currentNavNode?.children[maincellIndex];
+
+                if (localNavNode.parentId === defaultNodeForMaincell) {
+                    // Going back to default view - clear local nav state
+                    delete state.subNavState[maincellIndex];
+
+                    // Update focus to the original position of the node
+                    state.focus.midCanvas = {
+                        type: 'subcell',
+                        nodeId: defaultNodeForMaincell,
+                        maincell: focus.maincell,
+                        subcell: '4'
+                    };
+                } else {
+                    // Nav up within local hierarchy
+                    state.subNavState[maincellIndex] = localNavNode.parentId;
+
+                    state.focus.midCanvas = {
+                        type: 'subcell',
+                        nodeId: localNavNode.parentId,
+                        maincell: focus.maincell,
+                        subcell: '4'
+                    };
+                }
+
+                renderCanvas();
+                updateFocusVisuals();
+                return;
+            }
+        }
+    }
+
+    // Global nav-up
     const currentNode = tree[state.currentNavNode];
     if (!currentNode || !currentNode.parentId) {
         state.currentNavNode = 'root';
@@ -939,6 +1095,8 @@ function navUp() {
         state.currentNavNode = currentNode.parentId;
     }
 
+    // Clear local nav states when doing global nav
+    state.subNavState = {};
     renderCanvas();
 }
 

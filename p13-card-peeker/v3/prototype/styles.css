@@ -176,15 +176,16 @@ body {
     background-color: var(--bg-tertiary);
 }
 
-.tab-item.active {
-    background-color: var(--focus-current);
-    color: white;
-    border-color: var(--focus-current);
-}
-
 .tab-item.focused {
     outline: 2px solid var(--focus-current);
     outline-offset: 1px;
+}
+
+/* Tab item in active panel - more prominent focus */
+.tab-bar.panel-active .tab-item.focused {
+    background-color: var(--focus-current);
+    color: white;
+    border-color: var(--focus-current);
 }
 
 /* Canvas */
@@ -259,6 +260,12 @@ body {
     background-color: var(--bg-tertiary);
 }
 
+/* Subcell in active canvas - more prominent focus */
+.canvas.panel-active .subcell.focused {
+    outline-width: 3px;
+    box-shadow: 0 0 0 4px rgba(0, 87, 233, 0.2);
+}
+
 .subcell.occupied {
     border-style: solid;
     border-color: var(--border-color);
@@ -279,6 +286,26 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Nav indicators */
+.typeB1-entity .nav-indicator {
+    font-size: 9px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.typeB1-entity .nav-indicator .nav-in {
+    cursor: pointer;
+}
+
+.typeB1-entity .nav-indicator .nav-up {
+    cursor: pointer;
+}
+
+.typeB1-entity .nav-indicator .nav-in:hover,
+.typeB1-entity .nav-indicator .nav-up:hover {
+    color: var(--focus-current);
 }
 
 /* TypeB2 Container (bottom of subcell) */
@@ -310,6 +337,12 @@ body {
     outline-offset: 1px;
 }
 
+/* TypeB2 in active canvas - more prominent focus */
+.canvas.panel-active .typeB2-entity.focused {
+    outline-width: 3px;
+    box-shadow: 0 0 0 3px rgba(0, 87, 233, 0.3);
+}
+
 /* List Items (TypeA, TypeC) */
 .list-item {
     padding: var(--spacing-sm);
@@ -330,6 +363,12 @@ body {
     outline: 2px solid var(--focus-current);
     outline-offset: 1px;
     background-color: var(--bg-tertiary);
+}
+
+/* List item in active panel - more prominent focus */
+.panel-active .list-item.focused {
+    outline-width: 3px;
+    box-shadow: 0 0 0 4px rgba(0, 87, 233, 0.2);
 }
 
 .list-item .title {
