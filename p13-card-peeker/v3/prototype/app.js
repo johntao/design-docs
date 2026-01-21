@@ -311,7 +311,7 @@ function renderTypeB1InCell(node, cell, isCenter = false) {
     entityDiv.dataset.nodeId = node.id;
 
     // Build title and indicators
-    let titleHtml = `<div class="title">${escapeHtml(title)}</div>`;
+    let titleHtml = '';
 
     // Add nav indicators
     const hasChildren = node.children && node.children.length > 0;
@@ -322,6 +322,7 @@ function renderTypeB1InCell(node, cell, isCenter = false) {
     const showNavIn = hasChildren && !isCenter;
     const showNavUp = isCenter && hasParent;
 
+    const txt = escapeHtml(title);
     if (showNavIn || showNavUp) {
         let indicatorHtml = '';
         if (showNavIn) {
@@ -330,9 +331,9 @@ function renderTypeB1InCell(node, cell, isCenter = false) {
         if (showNavUp) {
             indicatorHtml = `<span class="nav-up" title="Nav Up (Backspace)">[^]</span>`;
         }
-        titleHtml = `<div class="title">${escapeHtml(title)}${indicatorHtml}</div>`;
+        titleHtml = `<div class="title" title="${txt}">${txt}${indicatorHtml}</div>`;
     } else {
-        titleHtml = `<div class="title">${escapeHtml(title)}</div>`;
+        titleHtml = `<div class="title" title="${txt}">${txt}</div>`;
     }
 
     entityDiv.innerHTML = titleHtml;
