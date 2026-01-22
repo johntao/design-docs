@@ -238,11 +238,14 @@ function renderCanvas() {
     const currentNode = tree[state.currentNavNode];
     if (!currentNode) return;
 
-    // Clear all subcells first
+    // Clear all subcells first and remove old event listeners by cloning
     document.querySelectorAll('.subcell').forEach(cell => {
-        cell.innerHTML = '';
-        cell.classList.remove('occupied');
-        cell.dataset.nodeId = '';
+        const newCell = cell.cloneNode(false);
+        newCell.innerHTML = '';
+        newCell.classList.remove('occupied');
+        newCell.dataset.nodeId = '';
+        newCell.dataset.subcell = cell.dataset.subcell;
+        cell.parentNode.replaceChild(newCell, cell);
     });
 
     // Get children of current node (max 8 for surrounding positions)
@@ -268,18 +271,21 @@ function renderCanvas() {
         const localNavNodeId = state.subNavState[index];
         if (localNavNodeId && tree[localNavNodeId]) {
             // Render the zoomed-in node as center with its children
-            renderNodeInSubgrid(tree[localNavNodeId], tree, subcells);
+            renderNodeInSubgrid(tree[localNavNodeId], tree, subcells, index);
         } else {
             // Render the default node and its children in the subgrid
-            renderNodeInSubgrid(childNode, tree, subcells);
+            renderNodeInSubgrid(childNode, tree, subcells, index);
         }
     });
+
+    // Add click handlers to all subcells (including empty ones)
+    addSubcellClickHandlers();
 }
 
-function renderNodeInSubgrid(node, tree, subcells) {
+function renderNodeInSubgrid(node, tree, subcells, maincellIndex) {
     // Center cell (index 4) for the parent node
     const centerCell = subcells[4];
-    renderTypeB1InCell(node, centerCell, true); // isCenter = true
+    renderTypeB1InCell(node, centerCell, true, maincellIndex); // isCenter = true
 
     // Get children (max 8 for surrounding positions)
     const childIds = node.children.slice(0, 8);
@@ -294,11 +300,31 @@ function renderNodeInSubgrid(node, tree, subcells) {
         const cell = subcells[positions[index]];
         if (!cell) return;
 
-        renderTypeB1InCell(childNode, cell, false); // isCenter = false
+        renderTypeB1InCell(childNode, cell, false, maincellIndex); // isCenter = false
     });
 }
 
-function renderTypeB1InCell(node, cell, isCenter = false) {
+// Add click handlers to all subcells (including empty ones)
+function addSubcellClickHandlers() {
+    document.querySelectorAll('.subcell').forEach(cell => {
+        const maincell = cell.closest('.maincell');
+        const maincellIndex = maincell.dataset.maincell;
+        const subcellIndex = cell.dataset.subcell;
+        const nodeId = cell.dataset.nodeId || null;
+
+        cell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setFocus('midCanvas', {
+                type: 'subcell',
+                nodeId: nodeId,
+                maincell: maincellIndex,
+                subcell: subcellIndex
+            });
+        });
+    });
+}
+
+function renderTypeB1InCell(node, cell, isCenter = false, maincellIndex = null) {
     const typeA = DATA.typeA.find(a => a.id === node.typeAId);
     const title = typeA ? typeA.title : node.typeAId;
 
@@ -331,7 +357,7 @@ function renderTypeB1InCell(node, cell, isCenter = false) {
         if (showNavUp) {
             indicatorHtml = `<span class="nav-up" title="Nav Up (Backspace)">[^]</span>`;
         }
-        titleHtml = `<div class="title" title="${txt}">${txt}${indicatorHtml}</div>`;
+        titleHtml = `<div class="title" title="${txt}">${indicatorHtml}${txt}</div>`;
     } else {
         titleHtml = `<div class="title" title="${txt}">${txt}</div>`;
     }
@@ -360,9 +386,6 @@ function renderTypeB1InCell(node, cell, isCenter = false) {
     }
 
     cell.appendChild(entityDiv);
-
-    // Add click handler for subcell
-    cell.addEventListener('click', (e) => handleSubcellClick(e, node.id, cell));
 }
 
 function getTypeB2ForNode(typeBId, nodeId) {
@@ -1290,15 +1313,24 @@ function deleteTypeA(id) {
     if (index === -1) return;
 
     DATA.typeA.splice(index, 1);
-    state.focus.left = null;
-    state.activePanel = null;
+
+    // Maintain focus at same index or nearest available
+    if (DATA.typeA.length > 0) {
+        const newIndex = Math.min(index, DATA.typeA.length - 1);
+        state.focus.left = DATA.typeA[newIndex].id;
+    } else {
+        state.focus.left = null;
+    }
+
     renderTypeAList();
     updateFocusVisuals();
 
     showToast(`Deleted "${item.title}"`, () => {
         // Undo
         DATA.typeA.splice(index, 0, item);
+        state.focus.left = item.id;
         renderTypeAList();
+        updateFocusVisuals();
     });
 }
 
@@ -1325,17 +1357,16 @@ function deleteTypeB(id) {
     delete DATA.typeB1[id];
     delete DATA.typeB2[id];
 
-    state.focus.midTab = null;
-    state.activePanel = null;
-
-    // Switch to another tab if the deleted one was active
-    if (state.currentTab === id) {
-        if (DATA.typeB.length > 0) {
-            selectTab(DATA.typeB[0].id);
-        } else {
-            state.currentTab = null;
-            renderCanvas();
-        }
+    // Maintain focus at same index or nearest available
+    if (DATA.typeB.length > 0) {
+        const newIndex = Math.min(index, DATA.typeB.length - 1);
+        state.focus.midTab = DATA.typeB[newIndex].id;
+        // Switch to the new focused tab
+        selectTab(DATA.typeB[newIndex].id);
+    } else {
+        state.focus.midTab = null;
+        state.currentTab = null;
+        renderCanvas();
     }
 
     renderTypeBTabs();
@@ -1346,10 +1377,10 @@ function deleteTypeB(id) {
         DATA.typeB.splice(index, 0, item);
         DATA.typeB1[id] = savedTree;
         DATA.typeB2[id] = savedB2;
+        state.focus.midTab = item.id;
         renderTypeBTabs();
-        if (state.currentTab === null) {
-            selectTab(id);
-        }
+        selectTab(id);
+        updateFocusVisuals();
     });
 }
 
@@ -1366,10 +1397,16 @@ function deleteTypeB1(typeBId, nodeId) {
         return;
     }
 
+    // Save current focus position
+    const currentFocus = state.focus.midCanvas;
+    const maincellIndex = currentFocus?.maincell;
+    const subcellIndex = currentFocus?.subcell;
+
     // Remove from parent's children
     const parent = tree[node.parentId];
+    let childIndex = -1;
     if (parent) {
-        const childIndex = parent.children.indexOf(nodeId);
+        childIndex = parent.children.indexOf(nodeId);
         if (childIndex !== -1) {
             parent.children.splice(childIndex, 1);
         }
@@ -1384,9 +1421,32 @@ function deleteTypeB1(typeBId, nodeId) {
     // Delete the node
     delete tree[nodeId];
 
-    state.focus.midCanvas = null;
-    state.activePanel = null;
+    // Maintain focus at the same subcell position
+    // The nodeId at that position will change after re-render
+    if (maincellIndex !== undefined && subcellIndex !== undefined) {
+        state.focus.midCanvas = {
+            type: 'subcell',
+            nodeId: null, // Will be updated after render
+            maincell: maincellIndex,
+            subcell: subcellIndex
+        };
+    } else {
+        state.focus.midCanvas = null;
+    }
+
     renderCanvas();
+
+    // Update the nodeId in focus after render
+    if (state.focus.midCanvas) {
+        const targetMaincell = document.querySelector(`[data-maincell="${maincellIndex}"]`);
+        if (targetMaincell) {
+            const targetSubcell = targetMaincell.querySelector(`[data-subcell="${subcellIndex}"]`);
+            if (targetSubcell) {
+                state.focus.midCanvas.nodeId = targetSubcell.dataset.nodeId || null;
+            }
+        }
+    }
+
     updateFocusVisuals();
 
     const typeA = DATA.typeA.find(a => a.id === node.typeAId);
@@ -1395,13 +1455,22 @@ function deleteTypeB1(typeBId, nodeId) {
     showToast(`Deleted "${title}"`, () => {
         // Undo
         tree[nodeId] = node;
-        if (parent) {
+        if (parent && childIndex !== -1) {
+            parent.children.splice(childIndex, 0, nodeId);
+        } else if (parent) {
             parent.children.push(nodeId);
         }
         if (savedB2.length > 0) {
             DATA.typeB2[typeBId][nodeId] = savedB2;
         }
+        state.focus.midCanvas = {
+            type: 'subcell',
+            nodeId: nodeId,
+            maincell: maincellIndex,
+            subcell: subcellIndex
+        };
         renderCanvas();
+        updateFocusVisuals();
     });
 }
 
@@ -1426,15 +1495,48 @@ function deleteTypeB2(typeBId, b2Id) {
     if (!foundB2) return;
 
     b2Data[foundNodeId].splice(foundIndex, 1);
-    state.focus.midCanvas = null;
-    state.activePanel = null;
+
+    // After deleting TypeB2, focus on the parent subcell (the TypeB1 node)
+    // Find which subcell contains this nodeId
+    const subcell = document.querySelector(`.subcell[data-node-id="${foundNodeId}"]`);
+    if (subcell) {
+        const maincell = subcell.closest('.maincell');
+        state.focus.midCanvas = {
+            type: 'subcell',
+            nodeId: foundNodeId,
+            maincell: maincell.dataset.maincell,
+            subcell: subcell.dataset.subcell
+        };
+    } else {
+        // Fallback: find the subcell with matching nodeId after render
+        state.focus.midCanvas = {
+            type: 'subcell',
+            nodeId: foundNodeId,
+            maincell: null,
+            subcell: null
+        };
+    }
+
     renderCanvas();
+
+    // Update focus position after render if needed
+    if (state.focus.midCanvas && !state.focus.midCanvas.maincell) {
+        const newSubcell = document.querySelector(`.subcell[data-node-id="${foundNodeId}"]`);
+        if (newSubcell) {
+            const maincell = newSubcell.closest('.maincell');
+            state.focus.midCanvas.maincell = maincell.dataset.maincell;
+            state.focus.midCanvas.subcell = newSubcell.dataset.subcell;
+        }
+    }
+
     updateFocusVisuals();
 
     showToast(`Deleted TypeB2 "${foundB2.char}"`, () => {
         // Undo
         b2Data[foundNodeId].splice(foundIndex, 0, foundB2);
+        state.focus.midCanvas = { type: 'typeB2', id: b2Id, nodeId: foundNodeId };
         renderCanvas();
+        updateFocusVisuals();
     });
 }
 
@@ -1467,8 +1569,15 @@ function deleteTypeC(id) {
     });
 
     DATA.typeC.splice(index, 1);
-    state.focus.right = null;
-    state.activePanel = null;
+
+    // Maintain focus at same index or nearest available
+    if (DATA.typeC.length > 0) {
+        const newIndex = Math.min(index, DATA.typeC.length - 1);
+        state.focus.right = DATA.typeC[newIndex].id;
+    } else {
+        state.focus.right = null;
+    }
+
     renderTypeCList();
     renderCanvas();
     updateFocusVisuals();
@@ -1479,8 +1588,10 @@ function deleteTypeC(id) {
         savedB2Relations.forEach(({ typeBId, nodeId, b2, index }) => {
             DATA.typeB2[typeBId][nodeId].splice(index, 0, b2);
         });
+        state.focus.right = item.id;
         renderTypeCList();
         renderCanvas();
+        updateFocusVisuals();
     });
 }
 
@@ -1493,13 +1604,84 @@ function insertTypeAIntoCanvas(typeAId) {
     const tree = DATA.typeB1[state.currentTab];
     if (!tree) return;
 
-    // Target is always the current nav node (the node we're viewing)
-    const targetNodeId = state.currentNavNode || 'root';
-    const parentNode = tree[targetNodeId];
-    if (!parentNode) return;
+    const focus = state.focus.midCanvas;
+
+    // Determine target parent based on focus type
+    let targetParentId;
+    let targetParentNode;
+
+    if (focus && focus.type === 'subcell') {
+        const subcellIndex = focus.subcell;
+        const maincellIndex = parseInt(focus.maincell);
+        const nodeId = focus.nodeId;
+
+        // Get the center node of this maincell
+        const currentNavNode = tree[state.currentNavNode];
+        if (!currentNavNode) return;
+
+        // Check if this maincell has content (has a child at this position)
+        const maincellChildId = currentNavNode.children[maincellIndex];
+        if (!maincellChildId) {
+            // No maincell content here - check max maincell limit
+            if (currentNavNode.children.length >= 9) {
+                showToast('Maximum maincells reached (9)', null, 3000);
+                return;
+            }
+            // Insert as child of currentNavNode
+            targetParentId = state.currentNavNode;
+            targetParentNode = currentNavNode;
+        } else {
+            // Maincell has content - determine center node (considering local zoom)
+            const localNavNodeId = state.subNavState[maincellIndex];
+            const centerNodeId = localNavNodeId || maincellChildId;
+            const centerNode = tree[centerNodeId];
+
+            if (!centerNode) return;
+
+            if (subcellIndex === '4') {
+                // Case 1: Center subcell - insert as child of center node
+                // Check max subcell limit (8 surrounding positions)
+                if (centerNode.children.length >= 8) {
+                    showToast('Maximum subcells reached (8)', null, 3000);
+                    return;
+                }
+                targetParentId = centerNodeId;
+                targetParentNode = centerNode;
+            } else if (!nodeId) {
+                // Case 2: Empty subcell - insert as child of center node
+                if (centerNode.children.length >= 8) {
+                    showToast('Maximum subcells reached (8)', null, 3000);
+                    return;
+                }
+                targetParentId = centerNodeId;
+                targetParentNode = centerNode;
+            } else {
+                // Case 3: Occupied subcell - insert as child of that node
+                const occupiedNode = tree[nodeId];
+                if (!occupiedNode) return;
+                // For child nodes, also check 8 max
+                if (occupiedNode.children.length >= 8) {
+                    showToast('Maximum children reached (8)', null, 3000);
+                    return;
+                }
+                targetParentId = nodeId;
+                targetParentNode = occupiedNode;
+            }
+        }
+    } else {
+        // No valid focus - use current nav node
+        const currentNavNode = tree[state.currentNavNode];
+        if (!currentNavNode) return;
+        if (currentNavNode.children.length >= 9) {
+            showToast('Maximum maincells reached (9)', null, 3000);
+            return;
+        }
+        targetParentId = state.currentNavNode;
+        targetParentNode = currentNavNode;
+    }
 
     // Check duplication among siblings
-    const isDuplicate = parentNode.children.some(childId => {
+    const isDuplicate = targetParentNode.children.some(childId => {
         const child = tree[childId];
         return child && child.typeAId === typeAId;
     });
@@ -1510,20 +1692,27 @@ function insertTypeAIntoCanvas(typeAId) {
     }
 
     // Create new B1 node
-    const newNodeId = `${targetNodeId}-${typeAId}-${Date.now()}`;
+    const newNodeId = `${targetParentId}-${typeAId}-${Date.now()}`;
     tree[newNodeId] = {
         id: newNodeId,
         typeAId: typeAId,
-        parentId: targetNodeId,
+        parentId: targetParentId,
         children: []
     };
-    parentNode.children.push(newNodeId);
+    targetParentNode.children.push(newNodeId);
 
     renderCanvas();
-    showToast(`Inserted "${typeA.title}" as TypeB1`, () => {
+
+    // Show appropriate message based on insertion type
+    const insertedAsChild = focus && focus.type === 'subcell' && focus.nodeId && focus.subcell !== '4';
+    const message = insertedAsChild
+        ? `Inserted "${typeA.title}" as child [+]`
+        : `Inserted "${typeA.title}" as TypeB1`;
+
+    showToast(message, () => {
         // Undo
-        const idx = parentNode.children.indexOf(newNodeId);
-        if (idx !== -1) parentNode.children.splice(idx, 1);
+        const idx = targetParentNode.children.indexOf(newNodeId);
+        if (idx !== -1) targetParentNode.children.splice(idx, 1);
         delete tree[newNodeId];
         renderCanvas();
     });
@@ -1544,10 +1733,16 @@ function insertTypeCIntoCanvas(typeCId) {
         return;
     }
 
-    // Check duplication
+    // Check duplication and limits
     const b2Data = DATA.typeB2[state.currentTab];
     if (!b2Data[targetNodeId]) {
         b2Data[targetNodeId] = [];
+    }
+
+    // Check TypeB2 limit (9 max per node)
+    if (b2Data[targetNodeId].length >= 9) {
+        showToast('Maximum TypeB2 blocks reached (9)', null, 3000);
+        return;
     }
 
     const isDuplicate = b2Data[targetNodeId].some(b2 => b2.typeCId === typeCId);

@@ -625,8 +625,8 @@ body {
 /* Keyboard Shortcuts Hint */
 .shortcuts-hint {
     position: fixed;
-    bottom: var(--spacing-lg);
-    left: var(--spacing-lg);
+    top: 4px;
+    right: 16rem;
     padding: var(--spacing-sm) var(--spacing-md);
     background-color: var(--bg-primary);
     border: 1px solid var(--border-color);
@@ -693,4 +693,10 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
+}
+
+
+.subcell.occupied:nth-child(5) .title {
+  font-weight: bold;
+  font-size: 15px;
 }
