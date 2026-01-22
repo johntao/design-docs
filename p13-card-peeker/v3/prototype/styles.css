@@ -638,54 +638,10 @@ body {
   font-size: 15px;
 }
 
-.btn-add:hover {
-    background-color: var(--bg-secondary);
-    border-color: var(--focus-current);
+.tab-item:hover, .subcell:hover, .list-item:hover {
+    outline: 2px solid var(--focus-current);
 }
-.tab-item:hover {
-    background-color: var(--bg-tertiary);
-}
-.subcell:hover {
-    background-color: var(--bg-tertiary);
-}
-.typeB1-entity .nav-indicator .nav-in:hover,
-.typeB1-entity .nav-indicator .nav-up:hover {
-    color: var(--focus-current);
-}
-.list-item:hover {
-    background-color: var(--bg-secondary);
-    border-color: var(--border-color);
-}
-.btn-close:hover {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-}
-.btn-primary:hover {
-    background-color: #0046ba;
-}
-.btn-secondary:hover {
-    background-color: var(--bg-secondary);
-}
-.btn-danger:hover {
-    background-color: #c01339;
-}
-.toast .btn-undo:hover {
-    background-color: var(--bg-secondary);
-}
-/* Hover Effects Polish */
-.typeB1-entity:hover {
-    background-color: rgba(0, 0, 0, 0.03);
-    border-radius: 4px;
-}
-
 .typeB2-entity:hover {
     transform: scale(1.1);
     z-index: 10;
-}
-/* Selection Feedback */
-.subcell.occupied:hover {
-    background-color: var(--bg-tertiary);
-}
-::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary);
 }
