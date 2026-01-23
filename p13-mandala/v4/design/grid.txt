@@ -1,0 +1,25 @@
+refer to file @v4/prototype/grid/main.html
+- the HTML is a 3x3 maingrid (aka mg)
+  - each maincell containing a 3x3 subgrid (aka sg)
+  - totally 9x9 subcells
+  - the grid is implemented by CSS grid/ subgrid features
+please introduce a js script
+containing the following functions:
+- the app should constantly focus at least one element at any given time
+  - defaults to position `mg[0,0];sg[0,0]`
+- add shortcuts WERSDFXCV (uppercase letters) to change the position of the focused element
+  - given current focused element position `mg[0,0];sg[1,2]`
+    - hitting W, position not change
+    - hitting E, move to `mg[0,1];sg[1,2]`
+    - hitting R, move to `mg[0,2];sg[1,2]`
+    - hitting F, move to `mg[1,2];sg[1,2]`
+    - hitting X, move to `mg[2,0];sg[1,2]`
+    - conclusion: move mg; sg doesn't change
+- add shortcuts wersdfxcv (lowercase letters) to change the position of the focused element
+  - given current focused element position `mg[1,2];sg[0,0]`
+    - hitting w, position not change
+    - hitting e, move to `mg[1,2];sg[0,1]`
+    - hitting r, move to `mg[1,2];sg[0,2]`
+    - hitting f, move to `mg[1,2];sg[1,2]`
+    - hitting x, move to `mg[1,2];sg[2,0]`
+    - conclusion: move sg; mg doesn't change
