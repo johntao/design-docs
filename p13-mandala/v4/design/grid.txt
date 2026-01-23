@@ -23,3 +23,11 @@ containing the following functions:
     - hitting f, move to `mg[1,2];sg[1,2]`
     - hitting x, move to `mg[1,2];sg[2,0]`
     - conclusion: move sg; mg doesn't change
+
+refer to file @v4/prototype/grid/main.html
+let's introduce shortcut keys hjkl which change the focused elements by 9x9 subcells indices
+- h move left; subcells[i,--j]
+- j move down; subcells[++i,j]
+- k move up; subcells[--i,j]
+- l move right; subcells[i,++j]
+cancel the action if out of boundary
