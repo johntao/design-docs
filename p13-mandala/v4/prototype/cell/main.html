@@ -6,16 +6,58 @@
   <title>Cell</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; padding: 2rem; }
-    main { max-width: 400px; }
-    .record { border: 1px solid #ccc; padding: 1rem; border-radius: 4px; outline: none; }
-    .record:focus { outline: 2px solid #007bff; outline-offset: 2px; }
-    .record.editing { border-color: #007bff; }
-    .record.empty { color: #999; font-style: italic; }
-    .title { font-size: 1.25rem; font-weight: 600; outline: none; }
-    .description { color: #666; margin-top: 0.5rem; outline: none; }
-    .title:empty::before { content: attr(data-placeholder); color: #999; }
-    .description:empty::before { content: attr(data-placeholder); color: #999; }
+    body { font-family: system-ui, sans-serif; padding: 2rem; display: flex; gap: 2rem; }
+    main, .dummy {
+      min-width: 300px; min-height: 100px; border: 2px dashed #ccc;
+      padding: 1rem; border-radius: 4px; outline: none;
+    }
+    main:focus, main.focused { outline: 2px solid #007bff; outline-offset: 2px; }
+    main.empty::before { content: 'Empty - press u to create'; color: #999; font-style: italic; }
+    .dummy { background: #f5f5f5; color: #999; }
+    .dummy:focus { outline: 2px solid #999; outline-offset: 2px; }
+    .record { border: 1px solid #ccc; padding: 1rem; border-radius: 4px; }
+    .title {
+      font-size: 1.25rem; font-weight: 600; outline: none;
+      padding: 0.25rem; margin: -0.25rem; border-radius: 2px;
+    }
+    .title.inner-focus { background: #e7f1ff; }
+    .title.editing { background: #fff3cd; }
+    .details { list-style: none; margin-top: 0.5rem; }
+    .details:empty::before { content: 'No details'; color: #999; font-style: italic; }
+    .details li {
+      padding: 0.5rem; color: #666; cursor: pointer;
+      border-bottom: 1px solid #eee; border-radius: 2px;
+    }
+    .details li:hover { background: #f5f5f5; }
+    .details li.inner-focus { background: #e7f1ff; }
+    .details li:last-child { border-bottom: none; }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: none; align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #fff; padding: 1.5rem; border-radius: 4px;
+      min-width: 350px; max-width: 90%;
+    }
+    .modal h3 { margin-bottom: 1rem; }
+    .modal label { display: block; margin-bottom: 0.25rem; font-size: 0.875rem; color: #666; }
+    .modal input, .modal textarea {
+      width: 100%; padding: 0.5rem; border: 1px solid #ccc;
+      border-radius: 4px; font-family: inherit; font-size: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .modal textarea { resize: vertical; min-height: 60px; }
+    .modal-details { margin-top: 0.5rem; }
+    .modal-details h4 { font-size: 0.875rem; color: #666; margin-bottom: 0.5rem; }
+    .modal-details ul { list-style: none; border: 1px solid #eee; border-radius: 4px; }
+    .modal-details li {
+      padding: 0.5rem; border-bottom: 1px solid #eee;
+      cursor: grab; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .modal-details li:last-child { border-bottom: none; }
+    .modal-details li.dragging { opacity: 0.5; background: #f0f0f0; }
+    .modal-details .drag-handle { color: #999; }
     .notification {
       position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
       background: #333; color: #fff; padding: 0.75rem 1rem; border-radius: 4px;
@@ -29,29 +71,49 @@
   </style>
 </head>
 <body>
-  <main>
-    <div tabindex="0" class="record empty" id="record">
-      <div class="title" data-placeholder="Title"></div>
-      <div class="description" data-placeholder="Description"></div>
+  <main tabindex="0" id="main" class="empty"></main>
+  <div tabindex="0" class="dummy">Dummy focusable element</div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <h3 id="modalTitle">Record</h3>
+      <label for="modalTitleInput">Title *</label>
+      <input type="text" id="modalTitleInput" placeholder="Required">
+      <label for="modalDescInput">Description</label>
+      <textarea id="modalDescInput" placeholder="Optional"></textarea>
+      <div class="modal-details" id="modalDetails" style="display: none;">
+        <h4>Detail Records (drag to reorder)</h4>
+        <ul id="modalDetailsList"></ul>
+      </div>
     </div>
-  </main>
+  </div>
   <div class="notification" id="notification">
     <span id="notificationText"></span>
     <button id="undoBtn" style="display: none;">Undo</button>
   </div>
 
   <script>
-    const record = document.getElementById('record');
-    const title = record.querySelector('.title');
-    const description = record.querySelector('.description');
+    const mainEl = document.getElementById('main');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalTitleInput = document.getElementById('modalTitleInput');
+    const modalDescInput = document.getElementById('modalDescInput');
+    const modalDetails = document.getElementById('modalDetails');
+    const modalDetailsList = document.getElementById('modalDetailsList');
     const notification = document.getElementById('notification');
     const notificationText = document.getElementById('notificationText');
     const undoBtn = document.getElementById('undoBtn');
 
+    // State
+    let masterRecord = null; // { title, description, details: [] }
+    let innerFocus = null;   // null, 'title', or detail index
     let editing = false;
-    let savedTitle = '';
-    let savedDescription = '';
+    let savedValue = '';
     let deletedData = null;
+    let modalMode = null;    // 'create-master', 'update-master', 'create-detail', { type: 'update-detail', index }
+    let draggedIndex = null;
+    let tempDetails = [];
+    const MAX_DETAILS = 5;
 
     function notify(msg, showUndo = false) {
       notificationText.textContent = msg;
@@ -60,90 +122,413 @@
       if (!showUndo) setTimeout(() => notification.classList.remove('show'), 2000);
     }
 
-    function enterEditMode() {
-      if (editing) return;
-      editing = true;
-      savedTitle = title.textContent;
-      savedDescription = description.textContent;
-      record.classList.add('editing');
-      record.classList.remove('empty');
-      title.contentEditable = 'true';
-      description.contentEditable = 'true';
-      title.focus();
-    }
-
-    function exitEditMode(discard = false) {
-      if (!editing) return;
-      editing = false;
-      record.classList.remove('editing');
-      title.contentEditable = 'false';
-      description.contentEditable = 'false';
-      if (discard) {
-        title.textContent = savedTitle;
-        description.textContent = savedDescription;
-      }
-      if (!title.textContent && !description.textContent) {
-        record.classList.add('empty');
-      }
-    }
-
-    function applyChanges() {
-      const t = title.textContent.trim();
-      if (!t) {
-        notify('Title is required');
-        title.focus();
+    function render() {
+      mainEl.innerHTML = '';
+      if (!masterRecord) {
+        mainEl.classList.add('empty');
         return;
       }
-      title.textContent = t;
-      description.textContent = description.textContent.trim();
-      exitEditMode();
+      mainEl.classList.remove('empty');
+
+      const recordDiv = document.createElement('div');
+      recordDiv.className = 'record';
+
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'title';
+      titleDiv.textContent = masterRecord.title;
+      if (innerFocus === 'title') titleDiv.classList.add('inner-focus');
+      if (editing && innerFocus === 'title') {
+        titleDiv.classList.remove('inner-focus');
+        titleDiv.classList.add('editing');
+        titleDiv.contentEditable = 'true';
+      }
+      titleDiv.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setInnerFocus('title');
+      });
+      recordDiv.appendChild(titleDiv);
+
+      const detailsUl = document.createElement('ul');
+      detailsUl.className = 'details';
+      masterRecord.details.slice(0, MAX_DETAILS).forEach((d, i) => {
+        const li = document.createElement('li');
+        li.textContent = d.title;
+        if (innerFocus === i) li.classList.add('inner-focus');
+        if (editing && innerFocus === i) {
+          li.classList.remove('inner-focus');
+          li.style.background = '#fff3cd';
+          li.contentEditable = 'true';
+        }
+        li.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setInnerFocus(i);
+        });
+        detailsUl.appendChild(li);
+      });
+      recordDiv.appendChild(detailsUl);
+
+      mainEl.appendChild(recordDiv);
+
+      // Restore focus to editable element if editing
+      if (editing) {
+        const editableEl = innerFocus === 'title'
+          ? mainEl.querySelector('.title')
+          : mainEl.querySelectorAll('.details li')[innerFocus];
+        if (editableEl) {
+          editableEl.focus();
+          // Place cursor at end
+          const range = document.createRange();
+          range.selectNodeContents(editableEl);
+          range.collapse(false);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }
     }
 
-    function deleteRecord() {
-      if (record.classList.contains('empty')) return;
-      deletedData = { title: title.textContent, description: description.textContent };
-      title.textContent = '';
-      description.textContent = '';
-      record.classList.add('empty');
-      notify('Record deleted', true);
+    function setInnerFocus(target) {
+      innerFocus = target;
+      mainEl.classList.add('focused');
+      render();
+    }
+
+    function clearInnerFocus() {
+      innerFocus = null;
+      mainEl.classList.remove('focused');
+      render();
+    }
+
+    function hasOuterFocus() {
+      return mainEl === document.activeElement || mainEl.contains(document.activeElement);
+    }
+
+    function hasInnerFocus() {
+      return innerFocus !== null;
+    }
+
+    // Outer focus triggers default inner focus
+    mainEl.addEventListener('focus', () => {
+      if (masterRecord && innerFocus === null) {
+        setInnerFocus('title');
+      }
+      mainEl.classList.add('focused');
+    });
+
+    mainEl.addEventListener('blur', (e) => {
+      if (!mainEl.contains(e.relatedTarget)) {
+        if (!editing && !isModalOpen()) {
+          innerFocus = null;
+          mainEl.classList.remove('focused');
+          render();
+        }
+      }
+    });
+
+    mainEl.addEventListener('click', (e) => {
+      if (e.target === mainEl && masterRecord) {
+        setInnerFocus('title');
+      }
+    });
+
+    // Modal functions
+    function openModal(mode) {
+      modalMode = mode;
+      tempDetails = masterRecord ? [...masterRecord.details] : [];
+
+      if (mode === 'create-master') {
+        modalTitle.textContent = 'Create Master Record';
+        modalTitleInput.value = '';
+        modalDescInput.value = '';
+        modalDetails.style.display = 'none';
+      } else if (mode === 'update-master') {
+        modalTitle.textContent = 'Update Master Record';
+        modalTitleInput.value = masterRecord.title;
+        modalDescInput.value = masterRecord.description || '';
+        modalDetails.style.display = tempDetails.length ? 'block' : 'none';
+        renderModalDetails();
+      } else if (mode === 'create-detail') {
+        modalTitle.textContent = 'Create Detail Record';
+        modalTitleInput.value = '';
+        modalDescInput.value = '';
+        modalDetails.style.display = 'none';
+      } else if (mode.type === 'update-detail') {
+        modalTitle.textContent = 'Update Detail Record';
+        const detail = masterRecord.details[mode.index];
+        modalTitleInput.value = detail.title;
+        modalDescInput.value = detail.description || '';
+        modalDetails.style.display = 'none';
+      }
+
+      modalOverlay.classList.add('show');
+      modalTitleInput.focus();
+    }
+
+    function renderModalDetails() {
+      modalDetailsList.innerHTML = '';
+      tempDetails.forEach((d, i) => {
+        const li = document.createElement('li');
+        li.draggable = true;
+        li.dataset.index = i;
+        li.innerHTML = `<span class="drag-handle">☰</span> ${d.title}`;
+        li.addEventListener('dragstart', handleDragStart);
+        li.addEventListener('dragover', handleDragOver);
+        li.addEventListener('drop', handleDrop);
+        li.addEventListener('dragend', handleDragEnd);
+        modalDetailsList.appendChild(li);
+      });
+    }
+
+    function handleDragStart(e) {
+      draggedIndex = parseInt(e.target.dataset.index);
+      e.target.classList.add('dragging');
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      const targetIndex = parseInt(e.target.closest('li').dataset.index);
+      if (draggedIndex !== null && draggedIndex !== targetIndex) {
+        const [item] = tempDetails.splice(draggedIndex, 1);
+        tempDetails.splice(targetIndex, 0, item);
+        renderModalDetails();
+      }
+    }
+
+    function handleDragEnd(e) {
+      e.target.classList.remove('dragging');
+      draggedIndex = null;
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('show');
+      modalMode = null;
+      tempDetails = [];
+      mainEl.focus();
+    }
+
+    function confirmModal() {
+      const t = modalTitleInput.value.trim();
+      if (!t) {
+        notify('Title is required');
+        modalTitleInput.focus();
+        return;
+      }
+
+      if (modalMode === 'create-master') {
+        masterRecord = {
+          title: t,
+          description: modalDescInput.value.trim(),
+          details: []
+        };
+        innerFocus = 'title';
+      } else if (modalMode === 'update-master') {
+        masterRecord.title = t;
+        masterRecord.description = modalDescInput.value.trim();
+        masterRecord.details = tempDetails;
+      } else if (modalMode === 'create-detail') {
+        masterRecord.details.push({
+          title: t,
+          description: modalDescInput.value.trim()
+        });
+      } else if (modalMode.type === 'update-detail') {
+        masterRecord.details[modalMode.index] = {
+          title: t,
+          description: modalDescInput.value.trim()
+        };
+      }
+
+      render();
+      closeModal();
+    }
+
+    // Inline editing
+    function startEditing() {
+      if (!masterRecord || innerFocus === null) return;
+      if (typeof innerFocus === 'number' && innerFocus >= masterRecord.details.length) return;
+
+      editing = true;
+      if (innerFocus === 'title') {
+        savedValue = masterRecord.title;
+      } else {
+        savedValue = masterRecord.details[innerFocus].title;
+      }
+      render();
+    }
+
+    function cancelEditing() {
+      editing = false;
+      render();
+      mainEl.focus();
+    }
+
+    function applyEditing() {
+      const el = innerFocus === 'title'
+        ? mainEl.querySelector('.title')
+        : mainEl.querySelectorAll('.details li')[innerFocus];
+
+      const newValue = el ? el.textContent.trim() : '';
+      if (!newValue) {
+        notify('Title is required');
+        return;
+      }
+
+      if (innerFocus === 'title') {
+        masterRecord.title = newValue;
+      } else {
+        masterRecord.details[innerFocus].title = newValue;
+      }
+
+      editing = false;
+      render();
+      mainEl.focus();
+    }
+
+    // Delete focused element
+    function deleteFocused() {
+      if (!masterRecord || innerFocus === null) return;
+
+      if (innerFocus === 'title') {
+        deletedData = { ...masterRecord };
+        masterRecord = null;
+        innerFocus = null;
+        notify('Master record deleted', true);
+      } else {
+        const idx = innerFocus;
+        deletedData = { type: 'detail', index: idx, detail: masterRecord.details[idx] };
+        masterRecord.details.splice(idx, 1);
+        innerFocus = masterRecord.details.length > 0 ? Math.min(idx, masterRecord.details.length - 1) : 'title';
+        notify('Detail record deleted', true);
+      }
+      render();
     }
 
     function undoDelete() {
       if (!deletedData) return;
-      title.textContent = deletedData.title;
-      description.textContent = deletedData.description;
-      record.classList.remove('empty');
+
+      if (deletedData.type === 'detail') {
+        masterRecord.details.splice(deletedData.index, 0, deletedData.detail);
+        innerFocus = deletedData.index;
+      } else {
+        masterRecord = deletedData;
+        innerFocus = 'title';
+      }
+
       deletedData = null;
       notification.classList.remove('show');
+      render();
     }
 
-    function isRecordFocused() {
-      return record === document.activeElement || record.contains(document.activeElement);
+    // Rotate functions
+    function rotateBackward() {
+      if (!masterRecord || masterRecord.details.length < 2) return;
+      for (let i = 0; i < 2; i++) {
+        const item = masterRecord.details.pop();
+        masterRecord.details.unshift(item);
+      }
+      render();
     }
 
+    function rotateForward() {
+      if (!masterRecord || masterRecord.details.length < 2) return;
+      for (let i = 0; i < 3; i++) {
+        const item = masterRecord.details.shift();
+        masterRecord.details.push(item);
+      }
+      render();
+    }
+
+    function isModalOpen() {
+      return modalOverlay.classList.contains('show');
+    }
+
+    // Keyboard handling
     document.addEventListener('keydown', (e) => {
+      if (isModalOpen()) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeModal();
+        } else if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          confirmModal();
+        }
+        return;
+      }
+
       if (editing) {
         if (e.key === 'Escape') {
           e.preventDefault();
-          exitEditMode(true);
-          record.focus();
+          cancelEditing();
         } else if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
-          applyChanges();
-          record.focus();
+          applyEditing();
         }
-      } else if (isRecordFocused()) {
+        return;
+      }
+
+      if (!hasOuterFocus()) return;
+
+      // Outer focus shortcuts
+      if (e.key === 'u') {
+        e.preventDefault();
+        if (!masterRecord) {
+          openModal('create-master');
+        } else {
+          openModal('create-detail');
+        }
+      } else if (e.key === 'n') {
+        e.preventDefault();
+        rotateBackward();
+      } else if (e.key === 'm') {
+        e.preventDefault();
+        rotateForward();
+      }
+
+      // Inner focus shortcuts
+      if (hasInnerFocus()) {
         if (e.key === 'i') {
           e.preventDefault();
-          enterEditMode();
+          startEditing();
+        } else if (e.key === 'o') {
+          e.preventDefault();
+          if (innerFocus === 'title') {
+            openModal('update-master');
+          } else {
+            openModal({ type: 'update-detail', index: innerFocus });
+          }
         } else if (e.key === 'Delete') {
           e.preventDefault();
-          deleteRecord();
+          deleteFocused();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (innerFocus === 'title') {
+            // Already at top, do nothing
+          } else if (innerFocus === 0) {
+            setInnerFocus('title');
+          } else {
+            setInnerFocus(innerFocus - 1);
+          }
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const maxIndex = Math.min(masterRecord.details.length, MAX_DETAILS) - 1;
+          if (innerFocus === 'title') {
+            if (masterRecord.details.length > 0) {
+              setInnerFocus(0);
+            }
+          } else if (innerFocus < maxIndex) {
+            setInnerFocus(innerFocus + 1);
+          }
         }
       }
     });
 
     undoBtn.addEventListener('click', undoDelete);
+
+    // Initial render
+    render();
   </script>
 </body>
 </html>

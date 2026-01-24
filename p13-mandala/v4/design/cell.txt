@@ -24,12 +24,15 @@ please help make a blank HTML with the following features:
 - user hit `<del>` to delete the master record
   - notify deletion with an undo button
 
+---
 
 add the following features:
 
 - user click on the record would make the element focused
 - a focused element will be highlighted by extra outlines
 - shortcut `i` and `<del>` only works on a focused element
+
+---
 
 add the following features:
 
@@ -50,3 +53,59 @@ add the following features:
     - if the title is blank or whitespace, does nothing, notify users for violation
     - if the title is not blank, create the record, close the modal
 - hit `<del>` on a focused element now also delete all the detail records
+
+---
+
+we need to rework all the focus and actions:
+
+first of all, add another dummy focusable element next to `<main>` such that we can validate our newly introduce focus logic
+
+treat `<main>` as a focusable element where it may contains zero to one master record
+
+the initial state should be an empty `<main>` instead of containing a blank master record
+
+there are two types of focus: inner focus and outer focus
+- inner focus are triggered when user trying to click on the title field of a master record or click on a detail record
+- outer focus are triggered when the user click on "main"
+
+when an outer focus is triggered:
+- a default inner focus is triggered
+- the inner focus defaults to the title of a master record
+- the outer element remains the highlighting effect
+
+when an inner focus is triggered:
+- highlight the outer element as well
+
+when an outer focus exists:
+- hit `u` will open a creation modal popup:
+  - if the main is empty, then, the modal create a master record
+  - if the main is occupied, then, the modal create a detail record of a master record
+- hit `n` pop the last detail records, then, unshift it back to the list; repeat 2 times
+- hit `m` shift the first detail records, then, push it back to the list; repeat 3 times
+
+when an inner focus exists:
+- hit `i` will edit the title of the focused element
+- hit `o` will open an update modal popup
+- hit `<del>` will delete the focused element
+
+a master record update modal now contains three fields:
+- (required)title
+- description
+- list all the detail records
+  - expose the title field
+  - user may drag and drop to reorder the detail records
+
+---
+
+I found out that open-close an update modal for a detail record will lose the previous inner focus on the selected detail record
+
+actual: after closing the modal, the default inner focus is triggered
+
+expected: after closing the modal, resume the previous inner focus 
+
+please help address this issue
+
+---
+
+lastly, let's introduce a few more shortcut keys for inner focus:
+- hit arrow keys up/ down should move the inner focus up and down between title of the master record and detail records
