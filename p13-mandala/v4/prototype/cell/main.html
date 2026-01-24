@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cell</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; padding: 2rem; }
+    main { max-width: 400px; }
+    .record { border: 1px solid #ccc; padding: 1rem; border-radius: 4px; outline: none; }
+    .record:focus { outline: 2px solid #007bff; outline-offset: 2px; }
+    .record.editing { border-color: #007bff; }
+    .record.empty { color: #999; font-style: italic; }
+    .title { font-size: 1.25rem; font-weight: 600; outline: none; }
+    .description { color: #666; margin-top: 0.5rem; outline: none; }
+    .title:empty::before { content: attr(data-placeholder); color: #999; }
+    .description:empty::before { content: attr(data-placeholder); color: #999; }
+    .notification {
+      position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
+      background: #333; color: #fff; padding: 0.75rem 1rem; border-radius: 4px;
+      display: none; align-items: center; gap: 1rem;
+    }
+    .notification.show { display: flex; }
+    .notification button {
+      background: #fff; color: #333; border: none; padding: 0.25rem 0.5rem;
+      border-radius: 2px; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div tabindex="0" class="record empty" id="record">
+      <div class="title" data-placeholder="Title"></div>
+      <div class="description" data-placeholder="Description"></div>
+    </div>
+  </main>
+  <div class="notification" id="notification">
+    <span id="notificationText"></span>
+    <button id="undoBtn" style="display: none;">Undo</button>
+  </div>
+
+  <script>
+    const record = document.getElementById('record');
+    const title = record.querySelector('.title');
+    const description = record.querySelector('.description');
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notificationText');
+    const undoBtn = document.getElementById('undoBtn');
+
+    let editing = false;
+    let savedTitle = '';
+    let savedDescription = '';
+    let deletedData = null;
+
+    function notify(msg, showUndo = false) {
+      notificationText.textContent = msg;
+      undoBtn.style.display = showUndo ? 'block' : 'none';
+      notification.classList.add('show');
+      if (!showUndo) setTimeout(() => notification.classList.remove('show'), 2000);
+    }
+
+    function enterEditMode() {
+      if (editing) return;
+      editing = true;
+      savedTitle = title.textContent;
+      savedDescription = description.textContent;
+      record.classList.add('editing');
+      record.classList.remove('empty');
+      title.contentEditable = 'true';
+      description.contentEditable = 'true';
+      title.focus();
+    }
+
+    function exitEditMode(discard = false) {
+      if (!editing) return;
+      editing = false;
+      record.classList.remove('editing');
+      title.contentEditable = 'false';
+      description.contentEditable = 'false';
+      if (discard) {
+        title.textContent = savedTitle;
+        description.textContent = savedDescription;
+      }
+      if (!title.textContent && !description.textContent) {
+        record.classList.add('empty');
+      }
+    }
+
+    function applyChanges() {
+      const t = title.textContent.trim();
+      if (!t) {
+        notify('Title is required');
+        title.focus();
+        return;
+      }
+      title.textContent = t;
+      description.textContent = description.textContent.trim();
+      exitEditMode();
+    }
+
+    function deleteRecord() {
+      if (record.classList.contains('empty')) return;
+      deletedData = { title: title.textContent, description: description.textContent };
+      title.textContent = '';
+      description.textContent = '';
+      record.classList.add('empty');
+      notify('Record deleted', true);
+    }
+
+    function undoDelete() {
+      if (!deletedData) return;
+      title.textContent = deletedData.title;
+      description.textContent = deletedData.description;
+      record.classList.remove('empty');
+      deletedData = null;
+      notification.classList.remove('show');
+    }
+
+    function isRecordFocused() {
+      return record === document.activeElement || record.contains(document.activeElement);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (editing) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          exitEditMode(true);
+          record.focus();
+        } else if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          applyChanges();
+          record.focus();
+        }
+      } else if (isRecordFocused()) {
+        if (e.key === 'i') {
+          e.preventDefault();
+          enterEditMode();
+        } else if (e.key === 'Delete') {
+          e.preventDefault();
+          deleteRecord();
+        }
+      }
+    });
+
+    undoBtn.addEventListener('click', undoDelete);
+  </script>
+</body>
+</html>

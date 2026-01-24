@@ -1,0 +1,52 @@
+please help make a blank HTML with the following features:
+
+## View
+
+- a main wrapper in the out most layer
+- inside the main is an editable record (the master record)
+- the first row of the main contains an editable title
+- the second row of the main contains an editable description
+
+## Interaction
+
+### mouse
+
+
+### keyboard
+
+- user hit `i` to create or update the master record
+  - title and description are now editable (i.e. enter edit mode)
+  - hit `<esc>` to discard the changes
+  - hit `<enter>` to apply the changes
+    - title is required
+    - if the title is blank or whitespace, does nothing, notify users for violation
+    - if the title is not blank, apply changes, exit edit mode
+- user hit `<del>` to delete the master record
+  - notify deletion with an undo button
+
+
+add the following features:
+
+- user click on the record would make the element focused
+- a focused element will be highlighted by extra outlines
+- shortcut `i` and `<del>` only works on a focused element
+
+add the following features:
+
+- replace the second row of the main by a list of detail records
+  - each list item expose the title of a detail record
+  - click on the record to open an update modal popup
+  - the list display 5 items at max
+- hit `u` on a focused element
+  - open a creation modal popup to create a detail record
+- hit `n` on a focused element
+  - pop the last detail records, then, unshift it back to the list; repeat 3 times
+- hit `m` on a focused element
+  - shift the first detail records, then, push it back to the list; repeat 3 times
+- update and creation modal popup
+  - containing a required title field and an optional description field
+  - hit `<esc>` to cancel the operation, and close the modal
+  - hit `<enter>` to confirm the changes
+    - if the title is blank or whitespace, does nothing, notify users for violation
+    - if the title is not blank, create the record, close the modal
+- hit `<del>` on a focused element now also delete all the detail records
