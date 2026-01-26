@@ -62,6 +62,8 @@ here's the shared properties of a modal popup
   - if the title is blank or whitespace, does nothing, notify users for violation
   - if the title is not blank or whitespace, create the record, close the modal
 
+use `<dialog>` to implement the modal
+
 ## feature 4, creating records
 
 ### case 1
