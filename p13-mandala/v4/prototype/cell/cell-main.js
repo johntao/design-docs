@@ -9,10 +9,7 @@ template.innerHTML = `
     }
 
     .main {
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      padding: 12px;
-      background: #fff;
+      height: 100%;
     }
 
     .main:focus {

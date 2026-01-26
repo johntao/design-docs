@@ -1,0 +1,28 @@
+refer to file @v4/test/composition.html
+please help complete the implementation:
+
+there are three web components
+
+cell-test:
+- is a focusable element
+- focus the element to enable the following shortcuts
+  - shortcut functions are defined inside the web components
+- hit `u` to create a record inside the cell-test
+  - call modal-test to open a creation popup
+  - contains a required field title
+- hit `o` to update the record
+  - call modal-test to open an update popup
+- hit `<del>` to delete the record
+  - call notify-test to generate an undo toast
+- hit arrows up/ down to focus different cell-test
+  - stop on the boundary
+  - the begin of the boundary is `.top>cell-test`
+  - the end of the boundary is `.bot>cell-test`
+
+modal-test:
+- is a modal popup implemented by `<dialog>`
+- used by cell-test
+
+notify-test: is a toast used by cell-test
+- main
+- cell-test

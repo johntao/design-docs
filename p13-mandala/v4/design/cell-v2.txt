@@ -158,11 +158,11 @@ some of the actions not necessary operate on the focused element, instead the ac
 | action  | operate on      |
 | ------- | --------------- |
 | u       | master record   |
+| n       | master record   |
+| m       | master record   |
 | i       | focused element |
 | o       | focused element |
 | `<del>` | focused element |
-| n       | master record   |
-| m       | master record   |
 
 ---
 
