@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    #main_cell {
+      border: 2px solid black;
+      width: 300px;
+      height: 200px;
+      padding: 10px;
+      background: #333;
+    }
+    #parent_name {
+      background-color: #555;
+    }
+    #children_rows {
+      background-color: #777;
+    }
+    #parent_name:focus, #children_rows>li:focus, #main_cell:focus {
+      outline: 2px solid red;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <main id="main_cell" tabindex="0">
+    <div id="parent_row" hidden>
+      <div tabindex="0" id="parent_name">master</div>
+      <ul id="children_rows">
+        <li tabindex="0">zz</li>
+        <li tabindex="0">xx</li>
+        <li tabindex="0">cc</li>
+        <li tabindex="0">vv</li>
+      </ul>
+    </div>
+  </main>
+  <button id="btn_toggl" type="button">toggle</button>
+  <script>
+    btn_toggl.addEventListener('click', () => {
+      parent_row.hidden = !parent_row.hidden;
+      if (!parent_row.hidden)
+        main_cell.removeAttribute('tabindex');
+      else
+        main_cell.setAttribute('tabindex', '0');
+    });
+    main_cell.addEventListener('click', (e) => {
+      if (e.target.tagName === 'LI')
+        console.log('children_rows clicked' );
+      else {
+        if (!parent_row.hidden) parent_name.focus();
+        console.log('main_cell clicked' );
+      }
+    });
+  </script>
+</body>
+
+</html>

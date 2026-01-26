@@ -1,0 +1,52 @@
+<html>
+
+<head>
+  <style>
+    .outer {
+      padding: 40px;
+      background-color: lightblue;
+      border: 2px solid blue;
+    }
+
+    .inner {
+      padding: 20px;
+      background-color: lightcoral;
+      border: 2px solid red;
+    }
+
+    hr {
+      margin-block: 2rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="outer" id="qq">
+    Outer div qq
+    <div class="inner" id="ww">
+      Inner div ww
+    </div>
+  </div>
+  <hr>
+  <div class="outer" id="aa">
+    Outer div aa
+    <div class="inner" id="ss">
+      Inner div ss
+    </div>
+  </div>
+  <script>
+    qq.addEventListener('click', function (event) {
+      console.log('qq', 'et', event.target.id, 'ect', event.currentTarget.id);
+      console.log('---');
+    });
+    ww.addEventListener('click', function (event) {
+      console.log('ww', 'et', event.target.id, 'ect', event.currentTarget.id);
+      console.log('---');
+    });
+    aa.addEventListener('click', function (event) {
+      console.log('aa', 'et', event.target.id, 'ect', event.currentTarget.id);
+      console.log('---');
+    });
+  </script>
+</body>
+</html>

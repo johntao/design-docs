@@ -1,0 +1,163 @@
+please help make a standalone web page with the following features:
+
+## feature 1, the layout
+
+use light theme and minimal styling
+
+- a main is an wrapper of a master record (mr)
+  - an wrapper may contains zero-to-one mr
+- the first row of the mr is an editable title
+- the second row of the mr is a list of detail records (dr)
+  - a mr may contains zero-to-many drs
+  - display 5 records at max
+- each dr (list-item) exposes a single editable field title
+
+## feature 2, rules of focus
+
+1. use the built-in focus method and behavior
+   - do not introduce homemade focus implementation
+   - all keyboard shortcuts require a "focused" element to trigger
+2. avoid nested focusable structure
+   - if a nested focusable structure present
+   - replace the outer focusable element by one of the inner focusable element
+   - `removeAttribute('tabindex')` and `inner.focus()` may do the trick
+3. use `:focus` to style each focused element
+   - declare these styles explicitly (made it clear for every elemnets that is focusable)
+   - use outline to style focused elements
+4. use `tabindex="0"` to define if an element is focusable
+  - use `setAttribute('tabindex', '0')` and `removeAttribute('tabindex')` to set up conditional "focusable"
+5. register one click event per component, let `event.target` do the dispatching logic
+  - in this codebase, the outerHTML of `<main>` stands as a component
+
+refer to file `../prototype/cell/minimal-focus-impl.html` as an example
+
+### UI layout examples
+
+case 1
+- main (focusable)
+  - empty
+
+case 2
+- main (not focusable)
+  - mr
+    - mr title (focusable)
+
+case 3
+- main (not focusable)
+  - mr
+    - mr title (focusable)
+    - drs
+      - dr (focusable)
+      - dr (focusable)
+      - dr (focusable)
+      - dr (focusable)
+ 
+## feature 3, modal popup in general
+
+there are two types of modal: creation and update
+here's the shared properties of a modal popup
+- containing a title (required) field and a description field
+- hit `<esc>` to cancel the operation, and close the modal
+- hit `<enter>` to confirm the operation
+  - if the title is blank or whitespace, does nothing, notify users for violation
+  - if the title is not blank or whitespace, create the record, close the modal
+
+## feature 4, creating records
+
+### case 1
+
+if the `main` is focused and `main` doesn't contain a mr
+
+user hit `u` to create a mr, which then, opens a creation modal popup
+
+if create successfully, a mr is inserted into the `main`
+
+### case 2
+
+if the `main` is focused and `main` already contain a mr
+
+user hit `u` to create a dr of the mr, which then, opens a creation modal popup
+
+if create successfully, a dr is inserted into the mr
+
+### conditional focus
+
+- if `main` doesn't contain a mr, then, after the mr creation
+  - set `main` as not focusable => `removeAttribute('tabindex')`
+  - use the title of the mr to represent "focusing the main" => `mr_title.focus()`
+  - refer to the second rules of [focusing](#feature-2-rules-of-focus)
+
+## feature 5, deleting records
+
+### case 1
+
+if the `main` is focused and `main` doesn't contain a mr
+
+user hit `<del>` => nothing happen
+
+### case 2
+
+if the `main` is focused and `main` already contain a mr
+
+user hit `<del>` to delete the mr including all the drs belong to the mr
+
+notify deletion with an undo button
+
+### case 3
+
+if a dr is focused
+
+user hit `<del>` to delete the dr from the mr
+
+notify deletion with an undo button
+
+### conditional focus
+
+- if `main` contains a mr, then, after the mr deletion
+  - set `main` as focusable => `setAttribute('tabindex', '0')`
+  - refer to the second rules of [focusing](#feature-2-rules-of-focus)
+
+## feature 6, inline editing
+
+hit `i` on a focused element allows user to edit the title directly
+- user may hit `<enter>` to apply the changes
+- user may hit `<esc>` to discard the changes
+
+## feature 7, detail editing
+
+hit `o` on a focused element allowing users to open an update modal popup to edit the details of the entity
+- inherit logic from creation modal; refer to [previous section](#feature-4-creating-records)
+  - except that a mr update modal also list all the related drs
+  - users may drag and drop to reorder the dr
+  - restore the focus after closing the modal
+
+## feature 8, navigation
+
+### listing iteration
+
+given a mr with 8 drs, and mr is currently focused
+
+- hit `n`: pop the last drs, then, unshift it back to the list; repeat 1 times
+- hit `m`: shift the first drs, then, push it back to the list; repeat 2 times
+
+### arrow keys to focus different dr
+
+given a mr with 8 drs, and the 3rd dr is currently focused
+
+- hit arrow keys up/ down to focus up/ down elements related to the current focused element
+  - stop navigation on boundary
+  - the start boundary: the title of the mr
+  - the end boundary: the last dr
+
+## misc
+
+some of the actions not necessary operate on the focused element, instead the action operate on the mr that contains the current focused element
+
+| action  | operate on      |
+| ------- | --------------- |
+| u       | master record   |
+| i       | focused element |
+| o       | focused element |
+| `<del>` | focused element |
+| n       | master record   |
+| m       | master record   |
