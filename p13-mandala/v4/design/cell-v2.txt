@@ -29,7 +29,7 @@ use light theme and minimal styling
 5. register one click event per component, let `event.target` do the dispatching logic
   - in this codebase, the outerHTML of `<main>` stands as a component
 
-refer to file `../prototype/cell/minimal-focus-impl.html` as an example
+refer to file `../test/minimal-focus-impl.html` as an example
 
 ### UI layout examples
 
