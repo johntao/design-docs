@@ -161,3 +161,13 @@ some of the actions not necessary operate on the focused element, instead the ac
 | `<del>` | focused element |
 | n       | master record   |
 | m       | master record   |
+
+---
+
+I found two bugs:
+1. if users focused on a dr, calling rotate function would lose the focus
+  - expected: restore focus at the same position after the rotation
+2. the "mr_container" should be reset on deletion
+  - expected: reset "mr_container" to the initial state
+  - actual: the data is deleted, however, the view still persist
+please fix these issues

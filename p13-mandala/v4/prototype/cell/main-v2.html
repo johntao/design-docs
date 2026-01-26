@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cell V2</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #fafafa;
+      padding: 20px;
+      margin: 0;
+    }
+
+    /* Main container */
+    #main_cell {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 320px;
+      min-height: 100px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    #main_cell:focus {
+      outline: 2px solid #0066cc;
+      outline-offset: 2px;
+    }
+
+    /* Master record */
+    #mr_container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #mr_title {
+      font-size: 16px;
+      font-weight: 600;
+      padding: 6px 8px;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      background: #f5f5f5;
+    }
+
+    #mr_title:focus {
+      outline: 2px solid #0066cc;
+      outline-offset: 2px;
+    }
+
+    #mr_title.editing {
+      border-color: #0066cc;
+      background: #fff;
+    }
+
+    /* Detail records list */
+    #dr_list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    #dr_list li {
+      padding: 6px 8px;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      background: #f9f9f9;
+      font-size: 14px;
+    }
+
+    #dr_list li:focus {
+      outline: 2px solid #0066cc;
+      outline-offset: 2px;
+    }
+
+    #dr_list li.editing {
+      border-color: #0066cc;
+      background: #fff;
+    }
+
+    /* Empty state */
+    .empty-hint {
+      color: #999;
+      font-size: 14px;
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-overlay[hidden] {
+      display: none;
+    }
+
+    /* Modal */
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      padding: 20px;
+      width: 340px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal h3 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .modal label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    .modal input,
+    .modal textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .modal input:focus,
+    .modal textarea:focus {
+      outline: none;
+      border-color: #0066cc;
+    }
+
+    .modal input.error {
+      border-color: #cc0000;
+    }
+
+    .modal textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .modal-field {
+      margin-bottom: 12px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+
+    .modal-actions button {
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .btn-cancel {
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+    }
+
+    .btn-confirm {
+      background: #0066cc;
+      border: 1px solid #0066cc;
+      color: #fff;
+    }
+
+    .error-msg {
+      color: #cc0000;
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .error-msg.visible {
+      display: block;
+    }
+
+    /* DR list in modal for reordering */
+    .modal-dr-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+
+    .modal-dr-list li {
+      padding: 8px;
+      background: #fafafa;
+      border-bottom: 1px solid #eee;
+      cursor: grab;
+      font-size: 13px;
+    }
+
+    .modal-dr-list li:last-child {
+      border-bottom: none;
+    }
+
+    .modal-dr-list li.dragging {
+      opacity: 0.5;
+      background: #e0e0e0;
+    }
+
+    .modal-dr-list li.drag-over {
+      border-top: 2px solid #0066cc;
+    }
+
+    /* Toast notification */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 200;
+    }
+
+    #toast[hidden] {
+      display: none;
+    }
+
+    #toast button {
+      background: transparent;
+      border: 1px solid #fff;
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    /* Keyboard hints */
+    .hint {
+      font-size: 11px;
+      color: #999;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <main id="main_cell" tabindex="0">
+    <div id="mr_container" hidden>
+      <div id="mr_title" tabindex="0"></div>
+      <ul id="dr_list"></ul>
+    </div>
+    <div id="empty_hint" class="empty-hint">Press 'u' to create a record</div>
+  </main>
+
+  <p class="hint">u: create | i: inline edit | o: detail edit | Del: delete | n/m: rotate | arrows: navigate</p>
+
+  <!-- Modal for creation/update -->
+  <div id="modal_overlay" class="modal-overlay" hidden>
+    <div class="modal">
+      <h3 id="modal_title">Create Record</h3>
+      <div class="modal-field">
+        <label for="modal_input_title">Title *</label>
+        <input type="text" id="modal_input_title" placeholder="Enter title">
+        <div id="modal_error" class="error-msg">Title cannot be blank</div>
+      </div>
+      <div class="modal-field">
+        <label for="modal_input_desc">Description</label>
+        <textarea id="modal_input_desc" placeholder="Enter description (optional)"></textarea>
+      </div>
+      <div id="modal_dr_section" class="modal-field" hidden>
+        <label>Detail Records (drag to reorder)</label>
+        <ul id="modal_dr_list" class="modal-dr-list"></ul>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" id="modal_cancel">Cancel (Esc)</button>
+        <button type="button" class="btn-confirm" id="modal_confirm">Confirm (Enter)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" hidden>
+    <span id="toast_msg"></span>
+    <button id="toast_undo">Undo</button>
+  </div>
+
+  <script>
+    // State
+    const state = {
+      mr: null, // { title, description, drs: [{ title, description }] }
+      deletedMr: null,
+      deletedDr: null,
+      deletedDrIndex: null,
+      modalMode: null, // 'create-mr', 'create-dr', 'update-mr', 'update-dr'
+      modalTargetIndex: null,
+      focusBeforeModal: null,
+      drOrder: [] // for reordering in modal
+    };
+
+    // DOM references
+    const mainCell = document.getElementById('main_cell');
+    const mrContainer = document.getElementById('mr_container');
+    const mrTitle = document.getElementById('mr_title');
+    const drList = document.getElementById('dr_list');
+    const emptyHint = document.getElementById('empty_hint');
+    const modalOverlay = document.getElementById('modal_overlay');
+    const modalTitleEl = document.getElementById('modal_title');
+    const modalInputTitle = document.getElementById('modal_input_title');
+    const modalInputDesc = document.getElementById('modal_input_desc');
+    const modalError = document.getElementById('modal_error');
+    const modalCancel = document.getElementById('modal_cancel');
+    const modalConfirm = document.getElementById('modal_confirm');
+    const modalDrSection = document.getElementById('modal_dr_section');
+    const modalDrList = document.getElementById('modal_dr_list');
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast_msg');
+    const toastUndo = document.getElementById('toast_undo');
+
+    // Render functions
+    function render() {
+      if (!state.mr) {
+        mrContainer.hidden = true;
+        emptyHint.hidden = false;
+        mainCell.setAttribute('tabindex', '0');
+        // Reset mr_container to initial state
+        mrTitle.textContent = '';
+        drList.innerHTML = '';
+      } else {
+        mrContainer.hidden = false;
+        emptyHint.hidden = true;
+        mainCell.removeAttribute('tabindex');
+        mrTitle.textContent = state.mr.title;
+        renderDrList();
+      }
+    }
+
+    function renderDrList() {
+      drList.innerHTML = '';
+      const displayCount = Math.min(state.mr.drs.length, 5);
+      for (let i = 0; i < displayCount; i++) {
+        const dr = state.mr.drs[i];
+        const li = document.createElement('li');
+        li.tabIndex = 0;
+        li.textContent = dr.title;
+        li.dataset.index = i;
+        drList.appendChild(li);
+      }
+    }
+
+    // Modal functions
+    function openModal(mode, targetIndex = null) {
+      state.modalMode = mode;
+      state.modalTargetIndex = targetIndex;
+      state.focusBeforeModal = document.activeElement;
+
+      modalError.classList.remove('visible');
+      modalInputTitle.classList.remove('error');
+      modalInputTitle.value = '';
+      modalInputDesc.value = '';
+      modalDrSection.hidden = true;
+
+      if (mode === 'create-mr') {
+        modalTitleEl.textContent = 'Create Master Record';
+      } else if (mode === 'create-dr') {
+        modalTitleEl.textContent = 'Create Detail Record';
+      } else if (mode === 'update-mr') {
+        modalTitleEl.textContent = 'Edit Master Record';
+        modalInputTitle.value = state.mr.title;
+        modalInputDesc.value = state.mr.description || '';
+        if (state.mr.drs.length > 0) {
+          modalDrSection.hidden = false;
+          state.drOrder = state.mr.drs.map((_, i) => i);
+          renderModalDrList();
+        }
+      } else if (mode === 'update-dr') {
+        modalTitleEl.textContent = 'Edit Detail Record';
+        const dr = state.mr.drs[targetIndex];
+        modalInputTitle.value = dr.title;
+        modalInputDesc.value = dr.description || '';
+      }
+
+      modalOverlay.hidden = false;
+      modalInputTitle.focus();
+    }
+
+    function closeModal() {
+      modalOverlay.hidden = true;
+      if (state.focusBeforeModal) {
+        state.focusBeforeModal.focus();
+      }
+      state.modalMode = null;
+      state.modalTargetIndex = null;
+      state.focusBeforeModal = null;
+    }
+
+    function confirmModal() {
+      const title = modalInputTitle.value.trim();
+      if (!title) {
+        modalError.classList.add('visible');
+        modalInputTitle.classList.add('error');
+        modalInputTitle.focus();
+        return;
+      }
+
+      const description = modalInputDesc.value.trim();
+
+      if (state.modalMode === 'create-mr') {
+        state.mr = { title, description, drs: [] };
+        closeModal();
+        render();
+        mrTitle.focus();
+      } else if (state.modalMode === 'create-dr') {
+        state.mr.drs.push({ title, description });
+        closeModal();
+        render();
+        const lastIndex = Math.min(state.mr.drs.length, 5) - 1;
+        const lastDr = drList.children[lastIndex];
+        if (lastDr) lastDr.focus();
+        else mrTitle.focus();
+      } else if (state.modalMode === 'update-mr') {
+        state.mr.title = title;
+        state.mr.description = description;
+        // Apply reorder
+        if (state.drOrder.length > 0) {
+          const newDrs = state.drOrder.map(i => state.mr.drs[i]);
+          state.mr.drs = newDrs;
+        }
+        closeModal();
+        render();
+        mrTitle.focus();
+      } else if (state.modalMode === 'update-dr') {
+        state.mr.drs[state.modalTargetIndex].title = title;
+        state.mr.drs[state.modalTargetIndex].description = description;
+        const idx = state.modalTargetIndex;
+        closeModal();
+        render();
+        if (idx < 5 && drList.children[idx]) {
+          drList.children[idx].focus();
+        } else {
+          mrTitle.focus();
+        }
+      }
+    }
+
+    function renderModalDrList() {
+      modalDrList.innerHTML = '';
+      state.drOrder.forEach((drIndex, orderIndex) => {
+        const dr = state.mr.drs[drIndex];
+        const li = document.createElement('li');
+        li.textContent = dr.title;
+        li.draggable = true;
+        li.dataset.orderIndex = orderIndex;
+        modalDrList.appendChild(li);
+      });
+    }
+
+    // Drag and drop for modal dr list
+    let draggedIndex = null;
+
+    modalDrList.addEventListener('dragstart', (e) => {
+      if (e.target.tagName === 'LI') {
+        draggedIndex = parseInt(e.target.dataset.orderIndex);
+        e.target.classList.add('dragging');
+      }
+    });
+
+    modalDrList.addEventListener('dragend', (e) => {
+      if (e.target.tagName === 'LI') {
+        e.target.classList.remove('dragging');
+        draggedIndex = null;
+        modalDrList.querySelectorAll('li').forEach(li => li.classList.remove('drag-over'));
+      }
+    });
+
+    modalDrList.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const target = e.target.closest('li');
+      if (target && draggedIndex !== null) {
+        modalDrList.querySelectorAll('li').forEach(li => li.classList.remove('drag-over'));
+        target.classList.add('drag-over');
+      }
+    });
+
+    modalDrList.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const target = e.target.closest('li');
+      if (target && draggedIndex !== null) {
+        const dropIndex = parseInt(target.dataset.orderIndex);
+        if (draggedIndex !== dropIndex) {
+          const [removed] = state.drOrder.splice(draggedIndex, 1);
+          state.drOrder.splice(dropIndex, 0, removed);
+          renderModalDrList();
+        }
+      }
+    });
+
+    // Toast functions
+    let toastTimeout = null;
+
+    function showToast(msg, undoCallback) {
+      toastMsg.textContent = msg;
+      toast.hidden = false;
+      toastUndo.onclick = () => {
+        undoCallback();
+        hideToast();
+      };
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(hideToast, 5000);
+    }
+
+    function hideToast() {
+      toast.hidden = true;
+      if (toastTimeout) {
+        clearTimeout(toastTimeout);
+        toastTimeout = null;
+      }
+    }
+
+    // Inline editing
+    let inlineEditEl = null;
+    let inlineEditOriginal = '';
+
+    function startInlineEdit(el) {
+      if (inlineEditEl) return;
+      inlineEditEl = el;
+      inlineEditOriginal = el.textContent;
+      el.contentEditable = 'true';
+      el.classList.add('editing');
+      el.focus();
+      // Select all text
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    function finishInlineEdit(save) {
+      if (!inlineEditEl) return;
+      const el = inlineEditEl;
+      const newVal = el.textContent.trim();
+
+      if (save && newVal) {
+        if (el === mrTitle) {
+          state.mr.title = newVal;
+        } else if (el.parentElement === drList) {
+          const idx = parseInt(el.dataset.index);
+          state.mr.drs[idx].title = newVal;
+        }
+      } else {
+        el.textContent = inlineEditOriginal;
+      }
+
+      el.contentEditable = 'false';
+      el.classList.remove('editing');
+      inlineEditEl = null;
+      inlineEditOriginal = '';
+      el.focus();
+    }
+
+    // Delete functions
+    function deleteMr() {
+      if (!state.mr) return;
+      state.deletedMr = JSON.parse(JSON.stringify(state.mr));
+      state.mr = null;
+      render();
+      mainCell.focus();
+      showToast('Master record deleted', () => {
+        state.mr = state.deletedMr;
+        state.deletedMr = null;
+        render();
+        mrTitle.focus();
+      });
+    }
+
+    function deleteDr(index) {
+      state.deletedDr = state.mr.drs[index];
+      state.deletedDrIndex = index;
+      state.mr.drs.splice(index, 1);
+      render();
+      // Focus appropriate element after deletion
+      if (state.mr.drs.length === 0) {
+        mrTitle.focus();
+      } else if (index < state.mr.drs.length && index < 5) {
+        drList.children[index].focus();
+      } else if (drList.children.length > 0) {
+        drList.children[drList.children.length - 1].focus();
+      } else {
+        mrTitle.focus();
+      }
+      showToast('Detail record deleted', () => {
+        state.mr.drs.splice(state.deletedDrIndex, 0, state.deletedDr);
+        state.deletedDr = null;
+        state.deletedDrIndex = null;
+        render();
+      });
+    }
+
+    // Navigation: rotate list
+    function rotateUp() {
+      if (!state.mr || state.mr.drs.length <= 1) return;
+      const last = state.mr.drs.pop();
+      state.mr.drs.unshift(last);
+      render();
+    }
+
+    function rotateDown() {
+      if (!state.mr || state.mr.drs.length <= 1) return;
+      const first = state.mr.drs.shift();
+      state.mr.drs.push(first);
+      const first2 = state.mr.drs.shift();
+      state.mr.drs.push(first2);
+      render();
+    }
+
+    // Click handler
+    mainCell.addEventListener('click', (e) => {
+      if (inlineEditEl) return; // Don't interfere with inline editing
+
+      if (e.target.tagName === 'LI' && e.target.parentElement === drList) {
+        e.target.focus();
+      } else if (e.target === mrTitle) {
+        mrTitle.focus();
+      } else if (state.mr) {
+        mrTitle.focus();
+      }
+    });
+
+    // Modal button handlers
+    modalCancel.addEventListener('click', closeModal);
+    modalConfirm.addEventListener('click', confirmModal);
+
+    // Keyboard handler
+    document.addEventListener('keydown', (e) => {
+      // Modal keyboard handling
+      if (!modalOverlay.hidden) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeModal();
+        } else if (e.key === 'Enter' && e.target !== modalInputDesc) {
+          e.preventDefault();
+          confirmModal();
+        }
+        return;
+      }
+
+      // Inline editing keyboard handling
+      if (inlineEditEl) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          finishInlineEdit(true);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          finishInlineEdit(false);
+        }
+        return;
+      }
+
+      const focused = document.activeElement;
+      const isMainFocused = focused === mainCell;
+      const isMrTitleFocused = focused === mrTitle;
+      const isDrFocused = focused.tagName === 'LI' && focused.parentElement === drList;
+
+      // Only handle when focus is within our component
+      if (!isMainFocused && !isMrTitleFocused && !isDrFocused) return;
+
+      switch (e.key) {
+        case 'u':
+          e.preventDefault();
+          if (!state.mr) {
+            openModal('create-mr');
+          } else {
+            openModal('create-dr');
+          }
+          break;
+
+        case 'i':
+          e.preventDefault();
+          if (isMrTitleFocused) {
+            startInlineEdit(mrTitle);
+          } else if (isDrFocused) {
+            startInlineEdit(focused);
+          }
+          break;
+
+        case 'o':
+          e.preventDefault();
+          if (isMrTitleFocused && state.mr) {
+            openModal('update-mr');
+          } else if (isDrFocused) {
+            const idx = parseInt(focused.dataset.index);
+            openModal('update-dr', idx);
+          }
+          break;
+
+        case 'Delete':
+          e.preventDefault();
+          if ((isMainFocused || isMrTitleFocused) && state.mr) {
+            deleteMr();
+          } else if (isDrFocused) {
+            const idx = parseInt(focused.dataset.index);
+            deleteDr(idx);
+          }
+          break;
+
+        case 'n':
+          e.preventDefault();
+          if (state.mr && (isMrTitleFocused || isDrFocused)) {
+            const focusIndex = isDrFocused ? parseInt(focused.dataset.index) : -1;
+            rotateUp();
+            if (isMrTitleFocused) {
+              mrTitle.focus();
+            } else if (focusIndex >= 0 && drList.children[focusIndex]) {
+              drList.children[focusIndex].focus();
+            }
+          }
+          break;
+
+        case 'm':
+          e.preventDefault();
+          if (state.mr && (isMrTitleFocused || isDrFocused)) {
+            const focusIndex = isDrFocused ? parseInt(focused.dataset.index) : -1;
+            rotateDown();
+            if (isMrTitleFocused) {
+              mrTitle.focus();
+            } else if (focusIndex >= 0 && drList.children[focusIndex]) {
+              drList.children[focusIndex].focus();
+            }
+          }
+          break;
+
+        case 'ArrowUp':
+          e.preventDefault();
+          if (isDrFocused) {
+            const idx = parseInt(focused.dataset.index);
+            if (idx === 0) {
+              mrTitle.focus();
+            } else {
+              drList.children[idx - 1].focus();
+            }
+          }
+          break;
+
+        case 'ArrowDown':
+          e.preventDefault();
+          if (isMrTitleFocused && drList.children.length > 0) {
+            drList.children[0].focus();
+          } else if (isDrFocused) {
+            const idx = parseInt(focused.dataset.index);
+            if (idx < drList.children.length - 1) {
+              drList.children[idx + 1].focus();
+            }
+          }
+          break;
+      }
+    });
+
+    // Clear error on input
+    modalInputTitle.addEventListener('input', () => {
+      modalError.classList.remove('visible');
+      modalInputTitle.classList.remove('error');
+    });
+
+    // Initial render
+    render();
+    mainCell.focus();
+  </script>
+</body>
+
+</html>
