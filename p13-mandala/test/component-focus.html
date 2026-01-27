@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component Focus Test</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: monospace;
+      background: #fafafa;
+      padding: 20px;
+      margin: 0;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 300px;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <cell-test></cell-test>
+    <cell-test></cell-test>
+    <cell-test></cell-test>
+  </main>
+  <script>
+    const tpl = document.createElement('template');
+    tpl.innerHTML = `
+  <style>
+    :host {
+      display: block;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      min-height: 60px;
+      padding: 12px;
+      background: #fff;
+    }
+    .parent_name:focus, .children_rows>li:focus, :host(:focus) {
+      outline: 2px solid #0066cc;
+      outline-offset: 2px;
+    }
+    .parent_name {
+      background-color: #777;
+    }
+    .children_rows {
+      background-color: #999;
+    }
+  </style>
+  <div class="parent_name">master</div>
+  <ul class="children_rows">
+    <li tabindex="0">zz</li>
+    <li tabindex="0">xx</li>
+    <li tabindex="0">cc</li>
+    <li tabindex="0">vv</li>
+  </ul>
+`;
+    class CellTest extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.appendChild(tpl.content.cloneNode(true));
+      }
+      connectedCallback() {
+        this.setAttribute('tabindex', '0');
+      }
+      // Keyboard handler called from document listener
+      handleKeydown(e) {
+        switch (e.key) {
+          case 'k':
+            e.preventDefault();
+            this._focusSibling('up');
+            break;
+          case 'j':
+            e.preventDefault();
+            this._focusSibling('down');
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            this._focusChildren('up');
+            break;
+          case 'ArrowDown':
+            e.preventDefault();
+            this._focusChildren('down');
+            break;
+        }
+      }
+      _focusChildren(direction) {
+        const children = Array.from(this.shadowRoot.querySelectorAll('.children_rows>li'));
+        const focusedChild = this.shadowRoot.activeElement;
+        const currentIndex = children.indexOf(focusedChild);
+        if (direction === 'up') {
+          if (currentIndex > 0)
+            children[currentIndex - 1].focus();
+          else if (currentIndex === 0)
+            this.focus(); // this.shadowRoot.querySelector('.parent_name').focus();
+        } else if (direction === 'down' && currentIndex < children.length - 1) {
+          children[currentIndex + 1].focus();
+        }
+      }
+      _focusSibling(direction) {
+        const cells = Array.from(document.querySelectorAll('cell-test'));
+        const currentIndex = cells.indexOf(this);
+        if (direction === 'up' && currentIndex > 0) {
+          cells[currentIndex - 1].focus();
+        } else if (direction === 'down' && currentIndex < cells.length - 1) {
+          cells[currentIndex + 1].focus();
+        }
+      }
+    }
+    customElements.define('cell-test', CellTest);
+    // Document-level keyboard handler
+    document.addEventListener('keydown', (e) => {
+      // Check if a cell-test is focused
+      const focused = document.activeElement;
+      if (focused?.tagName === 'CELL-TEST') {
+        focused.handleKeydown(e);
+      }
+    });
+    // Focus the first cell on load
+    document.querySelector('cell-test').focus();
+  </script>
+</body>
+
+</html>

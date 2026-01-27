@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mandala Chart</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #fafafa;
+      padding: 20px;
+      margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      grid-template-rows: repeat(9, 1fr);
+      width: 900px;
+      height: 900px;
+      background: #ccc;
+      border: 2px solid #666;
+      gap: 1px;
+    }
+
+    /* Thicker borders for 3x3 subgrid separation */
+    .grid cell-test {
+      border-right: 1px solid #ddd;
+      border-bottom: 1px solid #ddd;
+    }
+
+    /* Right border after columns 3 and 6 */
+    .grid cell-test:nth-child(9n+3),
+    .grid cell-test:nth-child(9n+6) {
+      border-right: 2px solid #666;
+    }
+
+    /* Bottom border after rows 3 and 6 */
+    .grid cell-test:nth-child(n+19):nth-child(-n+27),
+    .grid cell-test:nth-child(n+46):nth-child(-n+54) {
+      border-bottom: 2px solid #666;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #666;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+
+    .hint kbd {
+      background: #eee;
+      padding: 2px 5px;
+      border-radius: 3px;
+      border: 1px solid #ccc;
+      font-family: monospace;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="grid"></div>
+  <modal-test></modal-test>
+  <notify-test></notify-test>
+
+  <div class="hint">
+    <kbd>u</kbd> create |
+    <kbd>i</kbd> inline edit |
+    <kbd>o</kbd> detail edit |
+    <kbd>Del</kbd> delete |
+    <kbd>↑↓</kbd> in-cell nav |
+    <kbd>hjkl</kbd> cell walk |
+    <kbd>wersdfxcv</kbd> local jump |
+    <kbd>WERSDFXCV</kbd> global jump |
+    <kbd>nm</kbd> rotate
+  </div>
+
+  <script type="module">
+    import { CellTest } from './components/cell-test.js';
+    import { ModalTest } from './components/modal-test.js';
+    import { NotifyTest } from './components/notify-test.js';
+
+    // Create 81 cells in a 9x9 grid
+    const grid = document.querySelector('.grid');
+    for (let i = 0; i < 81; i++) {
+      const cell = document.createElement('cell-test');
+      cell.dataset.index = i;
+      grid.appendChild(cell);
+    }
+
+    const modal = document.querySelector('modal-test');
+    const notify = document.querySelector('notify-test');
+
+    // Set shared modal and notify instances
+    CellTest.setModal(modal);
+    CellTest.setNotify(notify);
+
+    // Jump key mappings (qwerty layout -> grid position)
+    const JUMP_KEYS = {
+      'w': [0, 0], 'e': [0, 1], 'r': [0, 2],
+      's': [1, 0], 'd': [1, 1], 'f': [1, 2],
+      'x': [2, 0], 'c': [2, 1], 'v': [2, 2],
+      'W': [0, 0], 'E': [0, 1], 'R': [0, 2],
+      'S': [1, 0], 'D': [1, 1], 'F': [1, 2],
+      'X': [2, 0], 'C': [2, 1], 'V': [2, 2]
+    };
+
+    // Convert flat index to [mg_row, mg_col, sg_row, sg_col]
+    function indexToPosition(index) {
+      const row = Math.floor(index / 9);
+      const col = index % 9;
+      return {
+        mg_row: Math.floor(row / 3),
+        mg_col: Math.floor(col / 3),
+        sg_row: row % 3,
+        sg_col: col % 3
+      };
+    }
+
+    // Convert position to flat index
+    function positionToIndex(mg_row, mg_col, sg_row, sg_col) {
+      const row = mg_row * 3 + sg_row;
+      const col = mg_col * 3 + sg_col;
+      return row * 9 + col;
+    }
+
+    // Get focused cell element
+    function getFocusedCell() {
+      const focused = document.activeElement;
+      if (focused?.tagName === 'CELL-TEST') {
+        return focused;
+      }
+      return null;
+    }
+
+    // Document-level keyboard handler
+    document.addEventListener('keydown', (e) => {
+      // Skip if modal is open
+      if (modal.isOpen) return;
+
+      const cell = getFocusedCell();
+      if (!cell) return;
+
+      const index = parseInt(cell.dataset.index);
+      const cells = Array.from(document.querySelectorAll('cell-test'));
+
+      // Cell walk: hjkl
+      if (e.key === 'h' || e.key === 'j' || e.key === 'k' || e.key === 'l') {
+        e.preventDefault();
+        const row = Math.floor(index / 9);
+        const col = index % 9;
+        let newRow = row, newCol = col;
+
+        if (e.key === 'h') newCol = col - 1;
+        if (e.key === 'l') newCol = col + 1;
+        if (e.key === 'k') newRow = row - 1;
+        if (e.key === 'j') newRow = row + 1;
+
+        if (newRow >= 0 && newRow < 9 && newCol >= 0 && newCol < 9) {
+          cells[newRow * 9 + newCol].focus();
+        }
+        return;
+      }
+
+      // Local jump: wersdfxcv (lowercase)
+      if (JUMP_KEYS[e.key] && e.key === e.key.toLowerCase()) {
+        e.preventDefault();
+        const pos = indexToPosition(index);
+        const [sg_row, sg_col] = JUMP_KEYS[e.key];
+        const newIndex = positionToIndex(pos.mg_row, pos.mg_col, sg_row, sg_col);
+        cells[newIndex].focus();
+        return;
+      }
+
+      // Global jump: WERSDFXCV (uppercase)
+      if (JUMP_KEYS[e.key] && e.key === e.key.toUpperCase() && e.key !== e.key.toLowerCase()) {
+        e.preventDefault();
+        const pos = indexToPosition(index);
+        const [mg_row, mg_col] = JUMP_KEYS[e.key];
+        const newIndex = positionToIndex(mg_row, mg_col, pos.sg_row, pos.sg_col);
+        cells[newIndex].focus();
+        return;
+      }
+
+      // Delegate other keys to cell
+      cell.handleKeydown(e);
+    });
+
+    // Focus the center cell on load
+    document.querySelectorAll('cell-test')[40].focus();
+  </script>
+</body>
+
+</html>
