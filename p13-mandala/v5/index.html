@@ -13,7 +13,7 @@
     body {
       font-family: system-ui, -apple-system, sans-serif;
       background: #fafafa;
-      padding: 20px;
+      padding: 5px;
       margin: 0;
     }
 
@@ -73,11 +73,11 @@
     <kbd>i</kbd> inline edit |
     <kbd>o</kbd> detail edit |
     <kbd>Del</kbd> delete |
-    <kbd>↑↓</kbd> in-cell nav |
+    <kbd>,.</kbd> in-cell nav |
+    <kbd>m</kbd> unfocus dr |
     <kbd>hjkl</kbd> cell walk |
     <kbd>wersdfxcv</kbd> local jump |
-    <kbd>WERSDFXCV</kbd> global jump |
-    <kbd>nm</kbd> rotate
+    <kbd>WERSDFXCV</kbd> global jump
   </div>
 
   <script type="module">
@@ -143,9 +143,11 @@
       // Skip if modal is open
       if (modal.isOpen) return;
 
+      debugger;
       const cell = getFocusedCell();
       if (!cell) return;
-
+      if (cell._isEditing) return;
+      
       const index = parseInt(cell.dataset.index);
       const cells = Array.from(document.querySelectorAll('cell-test'));
 

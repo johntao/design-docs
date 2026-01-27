@@ -5,7 +5,6 @@ template.innerHTML = `
       display: block;
       background: #fff;
       padding: 4px;
-      min-height: 100px;
       font-size: 12px;
       overflow: hidden;
     }
@@ -14,7 +13,6 @@ template.innerHTML = `
       outline: 2px solid #0066cc;
       outline-offset: -2px;
     }
-
     .empty {
       color: #bbb;
       font-size: 11px;
@@ -143,9 +141,8 @@ export class CellTest extends HTMLElement {
   _renderDrs() {
     this._drList.innerHTML = '';
     const drs = this._data?.drs || [];
-    const displayCount = Math.min(drs.length, 5);
 
-    for (let i = 0; i < displayCount; i++) {
+    for (let i = 0; i < drs.length; i++) {
       const li = document.createElement('li');
       li.className = 'dr-item';
       li.setAttribute('tabindex', '0');
@@ -210,24 +207,19 @@ export class CellTest extends HTMLElement {
         this._handleDetailEdit(modal);
         break;
 
-      case 'ArrowUp':
+      case ',':
         e.preventDefault();
         this._handleInCellNav('up');
         break;
 
-      case 'ArrowDown':
+      case '.':
         e.preventDefault();
         this._handleInCellNav('down');
         break;
 
-      case 'n':
-        e.preventDefault();
-        this._handleRotate('up');
-        break;
-
       case 'm':
         e.preventDefault();
-        this._handleRotate('down');
+        this._handleUnfocusDr();
         break;
     }
   }
@@ -276,7 +268,16 @@ export class CellTest extends HTMLElement {
       const drIndex = parseInt(focusedDr.dataset.index);
       const deletedDr = this._data.drs.splice(drIndex, 1)[0];
       this._render();
-      this.focus();
+
+      // Restore focus: same index, or previous, or cell-test
+      const drs = this._drList.querySelectorAll('.dr-item');
+      if (drs.length === 0) {
+        this.focus();
+      } else if (drs[drIndex]) {
+        drs[drIndex].focus();
+      } else {
+        drs[drIndex - 1].focus();
+      }
 
       notify.show('Detail record deleted', () => {
         this._data.drs.splice(drIndex, 0, deletedDr);
@@ -434,44 +435,32 @@ export class CellTest extends HTMLElement {
 
   _handleInCellNav(direction) {
     const drs = Array.from(this._drList.querySelectorAll('.dr-item'));
+    if (drs.length === 0) return;
+
     const focusedDr = this._getFocusedDr();
     const currentIndex = drs.indexOf(focusedDr);
 
     if (direction === 'up') {
-      if (currentIndex > 0) {
+      // Move to previous, wrap to last if at first or no focus
+      if (currentIndex <= 0) {
+        drs[drs.length - 1].focus();
+      } else {
         drs[currentIndex - 1].focus();
-      } else if (currentIndex === 0) {
-        this.focus();
       }
     } else if (direction === 'down') {
-      if (focusedDr && currentIndex < drs.length - 1) {
-        drs[currentIndex + 1].focus();
-      } else if (!focusedDr && drs.length > 0) {
+      // Move to next, wrap to first if at last or no focus
+      if (!focusedDr || currentIndex >= drs.length - 1) {
         drs[0].focus();
+      } else {
+        drs[currentIndex + 1].focus();
       }
     }
   }
 
-  _handleRotate(direction) {
-    if (!this._data || this._data.drs.length < 2) return;
-
-    const drs = this._data.drs;
-
-    if (direction === 'up') {
-      // Pop last, unshift to front
-      const last = drs.pop();
-      drs.unshift(last);
-    } else {
-      // Shift first, push to end (repeat 2 times)
-      for (let i = 0; i < 2; i++) {
-        if (drs.length > 0) {
-          const first = drs.shift();
-          drs.push(first);
-        }
-      }
+  _handleUnfocusDr() {
+    if (this._getFocusedDr()) {
+      this.focus();
     }
-
-    this._render();
   }
 }
 

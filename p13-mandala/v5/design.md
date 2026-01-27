@@ -240,3 +240,58 @@ notify deletion and fields validation
 
 ---
 
+found a few problems
+
+first let's rework the incell navigation
+I found out that incell-nav is almost identical to rotation
+I think it is safe to remove rotation entirely, and remove the restriction of displaying 5 drs at max
+next, rework the keybindings
+replace `<up>/<down>` by `,` and `.`
+introduce new navigation key `m` which will remove dr focus if present (i.e. change focus to the active `cell-test`)
+
+the second issue is that the app should restore the focus after a deletion
+
+case 1
+given 1 mr 2 drs; 2nd dr is focused
+expected: focus the 1st dr after deletion
+
+case 2
+given 1 mr 2 drs; 1st dr is focused
+expected: focus the 1st dr after deletion
+
+case 3
+given 1 mr 3 drs; 2nd dr is focused
+expected: focus the 2nd dr after deletion
+
+case 4
+given 1 mr 1 dr; 1st dr is focused
+expected: focus the active `cell-test` after deletion
+
+---
+
+let's improve incell-nav further
+
+change the start boundary to the 1st dr, which means hitting `,` will no longer remove dr focus
+if users want to change focus to the active `cell-test`, they may use `m` directly
+
+now both `,` and `.` does not stop on the start and end boundaries
+instead, it simply switch to the other end
+
+cases:
+given 3 drs; 1st dr is focused; user press `,`
+expected: focus 3rd dr
+
+given 3 drs; 1st dr is focused; user press `.`
+expected: focus 2nd dr
+
+given 3 drs; 3rd dr is focused; user press `,`
+expected: focus 2nd dr
+
+given 3 drs; 3rd dr is focused; user press `.`
+expected: focus 1st dr
+
+given 3 drs; no dr is focused; user press `,`
+expected: focus 3rd dr
+
+given 3 drs; no dr is focused; user press `.`
+expected: focus 1st dr
