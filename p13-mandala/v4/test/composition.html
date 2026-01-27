@@ -4,16 +4,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>Composition Test</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #fafafa;
+      padding: 20px;
+      margin: 0;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 300px;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #999;
+      margin-top: 12px;
+    }
+  </style>
 </head>
+
 <body>
   <main>
-    <div class="top"><cell-test tabindex="0"></cell-test></div>
-    <div class="mid"><cell-test tabindex="0"></cell-test></div>
-    <div class="bot"><cell-test tabindex="0"></cell-test></div>
+    <div class="top"><cell-test></cell-test></div>
+    <div class="mid"><cell-test></cell-test></div>
+    <div class="bot"><cell-test></cell-test></div>
   </main>
   <modal-test></modal-test>
   <notify-test></notify-test>
+
+  <p class="hint">u: create | o: update | Del: delete | arrows: navigate</p>
+
+  <script type="module">
+    import { CellTest } from './components/cell-test.js';
+    import { ModalTest } from './components/modal-test.js';
+    import { NotifyTest } from './components/notify-test.js';
+
+    const modal = document.querySelector('modal-test');
+    const notify = document.querySelector('notify-test');
+
+    // Set shared modal and notify instances
+    CellTest.setModal(modal);
+    CellTest.setNotify(notify);
+
+    // Document-level keyboard handler
+    document.addEventListener('keydown', (e) => {
+      // Skip if modal is open
+      if (modal.isOpen) return;
+
+      // Check if a cell-test is focused
+      const focused = document.activeElement;
+      if (focused?.tagName === 'CELL-TEST') {
+        focused.handleKeydown(e);
+      }
+    });
+
+    // Focus the first cell on load
+    document.querySelector('.top cell-test').focus();
+  </script>
 </body>
 
 </html>
