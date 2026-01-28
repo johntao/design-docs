@@ -238,7 +238,7 @@ use `<dialog>` to implement the modal
 
 notify deletion and fields validation
 
----
+## revision 1
 
 found a few problems
 
@@ -267,7 +267,7 @@ case 4
 given 1 mr 1 dr; 1st dr is focused
 expected: focus the active `cell-test` after deletion
 
----
+## revision 2
 
 let's improve incell-nav further
 
@@ -295,3 +295,59 @@ expected: focus 3rd dr
 
 given 3 drs; no dr is focused; user press `.`
 expected: focus 1st dr
+
+## revision 3
+
+let's add a few data-related features
+
+the first one is to store all the data in the localStorage
+ensure there will be no data loss on page refresh
+
+secondly, provide import/ export functions
+import:
+- clear all the existing data, import data from a file input
+- this function should also update the localStorage
+
+export:
+- dump the localStorage to a text file
+
+refer to file @v5/mandala.md for example data
+parse instruction:
+1. set `cells[4,4]` (or `mg[1,1];sg[1,1]`) mr's title as the file name
+2. list items without indentation is lvl1 items
+   - place them in the subgrid inside the maincell `mg[1,1]`
+   - items are placed in the following order
+   - lvl1-item10: `mg[1,1];sg[0,0]`; dup at `mg[0,0];sg[1,1]`
+   - lvl1-item20: `mg[1,1];sg[0,1]`; dup at `mg[0,1];sg[1,1]`
+   - lvl1-item30: `mg[1,1];sg[0,2]`; dup at `mg[0,2];sg[1,1]`
+   - lvl1-item40: `mg[1,1];sg[1,0]`; dup at `mg[1,0];sg[1,1]`
+   - lvl1-item50: `mg[1,1];sg[1,2]`; dup at `mg[1,2];sg[1,1]`
+   - lvl1-item60: `mg[1,1];sg[2,0]`; dup at `mg[2,0];sg[1,1]`
+   - lvl1-item70: `mg[1,1];sg[2,1]`; dup at `mg[2,1];sg[1,1]`
+   - lvl1-item80: `mg[1,1];sg[2,2]`; dup at `mg[2,2];sg[1,1]`
+   - note that the mid-mid is already occupied by the file name
+   - these value are also duplicate in the center of surrounding maincell
+3. list items with indentation are lvl2 items
+   - these items are placed at the rest of the subcells of the correspond maincell
+   - lvl2-item11: `mg[0,0];sg[0,0]`
+   - lvl2-item12: `mg[0,0];sg[0,1]`
+   - lvl2-item13: `mg[0,0];sg[0,2]`
+   - lvl2-item14: `mg[0,0];sg[1,0]`
+   - lvl2-item15: `mg[0,0];sg[1,2]`
+   - lvl2-item16: `mg[0,0];sg[2,0]`
+   - lvl2-item17: `mg[0,0];sg[2,1]`
+   - lvl2-item18: `mg[0,0];sg[2,2]`
+4. throw parse exception if either lvl1 or lvl2 items exceed 8 rows
+
+## revision 4
+
+let's enhance the data parser further
+in the previous version, the parser have the concept of lvl1 and lvl2
+in this version, we will introduce "folder/ file" type and "fields"
+the grammar is defined by the following five tokens: `{indentation}{folder-or-file}{title}us{metadata}us{description}`
+us stands as an unit separator: ``
+indentation: lvl1 consist zero whitespace; lvl2 consist two whitespaces
+folder-or-file: folder equals to `- `; file equals to `  `
+title: the title of a folder or file
+metadata: the metadata of a folder or file
+description: the description of a folder or file

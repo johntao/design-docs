@@ -126,6 +126,15 @@ export class CellTest extends HTMLElement {
     return this._data;
   }
 
+  setData(data) {
+    this._data = data;
+    this._render();
+  }
+
+  _notifyChange() {
+    this.dispatchEvent(new CustomEvent('cell-change', { bubbles: true }));
+  }
+
   _render() {
     if (!this._data) {
       this._empty.hidden = false;
@@ -245,6 +254,7 @@ export class CellTest extends HTMLElement {
         this._data.drs.push({ title: ev.detail.title });
       }
       this._render();
+      this._notifyChange();
       this.focus();
     };
 
@@ -279,20 +289,24 @@ export class CellTest extends HTMLElement {
         drs[drIndex - 1].focus();
       }
 
+      this._notifyChange();
       notify.show('Detail record deleted', () => {
         this._data.drs.splice(drIndex, 0, deletedDr);
         this._render();
+        this._notifyChange();
       });
     } else if (this._data) {
       // Delete the mr including all drs
       this._deletedData = this._data;
       this._data = null;
       this._render();
+      this._notifyChange();
 
       notify.show('Master record deleted', () => {
         this._data = this._deletedData;
         this._deletedData = null;
         this._render();
+        this._notifyChange();
       });
     }
   }
@@ -334,6 +348,7 @@ export class CellTest extends HTMLElement {
           const drIndex = parseInt(element.dataset.index);
           this._data.drs[drIndex].title = newValue;
         }
+        this._notifyChange();
       }
 
       this._render();
@@ -384,6 +399,7 @@ export class CellTest extends HTMLElement {
         dr.title = ev.detail.title;
         dr.description = ev.detail.description;
         this._render();
+        this._notifyChange();
         // Refocus the dr
         const drs = this._drList.querySelectorAll('.dr-item');
         if (drs[drIndex]) drs[drIndex].focus();
@@ -419,6 +435,7 @@ export class CellTest extends HTMLElement {
           this._data.drs = ev.detail.drs;
         }
         this._render();
+        this._notifyChange();
         this.focus();
       };
 

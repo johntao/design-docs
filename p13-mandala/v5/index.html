@@ -60,6 +60,30 @@
       border: 1px solid #ccc;
       font-family: monospace;
     }
+
+    .toolbar {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .toolbar button {
+      padding: 4px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .toolbar button:hover {
+      background: #f5f5f5;
+    }
+
+    .toolbar input[type="file"] {
+      display: none;
+    }
   </style>
 </head>
 
@@ -67,6 +91,12 @@
   <div class="grid"></div>
   <modal-test></modal-test>
   <notify-test></notify-test>
+
+  <div class="toolbar">
+    <button id="btn-export">Export</button>
+    <button id="btn-import">Import</button>
+    <input type="file" id="file-input" accept=".md,.txt">
+  </div>
 
   <div class="hint">
     <kbd>u</kbd> create |
@@ -99,6 +129,209 @@
     // Set shared modal and notify instances
     CellTest.setModal(modal);
     CellTest.setNotify(notify);
+
+    const STORAGE_KEY = 'mandala-data';
+
+    // localStorage persistence
+    function saveToStorage() {
+      const cells = document.querySelectorAll('cell-test');
+      const data = Array.from(cells).map(cell => cell.data);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function loadFromStorage() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return;
+      try {
+        const data = JSON.parse(stored);
+        const cells = document.querySelectorAll('cell-test');
+        data.forEach((cellData, i) => {
+          if (cells[i]) cells[i].setData(cellData);
+        });
+      } catch (e) {
+        console.error('Failed to load from storage:', e);
+      }
+    }
+
+    // Listen for cell changes
+    grid.addEventListener('cell-change', saveToStorage);
+
+    // Load data on startup
+    loadFromStorage();
+
+    // Import/Export
+    const btnExport = document.getElementById('btn-export');
+    const btnImport = document.getElementById('btn-import');
+    const fileInput = document.getElementById('file-input');
+
+    btnExport.addEventListener('click', exportData);
+    btnImport.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) importData(file);
+      fileInput.value = '';
+    });
+
+    function exportData() {
+      const cells = document.querySelectorAll('cell-test');
+      const centerCell = cells[40];
+      const fileName = centerCell.data?.title || 'mandala';
+
+      // Lvl1 positions in center maincell (mg[1,1]), excluding center
+      const lvl1SgPositions = [
+        [0, 0], [0, 1], [0, 2],
+        [1, 0],         [1, 2],
+        [2, 0], [2, 1], [2, 2]
+      ];
+
+      // Corresponding maincell positions for lvl1 items
+      const lvl1MgPositions = [
+        [0, 0], [0, 1], [0, 2],
+        [1, 0],         [1, 2],
+        [2, 0], [2, 1], [2, 2]
+      ];
+
+      let output = '';
+
+      for (let i = 0; i < 8; i++) {
+        const [sg_row, sg_col] = lvl1SgPositions[i];
+        const lvl1Index = positionToIndex(1, 1, sg_row, sg_col);
+        const lvl1Cell = cells[lvl1Index];
+
+        if (!lvl1Cell.data) continue;
+
+        output += `- ${lvl1Cell.data.title}\n`;
+
+        // Get lvl2 items from corresponding maincell
+        const [mg_row, mg_col] = lvl1MgPositions[i];
+        const lvl2SgPositions = [
+          [0, 0], [0, 1], [0, 2],
+          [1, 0],         [1, 2],
+          [2, 0], [2, 1], [2, 2]
+        ];
+
+        for (const [sg2_row, sg2_col] of lvl2SgPositions) {
+          const lvl2Index = positionToIndex(mg_row, mg_col, sg2_row, sg2_col);
+          const lvl2Cell = cells[lvl2Index];
+          if (lvl2Cell.data) {
+            output += `  - ${lvl2Cell.data.title}\n`;
+          }
+        }
+      }
+
+      // Download file
+      const blob = new Blob([output], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          parseAndImport(e.target.result, file.name);
+          notify.show('Import successful');
+        } catch (err) {
+          notify.show(err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function parseAndImport(content, fileName) {
+      const lines = content.split('\n').filter(line => line.trim());
+      const cells = document.querySelectorAll('cell-test');
+
+      // Clear all cells
+      cells.forEach(cell => cell.setData(null));
+
+      // Parse file name (remove extension)
+      const name = fileName.replace(/\.(md|txt)$/, '');
+
+      // Set center cell title
+      cells[40].setData({ title: name, drs: [] });
+
+      // Lvl1 positions in center maincell (mg[1,1]), excluding center
+      const lvl1SgPositions = [
+        [0, 0], [0, 1], [0, 2],
+        [1, 0],         [1, 2],
+        [2, 0], [2, 1], [2, 2]
+      ];
+
+      // Corresponding maincell positions for lvl1 items
+      const lvl1MgPositions = [
+        [0, 0], [0, 1], [0, 2],
+        [1, 0],         [1, 2],
+        [2, 0], [2, 1], [2, 2]
+      ];
+
+      // Lvl2 positions within a maincell (excluding center)
+      const lvl2SgPositions = [
+        [0, 0], [0, 1], [0, 2],
+        [1, 0],         [1, 2],
+        [2, 0], [2, 1], [2, 2]
+      ];
+
+      let lvl1Items = [];
+      let currentLvl1 = null;
+
+      // Parse lines
+      for (const line of lines) {
+        const isLvl2 = line.startsWith('  ') || line.startsWith('\t');
+        const match = line.match(/^[\s]*-\s*(.+)$/);
+        if (!match) continue;
+
+        const title = match[1].trim();
+
+        if (isLvl2) {
+          if (currentLvl1) {
+            currentLvl1.children.push(title);
+          }
+        } else {
+          currentLvl1 = { title, children: [] };
+          lvl1Items.push(currentLvl1);
+        }
+      }
+
+      // Validate
+      if (lvl1Items.length > 8) {
+        throw new Error(`Parse error: too many lvl1 items (${lvl1Items.length}, max 8)`);
+      }
+
+      for (let i = 0; i < lvl1Items.length; i++) {
+        if (lvl1Items[i].children.length > 8) {
+          throw new Error(`Parse error: too many lvl2 items for "${lvl1Items[i].title}" (${lvl1Items[i].children.length}, max 8)`);
+        }
+      }
+
+      // Place lvl1 items
+      for (let i = 0; i < lvl1Items.length; i++) {
+        const item = lvl1Items[i];
+        const [sg_row, sg_col] = lvl1SgPositions[i];
+        const [mg_row, mg_col] = lvl1MgPositions[i];
+
+        // Place in center maincell
+        const centerIndex = positionToIndex(1, 1, sg_row, sg_col);
+        cells[centerIndex].setData({ title: item.title, drs: [] });
+
+        // Duplicate in surrounding maincell center
+        const dupIndex = positionToIndex(mg_row, mg_col, 1, 1);
+        cells[dupIndex].setData({ title: item.title, drs: [] });
+
+        // Place lvl2 items in surrounding maincell
+        for (let j = 0; j < item.children.length; j++) {
+          const [sg2_row, sg2_col] = lvl2SgPositions[j];
+          const lvl2Index = positionToIndex(mg_row, mg_col, sg2_row, sg2_col);
+          cells[lvl2Index].setData({ title: item.children[j], drs: [] });
+        }
+      }
+
+      saveToStorage();
+    }
 
     // Jump key mappings (qwerty layout -> grid position)
     const JUMP_KEYS = {
@@ -143,7 +376,6 @@
       // Skip if modal is open
       if (modal.isOpen) return;
 
-      debugger;
       const cell = getFocusedCell();
       if (!cell) return;
       if (cell._isEditing) return;
