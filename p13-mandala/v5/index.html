@@ -130,6 +130,24 @@
     CellTest.setModal(modal);
     CellTest.setNotify(notify);
 
+    // Position conversion helpers (needed early for SYNC_MAP)
+    function positionToIndex(mg_row, mg_col, sg_row, sg_col) {
+      const row = mg_row * 3 + sg_row;
+      const col = mg_col * 3 + sg_col;
+      return row * 9 + col;
+    }
+
+    function indexToPosition(index) {
+      const row = Math.floor(index / 9);
+      const col = index % 9;
+      return {
+        mg_row: Math.floor(row / 3),
+        mg_col: Math.floor(col / 3),
+        sg_row: row % 3,
+        sg_col: col % 3
+      };
+    }
+
     const STORAGE_KEY = 'mandala-data';
 
     // localStorage persistence
@@ -154,10 +172,53 @@
     }
 
     // Listen for cell changes
-    grid.addEventListener('cell-change', saveToStorage);
+    grid.addEventListener('cell-change', (e) => {
+      syncCellData(e.target);
+      saveToStorage();
+    });
 
     // Load data on startup
     loadFromStorage();
+
+    // Build sync map for lvl1 paired cells
+    // mg[1,1];sg[x,y] <-> mg[x,y];sg[1,1]
+    const SYNC_MAP = new Map();
+    const LVL1_SG_POSITIONS_SYNC = [
+      [0, 0], [0, 1], [0, 2],
+      [1, 0],         [1, 2],
+      [2, 0], [2, 1], [2, 2]
+    ];
+    const LVL1_MG_POSITIONS_SYNC = [
+      [0, 0], [0, 1], [0, 2],
+      [1, 0],         [1, 2],
+      [2, 0], [2, 1], [2, 2]
+    ];
+    for (let i = 0; i < 8; i++) {
+      const [sg_row, sg_col] = LVL1_SG_POSITIONS_SYNC[i];
+      const [mg_row, mg_col] = LVL1_MG_POSITIONS_SYNC[i];
+      const centerIndex = positionToIndex(1, 1, sg_row, sg_col);
+      const pairIndex = positionToIndex(mg_row, mg_col, 1, 1);
+      SYNC_MAP.set(centerIndex, pairIndex);
+      SYNC_MAP.set(pairIndex, centerIndex);
+    }
+
+    let isSyncing = false;
+    function syncCellData(cell) {
+      if (isSyncing) return;
+      const index = parseInt(cell.dataset.index);
+      const pairIndex = SYNC_MAP.get(index);
+      if (pairIndex === undefined) return;
+
+      const cells = document.querySelectorAll('cell-test');
+      const pairCell = cells[pairIndex];
+      if (!pairCell) return;
+
+      // Deep clone data to avoid shared references
+      const data = cell.data ? JSON.parse(JSON.stringify(cell.data)) : null;
+      isSyncing = true;
+      pairCell.setData(data);
+      isSyncing = false;
+    }
 
     // Import/Export
     const btnExport = document.getElementById('btn-export');
@@ -172,49 +233,73 @@
       fileInput.value = '';
     });
 
+    const US = '\x1f'; // Unit separator
+
+    // Lvl1 positions in center maincell (mg[1,1]), excluding center
+    const LVL1_SG_POSITIONS = [
+      [0, 0], [0, 1], [0, 2],
+      [1, 0],         [1, 2],
+      [2, 0], [2, 1], [2, 2]
+    ];
+
+    // Corresponding maincell positions for lvl1 items
+    const LVL1_MG_POSITIONS = [
+      [0, 0], [0, 1], [0, 2],
+      [1, 0],         [1, 2],
+      [2, 0], [2, 1], [2, 2]
+    ];
+
+    // Lvl2 positions within a maincell (excluding center)
+    const LVL2_SG_POSITIONS = [
+      [0, 0], [0, 1], [0, 2],
+      [1, 0],         [1, 2],
+      [2, 0], [2, 1], [2, 2]
+    ];
+
+    function formatLine(indent, isFolder, title, metadata, description) {
+      const marker = isFolder ? '- ' : '  ';
+      const parts = [title, metadata || '', description || ''];
+      return indent + marker + parts.join(US);
+    }
+
     function exportData() {
       const cells = document.querySelectorAll('cell-test');
       const centerCell = cells[40];
       const fileName = centerCell.data?.title || 'mandala';
 
-      // Lvl1 positions in center maincell (mg[1,1]), excluding center
-      const lvl1SgPositions = [
-        [0, 0], [0, 1], [0, 2],
-        [1, 0],         [1, 2],
-        [2, 0], [2, 1], [2, 2]
-      ];
-
-      // Corresponding maincell positions for lvl1 items
-      const lvl1MgPositions = [
-        [0, 0], [0, 1], [0, 2],
-        [1, 0],         [1, 2],
-        [2, 0], [2, 1], [2, 2]
-      ];
-
       let output = '';
 
       for (let i = 0; i < 8; i++) {
-        const [sg_row, sg_col] = lvl1SgPositions[i];
+        const [sg_row, sg_col] = LVL1_SG_POSITIONS[i];
         const lvl1Index = positionToIndex(1, 1, sg_row, sg_col);
         const lvl1Cell = cells[lvl1Index];
 
         if (!lvl1Cell.data) continue;
 
-        output += `- ${lvl1Cell.data.title}\n`;
+        // Export lvl1 folder
+        output += formatLine('', true, lvl1Cell.data.title, lvl1Cell.data.metadata, lvl1Cell.data.description) + '\n';
+
+        // Export lvl1 folder's drs as lvl1 files
+        for (const dr of (lvl1Cell.data.drs || [])) {
+          output += formatLine('', false, dr.title, dr.metadata, dr.description) + '\n';
+        }
 
         // Get lvl2 items from corresponding maincell
-        const [mg_row, mg_col] = lvl1MgPositions[i];
-        const lvl2SgPositions = [
-          [0, 0], [0, 1], [0, 2],
-          [1, 0],         [1, 2],
-          [2, 0], [2, 1], [2, 2]
-        ];
+        const [mg_row, mg_col] = LVL1_MG_POSITIONS[i];
 
-        for (const [sg2_row, sg2_col] of lvl2SgPositions) {
+        for (let j = 0; j < 8; j++) {
+          const [sg2_row, sg2_col] = LVL2_SG_POSITIONS[j];
           const lvl2Index = positionToIndex(mg_row, mg_col, sg2_row, sg2_col);
           const lvl2Cell = cells[lvl2Index];
-          if (lvl2Cell.data) {
-            output += `  - ${lvl2Cell.data.title}\n`;
+
+          if (!lvl2Cell.data) continue;
+
+          // Export lvl2 folder
+          output += formatLine('  ', true, lvl2Cell.data.title, lvl2Cell.data.metadata, lvl2Cell.data.description) + '\n';
+
+          // Export lvl2 folder's drs as lvl2 files
+          for (const dr of (lvl2Cell.data.drs || [])) {
+            output += formatLine('  ', false, dr.title, dr.metadata, dr.description) + '\n';
           }
         }
       }
@@ -242,8 +327,43 @@
       reader.readAsText(file);
     }
 
+    function parseFields(level, isFolder, text) {
+      const parts = text.split(US);
+      return {
+        level,
+        isFolder,
+        title: (parts[0] || '').trim(),
+        metadata: (parts[1] || '').trim(),
+        description: (parts[2] || '').trim()
+      };
+    }
+
+    function parseLine(line) {
+      // lvl1 folder: "- title"
+      if (line.startsWith('- ')) {
+        return parseFields(1, true, line.slice(2));
+      }
+
+      // lvl2 folder: "  - title" (2 spaces + "- ")
+      if (line.startsWith('  - ')) {
+        return parseFields(2, true, line.slice(4));
+      }
+
+      // lvl2 file: "    title" (4 spaces)
+      if (line.startsWith('    ')) {
+        return parseFields(2, false, line.slice(4));
+      }
+
+      // lvl1 file: "  title" (2 spaces, not "  - ")
+      if (line.startsWith('  ')) {
+        return parseFields(1, false, line.slice(2));
+      }
+
+      return null;
+    }
+
     function parseAndImport(content, fileName) {
-      const lines = content.split('\n').filter(line => line.trim());
+      const lines = content.split('\n');
       const cells = document.querySelectorAll('cell-test');
 
       // Clear all cells
@@ -255,78 +375,96 @@
       // Set center cell title
       cells[40].setData({ title: name, drs: [] });
 
-      // Lvl1 positions in center maincell (mg[1,1]), excluding center
-      const lvl1SgPositions = [
-        [0, 0], [0, 1], [0, 2],
-        [1, 0],         [1, 2],
-        [2, 0], [2, 1], [2, 2]
-      ];
-
-      // Corresponding maincell positions for lvl1 items
-      const lvl1MgPositions = [
-        [0, 0], [0, 1], [0, 2],
-        [1, 0],         [1, 2],
-        [2, 0], [2, 1], [2, 2]
-      ];
-
-      // Lvl2 positions within a maincell (excluding center)
-      const lvl2SgPositions = [
-        [0, 0], [0, 1], [0, 2],
-        [1, 0],         [1, 2],
-        [2, 0], [2, 1], [2, 2]
-      ];
-
-      let lvl1Items = [];
-      let currentLvl1 = null;
+      // Parsed structure
+      let lvl1Folders = [];
+      let currentLvl1Folder = null;
+      let currentLvl2Folder = null;
 
       // Parse lines
       for (const line of lines) {
-        const isLvl2 = line.startsWith('  ') || line.startsWith('\t');
-        const match = line.match(/^[\s]*-\s*(.+)$/);
-        if (!match) continue;
+        if (!line.trim()) continue;
 
-        const title = match[1].trim();
+        const parsed = parseLine(line);
+        if (!parsed || !parsed.title) continue;
 
-        if (isLvl2) {
-          if (currentLvl1) {
-            currentLvl1.children.push(title);
+        const { level, isFolder, title, metadata, description } = parsed;
+        const record = { title, metadata, description, drs: [] };
+
+        if (level === 1) {
+          if (isFolder) {
+            currentLvl1Folder = { ...record, children: [] };
+            lvl1Folders.push(currentLvl1Folder);
+            currentLvl2Folder = null;
+          } else {
+            // File at lvl1 - add to current lvl1 folder
+            if (!currentLvl1Folder) {
+              throw new Error(`Parse error: file "${title}" has no parent folder`);
+            }
+            currentLvl1Folder.drs.push({ title, metadata, description });
           }
-        } else {
-          currentLvl1 = { title, children: [] };
-          lvl1Items.push(currentLvl1);
+        } else if (level === 2) {
+          if (!currentLvl1Folder) {
+            throw new Error(`Parse error: lvl2 item "${title}" has no parent lvl1 folder`);
+          }
+          if (isFolder) {
+            currentLvl2Folder = record;
+            currentLvl1Folder.children.push(currentLvl2Folder);
+          } else {
+            // File at lvl2 - add to current lvl2 folder
+            if (!currentLvl2Folder) {
+              throw new Error(`Parse error: file "${title}" has no parent folder`);
+            }
+            currentLvl2Folder.drs.push({ title, metadata, description });
+          }
         }
       }
 
-      // Validate
-      if (lvl1Items.length > 8) {
-        throw new Error(`Parse error: too many lvl1 items (${lvl1Items.length}, max 8)`);
+      // Validate counts
+      if (lvl1Folders.length > 8) {
+        throw new Error(`Parse error: too many lvl1 folders (${lvl1Folders.length}, max 8)`);
       }
 
-      for (let i = 0; i < lvl1Items.length; i++) {
-        if (lvl1Items[i].children.length > 8) {
-          throw new Error(`Parse error: too many lvl2 items for "${lvl1Items[i].title}" (${lvl1Items[i].children.length}, max 8)`);
+      for (const folder of lvl1Folders) {
+        if (folder.children.length > 8) {
+          throw new Error(`Parse error: too many lvl2 folders for "${folder.title}" (${folder.children.length}, max 8)`);
         }
       }
 
-      // Place lvl1 items
-      for (let i = 0; i < lvl1Items.length; i++) {
-        const item = lvl1Items[i];
-        const [sg_row, sg_col] = lvl1SgPositions[i];
-        const [mg_row, mg_col] = lvl1MgPositions[i];
+      // Place lvl1 folders
+      for (let i = 0; i < lvl1Folders.length; i++) {
+        const folder = lvl1Folders[i];
+        const [sg_row, sg_col] = LVL1_SG_POSITIONS[i];
+        const [mg_row, mg_col] = LVL1_MG_POSITIONS[i];
 
         // Place in center maincell
         const centerIndex = positionToIndex(1, 1, sg_row, sg_col);
-        cells[centerIndex].setData({ title: item.title, drs: [] });
+        cells[centerIndex].setData({
+          title: folder.title,
+          metadata: folder.metadata,
+          description: folder.description,
+          drs: folder.drs
+        });
 
         // Duplicate in surrounding maincell center
         const dupIndex = positionToIndex(mg_row, mg_col, 1, 1);
-        cells[dupIndex].setData({ title: item.title, drs: [] });
+        cells[dupIndex].setData({
+          title: folder.title,
+          metadata: folder.metadata,
+          description: folder.description,
+          drs: folder.drs
+        });
 
-        // Place lvl2 items in surrounding maincell
-        for (let j = 0; j < item.children.length; j++) {
-          const [sg2_row, sg2_col] = lvl2SgPositions[j];
+        // Place lvl2 folders in surrounding maincell
+        for (let j = 0; j < folder.children.length; j++) {
+          const child = folder.children[j];
+          const [sg2_row, sg2_col] = LVL2_SG_POSITIONS[j];
           const lvl2Index = positionToIndex(mg_row, mg_col, sg2_row, sg2_col);
-          cells[lvl2Index].setData({ title: item.children[j], drs: [] });
+          cells[lvl2Index].setData({
+            title: child.title,
+            metadata: child.metadata,
+            description: child.description,
+            drs: child.drs
+          });
         }
       }
 
@@ -342,25 +480,6 @@
       'S': [1, 0], 'D': [1, 1], 'F': [1, 2],
       'X': [2, 0], 'C': [2, 1], 'V': [2, 2]
     };
-
-    // Convert flat index to [mg_row, mg_col, sg_row, sg_col]
-    function indexToPosition(index) {
-      const row = Math.floor(index / 9);
-      const col = index % 9;
-      return {
-        mg_row: Math.floor(row / 3),
-        mg_col: Math.floor(col / 3),
-        sg_row: row % 3,
-        sg_col: col % 3
-      };
-    }
-
-    // Convert position to flat index
-    function positionToIndex(mg_row, mg_col, sg_row, sg_col) {
-      const row = mg_row * 3 + sg_row;
-      const col = mg_col * 3 + sg_col;
-      return row * 9 + col;
-    }
 
     // Get focused cell element
     function getFocusedCell() {

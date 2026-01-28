@@ -341,6 +341,8 @@ parse instruction:
 
 ## revision 4
 
+refer to file @v5/mandala.md for extended example data
+
 let's enhance the data parser further
 in the previous version, the parser have the concept of lvl1 and lvl2
 in this version, we will introduce "folder/ file" type and "fields"
@@ -351,3 +353,45 @@ folder-or-file: folder equals to `- `; file equals to `  `
 title: the title of a folder or file
 metadata: the metadata of a folder or file
 description: the description of a folder or file
+
+note that a folder should be parsed as a mr; whereas a file should be parsed as a dr, and then, store into the nearest parent folder (mr)
+throw exception if the parser cannot find a nearest parent folder for a file
+
+## review 5
+
+found out two problems
+
+firstly, I made a mistake that items in the center maincell are not "duplicated" to the surrounding maincells
+instead, these items are synchornized, changes made at one place should reflect to the other
+refer to the following list
+- lvl1-item10: `mg[1,1];sg[0,0]`; sync to `mg[0,0];sg[1,1]`
+- lvl1-item20: `mg[1,1];sg[0,1]`; sync to `mg[0,1];sg[1,1]`
+- lvl1-item30: `mg[1,1];sg[0,2]`; sync to `mg[0,2];sg[1,1]`
+- lvl1-item40: `mg[1,1];sg[1,0]`; sync to `mg[1,0];sg[1,1]`
+- lvl1-item50: `mg[1,1];sg[1,2]`; sync to `mg[1,2];sg[1,1]`
+- lvl1-item60: `mg[1,1];sg[2,0]`; sync to `mg[2,0];sg[1,1]`
+- lvl1-item70: `mg[1,1];sg[2,1]`; sync to `mg[2,1];sg[1,1]`
+- lvl1-item80: `mg[1,1];sg[2,2]`; sync to `mg[2,2];sg[1,1]`
+
+secondly, I found out that the parser didn't handle file-type properly
+refer to file @v5/mandala.md
+the expected output (listed only folders containing files):
+- data placed at `mg[1,1];sg[0,0]` and `mg[0,0];sg[1,1]`, containing 2 files (drs)
+- pkm placed at `mg[0,0];sg[0,2]`, containing 2 files (drs)
+- local-storage placed at `mg[0,1];sg[0,2]`, containing 2 files (drs)
+- import placed at `mg[1,1];sg[0,2]` and `mg[0,2];sg[1,1]`, containing 2 files (drs)
+- blog placed at `mg[1,1];sg[1,0]` and `mg[1,0];sg[1,1]`, containing 3 files (drs)
+- ui-ux placed at `mg[1,1];sg[1,2]` and `mg[1,2];sg[1,1]`, containing 3 files (drs)
+- copy-paste placed at `mg[2,0];sg[0,1]`, containing 3 files (drs)
+- port placed at `mg[1,1];sg[2,0]` and `mg[2,0];sg[1,1]`, containing 4 files (drs)
+
+actual output (listed only folders containing files):
+
+- data placed at `mg[1,1];sg[0,0]` and `mg[0,0];sg[1,1]`, containing 0 file (drs)
+- pkm placed at `mg[0,0];sg[0,2]`, containing 2 files (drs)
+- local-storage placed at `mg[0,1];sg[0,2]`, containing 2 files (drs)
+- import placed at `mg[1,1];sg[0,2]` and `mg[0,2];sg[1,1]`, containing 0 file (drs)
+- blog placed at `mg[1,1];sg[1,0]` and `mg[1,0];sg[1,1]`, containing 0 file (drs)
+- ui-ux placed at `mg[1,1];sg[1,2]` and `mg[1,2];sg[1,1]`, containing 0 file (drs)
+- copy-paste placed at `mg[2,0];sg[0,1]`, containing 3 files (drs)
+- port placed at `mg[1,1];sg[2,0]` and `mg[2,0];sg[1,1]`, containing 0 file (drs)
