@@ -91,6 +91,7 @@
   <div class="grid"></div>
   <modal-test></modal-test>
   <notify-test></notify-test>
+  <help-popup></help-popup>
 
   <div class="toolbar">
     <button id="btn-export">Export</button>
@@ -107,13 +108,15 @@
     <kbd>m</kbd> unfocus dr |
     <kbd>hjkl</kbd> cell walk |
     <kbd>wersdfxcv</kbd> local jump |
-    <kbd>WERSDFXCV</kbd> global jump
+    <kbd>WERSDFXCV</kbd> global jump |
+    <kbd>?</kbd> help
   </div>
 
   <script type="module">
     import { CellTest } from './components/cell-test.js';
     import { ModalTest } from './components/modal-test.js';
     import { NotifyTest } from './components/notify-test.js';
+    import { HelpPopup } from './components/help-popup.js';
 
     // Create 81 cells in a 9x9 grid
     const grid = document.querySelector('.grid');
@@ -125,6 +128,7 @@
 
     const modal = document.querySelector('modal-test');
     const notify = document.querySelector('notify-test');
+    const helpPopup = document.querySelector('help-popup');
 
     // Set shared modal and notify instances
     CellTest.setModal(modal);
@@ -494,6 +498,20 @@
     document.addEventListener('keydown', (e) => {
       // Skip if modal is open
       if (modal.isOpen) return;
+
+      // Help popup toggle
+      if (e.key === '?') {
+        e.preventDefault();
+        if (helpPopup.isOpen) {
+          helpPopup.close();
+        } else {
+          helpPopup.open();
+        }
+        return;
+      }
+
+      // Skip other keys if help popup is open
+      if (helpPopup.isOpen) return;
 
       const cell = getFocusedCell();
       if (!cell) return;

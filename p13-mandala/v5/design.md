@@ -357,7 +357,7 @@ description: the description of a folder or file
 note that a folder should be parsed as a mr; whereas a file should be parsed as a dr, and then, store into the nearest parent folder (mr)
 throw exception if the parser cannot find a nearest parent folder for a file
 
-## review 5
+## revision 5
 
 found out two problems
 
@@ -395,3 +395,9 @@ actual output (listed only folders containing files):
 - ui-ux placed at `mg[1,1];sg[1,2]` and `mg[1,2];sg[1,1]`, containing 0 file (drs)
 - copy-paste placed at `mg[2,0];sg[0,1]`, containing 3 files (drs)
 - port placed at `mg[1,1];sg[2,0]` and `mg[2,0];sg[1,1]`, containing 0 file (drs)
+
+## revision 6
+
+there a hint bar in the bottom of the UI
+please add a popup to show descriptive shortcut information
+using key '?' to trigger the popup
