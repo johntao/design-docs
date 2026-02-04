@@ -1,0 +1,505 @@
+# mandala chart
+
+this is a draft for a mandala chart application
+the app is composed by these web components:
+- mc-app
+  - the root of the app
+  - orchestrate mc-grid and mc-cell to handle the mandala-specific rendering logic
+  - contains all the app configs including keybindings
+  - contains the data entries as a tree structure
+    - each node is a mc-record (aka mr)
+- mc-grid
+  - render total 9x9 cells
+  - 9x9 cells are grouped by 3x3 outergrid (aka og) containing a 3x3 innergrid (aka ig) in each outercell
+    - the center cell can be denoted by `cells[4,4]` or `og[1,1][1,1]`
+  - each cell contains a mc-cell component
+  - expose keybindings to focus different cell
+- mc-cell
+  - each mc-cell contains zero-to-one mr
+  - expose keybindings to CUD mr
+- mc-modal
+  - invoked by mc-cell to create or update a mr
+- mc-notifier
+  - invoked by mc-modal or mc-cell to notify validation errors or undoable deletion
+- mc-help-bar
+  - render current keybindings as a bar
+- mc-help-modal
+  - render descriptive current keybindings in a toggleable modal
+- mc-data-migration
+  - expose two buttons: import, export
+
+## data guide
+
+- use localStorage to persist data after page refresh
+- 
+
+### mc-record
+
+- (required) title
+- (optional) description
+- (optional) childnodes
+  - a child node is also a mr
+
+## global implementation guide
+
+- defaults to light theme
+  - no need to implement dark mode
+- modals are implemented by html5 `<dialog>`
+
+## mc-app
+
+### special rendering logic
+
+- the center of mc-grid (i.e. `cells[4,4]`) contains the mr which is the root of the tree
+- mr are created in the following order
+  1. `ig[0,0]`
+  2. `ig[0,1]`
+  3. `ig[0,2]`
+  4. `ig[1,0]`
+  5. `ig[1,2]`
+  6. `ig[2,0]`
+  7. `ig[2,1]`
+  8. `ig[2,2]`
+- the parent node is placed in the center of a subgrid
+  - parent node are rendered and sync automatically
+  - here's the list of the parent node:
+  - `og[1,1][1,1]` (the root)
+  - `og[1,1][0,0]` sync to `og[0,0][1,1]`
+  - `og[1,1][0,1]` sync to `og[0,1][1,1]`
+  - `og[1,1][0,2]` sync to `og[0,2][1,1]`
+  - `og[1,1][1,0]` sync to `og[1,0][1,1]`
+  - `og[1,1][1,2]` sync to `og[1,2][1,1]`
+  - `og[1,1][2,0]` sync to `og[2,0][1,1]`
+  - `og[1,1][2,1]` sync to `og[2,1][1,1]`
+  - `og[1,1][2,2]` sync to `og[2,2][1,1]`
+
+## mc-grid
+
+### implementation guide
+
+- use css "subgrid" feature
+- each cell containing a mc-cell componenet which contains zero-to-one mr
+
+### keybindings
+
+
+## mc-cell
+
+## mc-modal
+
+### implementation guide
+
+## mc-notifier
+
+## mc-help-bar
+
+## mc-help-modal
+
+## mc-data-migration
+
+
+---
+
+refer to file @v4/design/composition.txt and @v4/test/composition.html
+
+I would like to use this version as a starting point, then, implement the full manadala chart app
+
+please use the following instructions to implement:
+
+## main html
+
+we have three cell component (`cell-test`) in the previous version
+```html
+<main>
+  <cell-test></cell-test>
+  <cell-test></cell-test>
+  <cell-test></cell-test>
+</main>
+<modal-test></modal-test>
+<notify-test></notify-test>
+```
+
+the new version should display 81 cell components in a 9x9 grid  
+a single 9x9 grid is sufficient; no need to use css subgrid feature  
+we can detail the styles in the next iteration
+
+`modal-test` is the modal popup component used by `cell-test`
+`notify-test` is the notification component used by `cell-test` and `modal-test`
+
+## cell web component
+
+### feature 1, the layout
+
+use light theme and minimal styling
+
+- the host `cell-test` is a wrapper of a master record (mr)
+  - a wrapper may contains zero-to-one mr
+- the first row of the mr is an editable title
+- the second row of the mr is a list of detail records (dr)
+  - a mr may contains zero-to-many drs
+  - display 5 records at max
+- each dr (list-item) exposes a single editable field "title"
+
+### feature 2, rules of focus
+
+1. use the built-in focus method and behavior
+   - do not introduce homemade focus implementation
+   - all keyboard shortcuts require a "focused" element to trigger
+2. define focusable elements explicitly; prefer the least focusable elements
+   - make each focusable element have unique function
+   - dedup focusable elements whenever possible
+   - prefer the outer element if duplication found
+   - e.g. both "cell component" and "mr title" represent the mr => keep "cell componenet" as focusable, make "mr title" non-focusable
+3. use `:focus` to style each focused element
+   - declare these styles explicitly (made it clear which elements are focusable)
+   - use outline to style focused elements
+4. use `tabindex="0"` to define if an element is focusable
+5. register one click event per component, use `event.target` to dispatch the logic
+
+refer to file `../test/component-focus.html` as an example
+
+#### types of focus
+
+in the example file, the `cell-test` is also focused when a dr is focused  
+thus, there are two types of focus
+- type1: a `cell-test` and a dr is focused
+  - in this case "feature 4,5,6" operates on the dr
+- type2: a `cell-test` is focused without any other dr is focused
+  - in this case "feature 4,5,6" operates on the mr
+
+#### UI layout examples
+
+case 1
+- cell-test (focusable)
+  - empty
+
+case 2
+- cell-test (focusable)
+  - mr
+    - mr title (not focusable)
+
+case 3
+- cell-test (focusable)
+  - mr
+    - mr title (not focusable)
+    - drs
+      - dr (focusable)
+      - dr (focusable)
+      - dr (focusable)
+      - dr (focusable)
+
+### feature 3, creating records
+
+#### case 1
+
+if the `cell-test` is focused and `cell-test` doesn't contain a mr
+
+user hit `u` to create a mr, which then, opens a creation modal popup
+
+if create successfully, a mr is inserted into the `cell-test`
+
+#### case 2
+
+if the `cell-test` is focused and `cell-test` already contain a mr
+
+user hit `u` to create a dr of the mr, which then, opens a creation modal popup
+
+if create successfully, a dr is inserted into the mr
+
+### feature 4, deleting records
+
+#### case 1
+
+if the `cell-test` is focused and `cell-test` doesn't contain a mr
+
+user hit `<del>` => nothing happen
+
+#### case 2
+
+if the `cell-test` is focused and `cell-test` already contain a mr
+
+user hit `<del>` to delete the mr including all the drs belong to the mr
+
+use `notify-test` to notify deletion with an undo button
+
+#### case 3
+
+if a dr is focused
+
+user hit `<del>` to delete the dr from the mr
+
+use `notify-test` to notify deletion with an undo button
+
+### feature 5, inline editing
+
+hit `i` on a focused element allows user to edit the title directly
+- user may hit `<enter>` to apply the changes
+- user may hit `<esc>` to discard the changes
+
+### feature 6, detail editing
+
+hit `o` on a focused element allowing users to open an update modal popup to edit the details of the entity
+- inherit logic from creation modal; refer to [previous section](#feature-4-creating-records)
+  - except that a mr update modal also list all the related drs
+  - users may drag and drop to reorder the dr
+  - restore the focus after closing the modal
+
+### feature 7, navigation
+
+#### list item rotation
+
+given a mr with 8 drs, and mr is currently focused
+
+- hit `n`: pop the last drs, then, unshift it back to the list; repeat 1 times
+- hit `m`: shift the first drs, then, push it back to the list; repeat 2 times
+
+should remains the posistion of the current focus element after the rotation
+
+#### arrow keys to focus different dr
+
+given a mr with 8 drs, and the 3rd dr is currently focused
+
+- hit arrow keys up/ down to focus up/ down elements related to the current focused element
+  - stop navigation on boundary
+  - the start boundary: focusing `cell-test` without focusing any dr
+  - the end boundary: the last dr
+
+#### cell jump local
+
+layout 81 `cell-test` into a 3x3 maingrid (mg); each maincell contains a 3x3 subgrid (sg)
+
+a local jump-jump inside the current sg
+
+where each lowercase letter maps to a cell of the sg
+
+given current focused element position `mg[1,2];sg[0,0]`
+- hitting w, position not change
+- hitting e, move to `mg[1,2];sg[0,1]`
+- hitting r, move to `mg[1,2];sg[0,2]`
+- hitting f, move to `mg[1,2];sg[1,2]`
+- hitting x, move to `mg[1,2];sg[2,0]`
+- conclusion: move sg; mg doesn't change
+
+#### cell jump global
+
+a global jump-jump inside the mg
+
+where each uppercase letter maps to a cell of the mg
+
+given current focused element position `mg[0,0];sg[1,2]`
+- hitting W, position not change
+- hitting E, move to `mg[0,1];sg[1,2]`
+- hitting R, move to `mg[0,2];sg[1,2]`
+- hitting F, move to `mg[1,2];sg[1,2]`
+- hitting X, move to `mg[2,0];sg[1,2]`
+- conclusion: move mg; sg doesn't change
+
+#### cell walk
+
+shortcut keys hjkl which change the focused elements by 9x9 `cell-test` indices
+- h move left; cells[i,--j]
+- j move down; cells[++i,j]
+- k move up; cells[--i,j]
+- l move right; cells[i,++j]
+cancel the action if out of boundary
+
+### misc
+
+there are four types of actions:
+1. actions without operands
+2. actions that take a master record as operand
+3. actions that take the current focused element as operand
+  - this type of action is covered in [previous section](#types-of-focus)
+
+
+| feature | action           | key           | operate on                 | action type |
+| ------- | ---------------- | ------------- | -------------------------- | ----------- |
+| 7       | cell-jump-local  | wersdfxcv     | #N/A                       | 1           |
+| 7       | cell-jump-global | WERSDFXCV     | #N/A                       | 1           |
+| 7       | cell-walk        | hjkl          | #N/A                       | 1           |
+| 3       | create           | u             | master record or cell-test | 2           |
+| 7       | rotate           | nm            | master record              | 2           |
+| 7       | incell-nav       | `<up>/<down>` | focused element            | 3           |
+| 5       | inline-edit      | i             | focused element            | 3           |
+| 6       | detail-edit      | o             | focused element            | 3           |
+| 4       | delete           | `<del>`       | focused element            | 3           |
+
+## modal component
+
+there are two types of modal: creation and update
+here's the shared properties of a modal popup
+- containing a title (required) field and a description field
+- hit `<esc>` to cancel the operation, and close the modal
+- hit `<enter>` to confirm the operation
+  - if the title is blank or whitespace, does nothing, use `notify-test` to notify users for violation
+  - if the title is not blank or whitespace, create the record, close the modal
+
+use `<dialog>` to implement the modal
+
+## notification component
+
+notify deletion and fields validation
+
+## revision 1
+
+found a few problems
+
+first let's rework the incell navigation
+I found out that incell-nav is almost identical to rotation
+I think it is safe to remove rotation entirely, and remove the restriction of displaying 5 drs at max
+next, rework the keybindings
+replace `<up>/<down>` by `,` and `.`
+introduce new navigation key `m` which will remove dr focus if present (i.e. change focus to the active `cell-test`)
+
+the second issue is that the app should restore the focus after a deletion
+
+case 1
+given 1 mr 2 drs; 2nd dr is focused
+expected: focus the 1st dr after deletion
+
+case 2
+given 1 mr 2 drs; 1st dr is focused
+expected: focus the 1st dr after deletion
+
+case 3
+given 1 mr 3 drs; 2nd dr is focused
+expected: focus the 2nd dr after deletion
+
+case 4
+given 1 mr 1 dr; 1st dr is focused
+expected: focus the active `cell-test` after deletion
+
+## revision 2
+
+let's improve incell-nav further
+
+change the start boundary to the 1st dr, which means hitting `,` will no longer remove dr focus
+if users want to change focus to the active `cell-test`, they may use `m` directly
+
+now both `,` and `.` does not stop on the start and end boundaries
+instead, it simply switch to the other end
+
+cases:
+given 3 drs; 1st dr is focused; user press `,`
+expected: focus 3rd dr
+
+given 3 drs; 1st dr is focused; user press `.`
+expected: focus 2nd dr
+
+given 3 drs; 3rd dr is focused; user press `,`
+expected: focus 2nd dr
+
+given 3 drs; 3rd dr is focused; user press `.`
+expected: focus 1st dr
+
+given 3 drs; no dr is focused; user press `,`
+expected: focus 3rd dr
+
+given 3 drs; no dr is focused; user press `.`
+expected: focus 1st dr
+
+## revision 3
+
+let's add a few data-related features
+
+the first one is to store all the data in the localStorage
+ensure there will be no data loss on page refresh
+
+secondly, provide import/ export functions
+import:
+- clear all the existing data, import data from a file input
+- this function should also update the localStorage
+
+export:
+- dump the localStorage to a text file
+
+refer to file @v5/mandala.md for example data
+parse instruction:
+1. set `cells[4,4]` (or `mg[1,1];sg[1,1]`) mr's title as the file name
+2. list items without indentation is lvl1 items
+   - place them in the subgrid inside the maincell `mg[1,1]`
+   - items are placed in the following order
+   - lvl1-item10: `mg[1,1];sg[0,0]`; dup at `mg[0,0];sg[1,1]`
+   - lvl1-item20: `mg[1,1];sg[0,1]`; dup at `mg[0,1];sg[1,1]`
+   - lvl1-item30: `mg[1,1];sg[0,2]`; dup at `mg[0,2];sg[1,1]`
+   - lvl1-item40: `mg[1,1];sg[1,0]`; dup at `mg[1,0];sg[1,1]`
+   - lvl1-item50: `mg[1,1];sg[1,2]`; dup at `mg[1,2];sg[1,1]`
+   - lvl1-item60: `mg[1,1];sg[2,0]`; dup at `mg[2,0];sg[1,1]`
+   - lvl1-item70: `mg[1,1];sg[2,1]`; dup at `mg[2,1];sg[1,1]`
+   - lvl1-item80: `mg[1,1];sg[2,2]`; dup at `mg[2,2];sg[1,1]`
+   - note that the mid-mid is already occupied by the file name
+   - these value are also duplicate in the center of surrounding maincell
+3. list items with indentation are lvl2 items
+   - these items are placed at the rest of the subcells of the correspond maincell
+   - lvl2-item11: `mg[0,0];sg[0,0]`
+   - lvl2-item12: `mg[0,0];sg[0,1]`
+   - lvl2-item13: `mg[0,0];sg[0,2]`
+   - lvl2-item14: `mg[0,0];sg[1,0]`
+   - lvl2-item15: `mg[0,0];sg[1,2]`
+   - lvl2-item16: `mg[0,0];sg[2,0]`
+   - lvl2-item17: `mg[0,0];sg[2,1]`
+   - lvl2-item18: `mg[0,0];sg[2,2]`
+4. throw parse exception if either lvl1 or lvl2 items exceed 8 rows
+
+## revision 4
+
+refer to file @v5/mandala.md for extended example data
+
+let's enhance the data parser further
+in the previous version, the parser have the concept of lvl1 and lvl2
+in this version, we will introduce "folder/ file" type and "fields"
+the grammar is defined by the following five tokens: `{indentation}{folder-or-file}{title}us{metadata}us{description}`
+us stands as an unit separator: ``
+indentation: lvl1 consist zero whitespace; lvl2 consist two whitespaces
+folder-or-file: folder equals to `- `; file equals to `  `
+title: the title of a folder or file
+metadata: the metadata of a folder or file
+description: the description of a folder or file
+
+note that a folder should be parsed as a mr; whereas a file should be parsed as a dr, and then, store into the nearest parent folder (mr)
+throw exception if the parser cannot find a nearest parent folder for a file
+
+## revision 5
+
+found out two problems
+
+firstly, I made a mistake that items in the center maincell are not "duplicated" to the surrounding maincells
+instead, these items are synchornized, changes made at one place should reflect to the other
+refer to the following list
+- lvl1-item10: `mg[1,1];sg[0,0]`; sync to `mg[0,0];sg[1,1]`
+- lvl1-item20: `mg[1,1];sg[0,1]`; sync to `mg[0,1];sg[1,1]`
+- lvl1-item30: `mg[1,1];sg[0,2]`; sync to `mg[0,2];sg[1,1]`
+- lvl1-item40: `mg[1,1];sg[1,0]`; sync to `mg[1,0];sg[1,1]`
+- lvl1-item50: `mg[1,1];sg[1,2]`; sync to `mg[1,2];sg[1,1]`
+- lvl1-item60: `mg[1,1];sg[2,0]`; sync to `mg[2,0];sg[1,1]`
+- lvl1-item70: `mg[1,1];sg[2,1]`; sync to `mg[2,1];sg[1,1]`
+- lvl1-item80: `mg[1,1];sg[2,2]`; sync to `mg[2,2];sg[1,1]`
+
+secondly, I found out that the parser didn't handle file-type properly
+refer to file @v5/mandala.md
+the expected output (listed only folders containing files):
+- data placed at `mg[1,1];sg[0,0]` and `mg[0,0];sg[1,1]`, containing 2 files (drs)
+- pkm placed at `mg[0,0];sg[0,2]`, containing 2 files (drs)
+- local-storage placed at `mg[0,1];sg[0,2]`, containing 2 files (drs)
+- import placed at `mg[1,1];sg[0,2]` and `mg[0,2];sg[1,1]`, containing 2 files (drs)
+- blog placed at `mg[1,1];sg[1,0]` and `mg[1,0];sg[1,1]`, containing 3 files (drs)
+- ui-ux placed at `mg[1,1];sg[1,2]` and `mg[1,2];sg[1,1]`, containing 3 files (drs)
+- copy-paste placed at `mg[2,0];sg[0,1]`, containing 3 files (drs)
+- port placed at `mg[1,1];sg[2,0]` and `mg[2,0];sg[1,1]`, containing 4 files (drs)
+
+actual output (listed only folders containing files):
+
+- data placed at `mg[1,1];sg[0,0]` and `mg[0,0];sg[1,1]`, containing 0 file (drs)
+- pkm placed at `mg[0,0];sg[0,2]`, containing 2 files (drs)
+- local-storage placed at `mg[0,1];sg[0,2]`, containing 2 files (drs)
+- import placed at `mg[1,1];sg[0,2]` and `mg[0,2];sg[1,1]`, containing 0 file (drs)
+- blog placed at `mg[1,1];sg[1,0]` and `mg[1,0];sg[1,1]`, containing 0 file (drs)
+- ui-ux placed at `mg[1,1];sg[1,2]` and `mg[1,2];sg[1,1]`, containing 0 file (drs)
+- copy-paste placed at `mg[2,0];sg[0,1]`, containing 3 files (drs)
+- port placed at `mg[1,1];sg[2,0]` and `mg[2,0];sg[1,1]`, containing 0 file (drs)
+
+## revision 6
+
+there a hint bar in the bottom of the UI
+please add a popup to show descriptive shortcut information
+using key '?' to trigger the popup
