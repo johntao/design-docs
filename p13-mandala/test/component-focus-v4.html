@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Components Version</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: monospace;
+      background: #fafafa;
+      padding: 20px;
+      margin: 0;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 300px;
+      border: 2px solid;
+      padding: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <focusable-item>
+      <editable-title>hey</editable-title>
+    </focusable-item>
+    <focusable-item>
+      <editable-title>www</editable-title>
+    </focusable-item>
+    <focusable-item>
+      <editable-title>oom</editable-title>
+    </focusable-item>
+  </main>
+
+  <script>
+    class FocusableItem extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = `
+<style>
+  :host {
+    display: block;
+    background-color: #999;
+    padding: 12px;
+    border-radius: 4px;
+  }
+  :host(:focus) {
+    outline: 2px solid #0066cc;
+    outline-offset: 2px;
+  }
+  .wrap {
+    display: contents;
+  }
+</style>
+<div class="wrap">
+  <slot></slot>
+</div>
+        `;
+      }
+
+      connectedCallback() {
+        this.setAttribute('tabindex', '0');
+        this.addEventListener('keydown', this.handleKeydown.bind(this));
+      }
+
+      handleKeydown(e) {
+        if (e.target !== this) return;
+
+        switch (e.key) {
+          case 'j':
+            this.nextElementSibling?.focus();
+            break;
+          case 'k':
+            this.previousElementSibling?.focus();
+            break;
+          case 'i':
+            const title = this.querySelector('editable-title');
+            title?.enterEditMode();
+            e.preventDefault();
+            break;
+        }
+      }
+    }
+
+    class EditableTitle extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.beforeValue = '';
+        this.shadowRoot.innerHTML = `
+<style>
+  :host {
+    display: block;
+  }
+  .title {
+    outline: none;
+  }
+  .title:focus {
+    outline: 1px dashed #0066cc;
+  }
+</style>
+<div class="title" contenteditable="false"></div>
+        `;
+        this.titleEl = this.shadowRoot.querySelector('.title');
+      }
+
+      connectedCallback() {
+        this.titleEl.textContent = this.textContent;
+        this.titleEl.addEventListener('keydown', this.handleKeydown.bind(this));
+      }
+
+      enterEditMode() {
+        this.beforeValue = this.titleEl.textContent;
+        this.titleEl.setAttribute('contenteditable', 'true');
+        this.titleEl.focus();
+      }
+
+      exitEditMode(restore = false) {
+        if (restore) {
+          this.titleEl.textContent = this.beforeValue;
+        }
+        this.titleEl.setAttribute('contenteditable', 'false');
+        this.closest('focusable-item')?.focus();
+      }
+
+      handleKeydown(e) {
+        switch (e.key) {
+          case 'Escape':
+            this.exitEditMode(true);
+            break;
+          case 'Enter':
+            this.exitEditMode(false);
+            break;
+        }
+      }
+    }
+
+    customElements.define('focusable-item', FocusableItem);
+    customElements.define('editable-title', EditableTitle);
+
+    document.querySelector('focusable-item')?.focus();
+  </script>
+</body>
+
+</html>
