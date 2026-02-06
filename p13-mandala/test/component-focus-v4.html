@@ -70,11 +70,11 @@
 
       connectedCallback() {
         this.setAttribute('tabindex', '0');
-        this.addEventListener('keydown', this.handleKeydown.bind(this));
+        // this.addEventListener('keydown', this.handleKeydown.bind(this));
       }
 
       handleKeydown(e) {
-        if (e.target !== this) return;
+        // if (e.target !== this) return;
 
         switch (e.key) {
           case 'j':
@@ -116,7 +116,7 @@
 
       connectedCallback() {
         this.titleEl.textContent = this.textContent;
-        this.titleEl.addEventListener('keydown', this.handleKeydown.bind(this));
+        // this.titleEl.addEventListener('keydown', this.handleKeydown.bind(this));
       }
 
       enterEditMode() {
@@ -148,6 +148,14 @@
     customElements.define('focusable-item', FocusableItem);
     customElements.define('editable-title', EditableTitle);
 
+    document.addEventListener('keydown', (e) => {
+      const target = e.target;
+      if (target.tagName == 'EDITABLE-TITLE') {
+        target.handleKeydown(e);
+      } else if (target.tagName == 'FOCUSABLE-ITEM') {
+        target.handleKeydown(e);
+      }
+    });
     document.querySelector('focusable-item')?.focus();
   </script>
 </body>
