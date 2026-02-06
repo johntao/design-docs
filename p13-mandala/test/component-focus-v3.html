@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: monospace;
+      background: #fafafa;
+      padding: 20px;
+      margin: 0;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 300px;
+      border: 2px solid;
+      padding: 12px;
+    }
+
+    .outer:focus,
+    li:focus {
+      outline: 2px solid #0066cc;
+      outline-offset: 2px;
+    }
+
+    .outer {
+      background-color: #999;
+      padding: 12px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <div class="outer" tabindex="0">
+      <div class="wrap">
+        <div class="title" contenteditable="false">hey</div>
+      </div>
+    </div>
+    <div class="outer" tabindex="0">
+      <div class="wrap">
+        <div class="title" contenteditable="false">www</div>
+      </div>
+    </div>
+    <div class="outer" tabindex="0">
+      <div class="wrap">
+        <div class="title" contenteditable="false">oom</div>
+      </div>
+    </div>
+  </main>
+  <script>
+
+    //v1
+    document.addEventListener('keydown', (e) => {
+      const target = e.target;
+      if (target.classList.contains('title')) {
+        switch (e.key) {
+          case 'Escape':
+            target.textContent = target.dataset.before;
+          case 'Enter':
+            target.closest('.outer')?.focus();
+            target.setAttribute('contenteditable', 'false');
+            break;
+          default:
+            break;
+        }
+      } else if (target.classList.contains('outer')) {
+        switch (e.key) {
+          case 'j':
+            target.nextElementSibling?.focus();
+            break;
+          case 'k':
+            target.previousElementSibling?.focus();
+            break;
+          case 'i':
+            const title = target.querySelector('.title');
+            title.setAttribute('contenteditable', 'true');
+            title.dataset.before = title.textContent;
+            title.focus();
+            e.preventDefault();
+            break;
+          default:
+            break;
+        }
+      }
+    });
+
+    document.querySelector('.outer')?.focus();
+
+    //v2
+    // document.querySelectorAll('.title').forEach(title => {
+    //   title.addEventListener('keydown', (e) => {
+    //     e.stopPropagation();
+    //     const target = e.target;
+    //     switch (e.key) {
+    //       case 'Escape':
+    //         target.textContent = target.dataset.before;
+    //       case 'Enter':
+    //         target.closest('.outer')?.focus();
+    //         target.setAttribute('contenteditable', 'false');
+    //         break;
+    //       default:
+    //         break;
+    //     }
+    //   })
+    // });
+    // document.querySelectorAll('.outer').forEach(outer => {
+    //   outer.addEventListener('keydown', (e) => {
+    //     const target = e.target;
+    //     switch (e.key) {
+    //       case 'j':
+    //         target.nextElementSibling?.focus();
+    //         break;
+    //       case 'k':
+    //         target.previousElementSibling?.focus();
+    //         break;
+    //       case 'i':
+    //         const title = target.querySelector('.title');
+    //         title.setAttribute('contenteditable', 'true');
+    //         title.dataset.before = title.textContent;
+    //         title.focus();
+    //         e.preventDefault();
+    //         break;
+    //       default:
+    //         break;
+    //     }
+    //   })
+    // });
+  </script>
+</body>
+
+</html>

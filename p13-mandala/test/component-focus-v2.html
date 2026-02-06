@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component Focus Test</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: monospace;
+      background: #fafafa;
+      padding: 20px;
+      margin: 0;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 300px;
+      border: 2px solid;
+      padding: 12px;
+    }
+    .outer:focus, li:focus {
+      outline: 2px solid #0066cc;
+      outline-offset: 2px;
+    }
+    .outer {
+      background-color: #999;
+      padding: 12px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <div class="outer" tabindex="0">
+      <ul>
+        <li tabindex="0">hey</li>
+        <li tabindex="0">foo</li>
+        <li tabindex="0">bar</li>
+        <li tabindex="0">lol</li>
+      </ul>
+    </div>
+    <div class="outer" tabindex="0">
+      <ul>
+        <li tabindex="0">www</li>
+        <li tabindex="0">pos</li>
+        <li tabindex="0">del</li>
+        <li tabindex="0">boy</li>
+      </ul>
+    </div>
+    <div class="outer" tabindex="0">
+      <ul>
+        <li tabindex="0">you</li>
+        <li tabindex="0">zoe</li>
+        <li tabindex="0">joe</li>
+        <li tabindex="0">oom</li>
+      </ul>
+    </div>
+  </main>
+  <script>
+    const ACTION = {
+      'Nil': 0,
+      'Inner': 1,
+      'OutDiv': 2,
+    };
+    document.addEventListener('click', (e) => {
+      switch (checkAction(e.target)) {
+        case ACTION.Inner: console.log('Focused LI'); break;
+        case ACTION.OutDiv: console.log('Focused DIV'); break;
+        default: break;
+      }
+    });
+    function checkAction(target) {
+      const main = document.querySelector('main');
+      if (!main.contains(target)) return ACTION.Nil;
+      if (main == target) return ACTION.Nil;
+      if (target.tagName === 'LI') return ACTION.Inner;
+      else return ACTION.OutDiv;
+    }
+    document.addEventListener('keydown', (e) => {
+      const num = checkAction(document.activeElement);
+      if (num === ACTION.Nil) return;
+      e.preventDefault();
+      const cases = e.key + '-' + num;
+      switch (cases) {
+        case 'k-1': focusDiv('up', true); break;
+        case 'k-2': focusDiv('up'); break;
+        case 'j-1': focusDiv('down', true); break;
+        case 'j-2': focusDiv('down'); break;
+        case 'ArrowUp-1': focusLi('up'); break;
+        case 'ArrowUp-2': focusLi('up', true); break;
+        case 'ArrowDown-1': focusLi('down'); break;
+        case 'ArrowDown-2': focusLi('down', true); break;
+      }
+    });
+
+    function focusDiv(direction, focusParent = false) {
+      if (focusParent) {
+        const parent = document.activeElement.closest('.outer');
+        if (parent) parent.focus();
+      }
+      stopOnBoundary(document.querySelectorAll('.outer'), direction);
+    }
+    function focusLi(direction, focusChild = false) {
+      const active = document.activeElement;
+      if (focusChild) {
+        const firstOrLast = direction === 'up' ? 'li:last-child' : 'li:first-child';
+        const li = active.querySelector(firstOrLast);
+        if (li) li.focus();
+        return;
+      }
+      stopOnBoundary(active.parentElement.children, direction);
+    }
+    function stopOnBoundary(collection, direction) {
+      const active = document.activeElement;
+      const cells = Array.from(collection);
+      const idx = cells.indexOf(active);
+      if (direction === 'up' && idx > 0) {
+        cells[idx - 1].focus();
+      } else if (direction === 'down' && idx < cells.length - 1) {
+        cells[idx + 1].focus();
+      }
+    }
+    document.querySelector('main>.outer').focus();
+  </script>
+</body>
+
+</html>

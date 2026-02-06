@@ -39,39 +39,101 @@ the app is composed by these web components:
 - (optional) description
 - (optional) childnodes
   - a child node is also a mr
+  - 8 nodes at max
 
 ## global implementation guide
 
-- defaults to light theme
+- defaults to light theme with minimal styling
   - no need to implement dark mode
 - modals are implemented by html5 `<dialog>`
+- prefer least click event registration
+  - register the event on the outer element
+  - use `event.target` to dispatch the logic
+
+### keydown event and focusable element
+
+- use browser default behavior to implement keydown event and focusable elements
+  - do not introduce homemade focus implementation
+  - all keyboard shortcuts require a "focused" element to trigger
+- use `:focus` to style each focused element
+  - declare these styles explicitly (made it clear which elements are focusable)
+  - use outline to style focused elements
+- use `tabindex="0"` to define if an element is focusable
+- register one click event per component, use `event.target` to dispatch the logic
+- define focusable elements explicitly; prefer the least focusable elements
+  - each focusable element implement a set of keydown functions
+  - dedup focusable elements whenever possible
+  - prefer the outer element if duplication found
+  - e.g. both "mc-cell" and "mr" represent the mr => keep "mc-cell" as focusable, make "mr" non-focusable
+<!--
+refer to file `../test/component-focus.html` as an example
+
+types of focus
+
+in the example file, the `mc-cell` is also focused when a dr is focused  
+thus, there are two types of focus
+- type1: a `mc-cell` and a dr is focused
+  - in this case "feature 4,5,6" operates on the dr
+- type2: a `mc-cell` is focused without any other dr is focused
+  - in this case "feature 4,5,6" operates on the mr
+
+-->
 
 ## mc-app
 
+is the root of the application
+here's the mockup:
+```html
+<main>
+  <mc-grid>
+    <mc-cell></mc-cell>
+  </mc-grid>
+  <mc-help-bar></mc-help-bar>
+  <mc-data-migration></mc-data-migration>
+</main>
+<mc-help-modal></mc-help-modal>
+<mc-modal></mc-modal>
+<mc-notifier></mc-notifier>
+```
+
 ### special rendering logic
 
-- the center of mc-grid (i.e. `cells[4,4]`) contains the mr which is the root of the tree
-- mr are created in the following order
-  1. `ig[0,0]`
-  2. `ig[0,1]`
-  3. `ig[0,2]`
-  4. `ig[1,0]`
-  5. `ig[1,2]`
-  6. `ig[2,0]`
-  7. `ig[2,1]`
-  8. `ig[2,2]`
+- the data structure is a tree with levels of 2 (starting from lvl0 the root)
+- the center of mc-grid (i.e. `cells[4,4]` or `og[1,1][1,1]`) contains the mr which is the root of the tree
 - the parent node is placed in the center of a subgrid
   - parent node are rendered and sync automatically
-  - here's the list of the parent node:
-  - `og[1,1][1,1]` (the root)
-  - `og[1,1][0,0]` sync to `og[0,0][1,1]`
-  - `og[1,1][0,1]` sync to `og[0,1][1,1]`
-  - `og[1,1][0,2]` sync to `og[0,2][1,1]`
-  - `og[1,1][1,0]` sync to `og[1,0][1,1]`
-  - `og[1,1][1,2]` sync to `og[1,2][1,1]`
-  - `og[1,1][2,0]` sync to `og[2,0][1,1]`
-  - `og[1,1][2,1]` sync to `og[2,1][1,1]`
-  - `og[1,1][2,2]` sync to `og[2,2][1,1]`
+
+#### list of lvl1 nodes
+
+here's the list of the parent node (lvl1):
+- `og[1,1][0,0]` sync to `og[0,0][1,1]`
+- `og[1,1][0,1]` sync to `og[0,1][1,1]`
+- `og[1,1][0,2]` sync to `og[0,2][1,1]`
+- `og[1,1][1,0]` sync to `og[1,0][1,1]`
+- `og[1,1][1,2]` sync to `og[1,2][1,1]`
+- `og[1,1][2,0]` sync to `og[2,0][1,1]`
+- `og[1,1][2,1]` sync to `og[2,1][1,1]`
+- `og[1,1][2,2]` sync to `og[2,2][1,1]`
+
+#### general mr placement order
+
+newly created mr nodes are placed in the following order
+1. `ig[0,0]`
+2. `ig[0,1]`
+3. `ig[0,2]`
+4. `ig[1,0]`
+5. `ig[1,2]`
+6. `ig[2,0]`
+7. `ig[2,1]`
+8. `ig[2,2]`
+
+### check availability
+
+- the root mr may contains zero to eight lvl1 nodes placed in the [aforementioned positions](#list-of-lvl1-nodes)
+  - if root already contains eight lvl1 nodes, return false
+- lvl1 nodes may contains zero to eight lvl2 nodes placed by [the placement order](#general-mr-placement-order)
+  - if lvl1 node already contains eight lvl2 nodes, return false
+- lvl2 nodes always return false in this version
 
 ## mc-grid
 
@@ -80,16 +142,146 @@ the app is composed by these web components:
 - use css "subgrid" feature
 - each cell containing a mc-cell componenet which contains zero-to-one mr
 
-### keybindings
+### exposed keybindings
 
+these are the navigation features to focus a different element
+- [hit `wersdfxcv` to jump in an ig](#feature-1-navigation-inner-jump)
+- [hit `WERSDFXCV` to jump in an og](#feature-2-navigation-outer-jump)
+- [hit `hjkl` to walk inside the `mc-grid`](#feature-3-navigation-cell-walk)
+
+### feature 1, navigation inner jump
+
+users jump within the current og cell  
+the og cell containing an ig which contains 9 ig cells
+each lowercase letter maps to a cell of the ig
+
+e.g.
+given current focused element position `og[1,2][0,0]`
+- hitting w, position not change
+- hitting e, move to `og[1,2][0,1]`
+- hitting r, move to `og[1,2][0,2]`
+- hitting f, move to `og[1,2][1,2]`
+- hitting x, move to `og[1,2][2,0]`
+
+conclusion: change ig position; og position doesn't change
+
+### feature 2, navigation outer jump
+
+users jump within the current og
+the og containing 3x3 og cells
+each uppercase letter maps to a cell of the og
+
+given current focused element position `og[0,0][1,2]`
+- hitting W, position not change
+- hitting E, move to `og[0,1][1,2]`
+- hitting R, move to `og[0,2][1,2]`
+- hitting F, move to `og[1,2][1,2]`
+- hitting X, move to `og[2,0][1,2]`
+
+conclusion: change og position; ig doesn't change
+
+### feature 3, navigation cell walk
+
+shortcut keys hjkl which change the focused elements by 9x9 `mc-cell` indices
+- h move left; cells[i,--j]
+- j move down; cells[++i,j]
+- k move up; cells[--i,j]
+- l move right; cells[i,++j]
+
+cancel the action if out of boundary
 
 ## mc-cell
 
+- is a focusable element
+- the host is a wrapper of a mr
+  - a wrapper may contains zero-to-one mr
+- mr expose an editable field "title"
+- focus the element to enable the following shortcuts
+  - shortcut functions are defined inside the web components
+
+### UI layout examples
+
+case 1
+- `mc-cell` (focusable)
+  - empty
+
+case 2
+- `mc-cell` (focusable)
+  - mr (not focusable)
+    - mr title (not focusable)
+
+### exposed keybindings
+
+- [hit `u` to create a mr](#feature-1-creating-records)
+  - call `mc-modal` to open a creation popup
+  - contains a required field title
+- [hit `i` to inline edit the title of the mr](#feature-2-inline-editing)
+- [hit `o` to update the details of the mr](#feature-3-detail-editing)
+  - call `mc-modal` to open an update popup
+- [hit `<del>` to delete the mr](#feature-4-deleting-records)
+  - call `mc-notifier` to generate an undo toast
+
+### feature 1, creating records
+
+#### case 1
+
+if the `mc-cell` is focused and `mc-cell` doesn't contain a mr
+
+user hit `u` to create a mr, which then, opens a creation modal popup
+
+if create successfully, a mr is inserted into the `mc-cell`
+
+#### case 2
+
+if the `mc-cell` is focused and `mc-cell` already contain a mr
+
+user hit `u` to create a childnode for the mr, which then, check the availability
+
+if available, opens a creation modal popup; else, call `mc-notifier` to inform invalidation
+
+if create successfully, a childnode mr is inserted into the target mr
+
+### feature 2, inline editing
+
+hit `i` on a focused element allows user to edit the title directly
+- user may hit `<enter>` to apply the changes
+- user may hit `<esc>` to discard the changes
+
+### feature 3, detail editing
+
+hit `o` on a focused element allowing users to open an update modal popup to edit the details of the entity
+- inherit logic from creation modal; refer to [previous section](#feature-1-creating-records)
+  - except that a mr update modal also list all the childnodes
+  - users may drag and drop to reorder the childnodes
+  - restore the focus after closing the modal
+
+### feature 4, deleting records
+
+#### case 1
+
+if the `mc-cell` is focused and `mc-cell` doesn't contain a mr
+
+user hit `<del>` => nothing happen
+
+#### case 2
+
+if the `mc-cell` is focused and `mc-cell` already contain a mr
+
+user hit `<del>` to delete the mr including all the belonging childnodes
+
+use `mc-notifier` to notify deletion with an undo button
+
 ## mc-modal
+
+used by `mc-cell`
 
 ### implementation guide
 
+is a modal popup implemented by `<dialog>`
+
 ## mc-notifier
+
+is a toast component used by `mc-cell` and `mc-modal`
 
 ## mc-help-bar
 
@@ -102,206 +294,17 @@ the app is composed by these web components:
 
 refer to file @v4/design/composition.txt and @v4/test/composition.html
 
-I would like to use this version as a starting point, then, implement the full manadala chart app
-
-please use the following instructions to implement:
-
-## main html
-
-we have three cell component (`cell-test`) in the previous version
-```html
-<main>
-  <cell-test></cell-test>
-  <cell-test></cell-test>
-  <cell-test></cell-test>
-</main>
-<modal-test></modal-test>
-<notify-test></notify-test>
-```
-
-the new version should display 81 cell components in a 9x9 grid  
-a single 9x9 grid is sufficient; no need to use css subgrid feature  
-we can detail the styles in the next iteration
-
-`modal-test` is the modal popup component used by `cell-test`
-`notify-test` is the notification component used by `cell-test` and `modal-test`
+mc-cell:
+- hit arrows up/ down to focus different mc-cell
+  - stop on the boundary
+  - the begin of the boundary is `.top>mc-cell`
+  - the end of the boundary is `.bot>mc-cell`
 
 ## cell web component
 
-### feature 1, the layout
 
-use light theme and minimal styling
 
-- the host `cell-test` is a wrapper of a master record (mr)
-  - a wrapper may contains zero-to-one mr
-- the first row of the mr is an editable title
-- the second row of the mr is a list of detail records (dr)
-  - a mr may contains zero-to-many drs
-  - display 5 records at max
-- each dr (list-item) exposes a single editable field "title"
 
-### feature 2, rules of focus
-
-1. use the built-in focus method and behavior
-   - do not introduce homemade focus implementation
-   - all keyboard shortcuts require a "focused" element to trigger
-2. define focusable elements explicitly; prefer the least focusable elements
-   - make each focusable element have unique function
-   - dedup focusable elements whenever possible
-   - prefer the outer element if duplication found
-   - e.g. both "cell component" and "mr title" represent the mr => keep "cell componenet" as focusable, make "mr title" non-focusable
-3. use `:focus` to style each focused element
-   - declare these styles explicitly (made it clear which elements are focusable)
-   - use outline to style focused elements
-4. use `tabindex="0"` to define if an element is focusable
-5. register one click event per component, use `event.target` to dispatch the logic
-
-refer to file `../test/component-focus.html` as an example
-
-#### types of focus
-
-in the example file, the `cell-test` is also focused when a dr is focused  
-thus, there are two types of focus
-- type1: a `cell-test` and a dr is focused
-  - in this case "feature 4,5,6" operates on the dr
-- type2: a `cell-test` is focused without any other dr is focused
-  - in this case "feature 4,5,6" operates on the mr
-
-#### UI layout examples
-
-case 1
-- cell-test (focusable)
-  - empty
-
-case 2
-- cell-test (focusable)
-  - mr
-    - mr title (not focusable)
-
-case 3
-- cell-test (focusable)
-  - mr
-    - mr title (not focusable)
-    - drs
-      - dr (focusable)
-      - dr (focusable)
-      - dr (focusable)
-      - dr (focusable)
-
-### feature 3, creating records
-
-#### case 1
-
-if the `cell-test` is focused and `cell-test` doesn't contain a mr
-
-user hit `u` to create a mr, which then, opens a creation modal popup
-
-if create successfully, a mr is inserted into the `cell-test`
-
-#### case 2
-
-if the `cell-test` is focused and `cell-test` already contain a mr
-
-user hit `u` to create a dr of the mr, which then, opens a creation modal popup
-
-if create successfully, a dr is inserted into the mr
-
-### feature 4, deleting records
-
-#### case 1
-
-if the `cell-test` is focused and `cell-test` doesn't contain a mr
-
-user hit `<del>` => nothing happen
-
-#### case 2
-
-if the `cell-test` is focused and `cell-test` already contain a mr
-
-user hit `<del>` to delete the mr including all the drs belong to the mr
-
-use `notify-test` to notify deletion with an undo button
-
-#### case 3
-
-if a dr is focused
-
-user hit `<del>` to delete the dr from the mr
-
-use `notify-test` to notify deletion with an undo button
-
-### feature 5, inline editing
-
-hit `i` on a focused element allows user to edit the title directly
-- user may hit `<enter>` to apply the changes
-- user may hit `<esc>` to discard the changes
-
-### feature 6, detail editing
-
-hit `o` on a focused element allowing users to open an update modal popup to edit the details of the entity
-- inherit logic from creation modal; refer to [previous section](#feature-4-creating-records)
-  - except that a mr update modal also list all the related drs
-  - users may drag and drop to reorder the dr
-  - restore the focus after closing the modal
-
-### feature 7, navigation
-
-#### list item rotation
-
-given a mr with 8 drs, and mr is currently focused
-
-- hit `n`: pop the last drs, then, unshift it back to the list; repeat 1 times
-- hit `m`: shift the first drs, then, push it back to the list; repeat 2 times
-
-should remains the posistion of the current focus element after the rotation
-
-#### arrow keys to focus different dr
-
-given a mr with 8 drs, and the 3rd dr is currently focused
-
-- hit arrow keys up/ down to focus up/ down elements related to the current focused element
-  - stop navigation on boundary
-  - the start boundary: focusing `cell-test` without focusing any dr
-  - the end boundary: the last dr
-
-#### cell jump local
-
-layout 81 `cell-test` into a 3x3 maingrid (mg); each maincell contains a 3x3 subgrid (sg)
-
-a local jump-jump inside the current sg
-
-where each lowercase letter maps to a cell of the sg
-
-given current focused element position `mg[1,2];sg[0,0]`
-- hitting w, position not change
-- hitting e, move to `mg[1,2];sg[0,1]`
-- hitting r, move to `mg[1,2];sg[0,2]`
-- hitting f, move to `mg[1,2];sg[1,2]`
-- hitting x, move to `mg[1,2];sg[2,0]`
-- conclusion: move sg; mg doesn't change
-
-#### cell jump global
-
-a global jump-jump inside the mg
-
-where each uppercase letter maps to a cell of the mg
-
-given current focused element position `mg[0,0];sg[1,2]`
-- hitting W, position not change
-- hitting E, move to `mg[0,1];sg[1,2]`
-- hitting R, move to `mg[0,2];sg[1,2]`
-- hitting F, move to `mg[1,2];sg[1,2]`
-- hitting X, move to `mg[2,0];sg[1,2]`
-- conclusion: move mg; sg doesn't change
-
-#### cell walk
-
-shortcut keys hjkl which change the focused elements by 9x9 `cell-test` indices
-- h move left; cells[i,--j]
-- j move down; cells[++i,j]
-- k move up; cells[--i,j]
-- l move right; cells[i,++j]
-cancel the action if out of boundary
 
 ### misc
 
@@ -317,7 +320,7 @@ there are four types of actions:
 | 7       | cell-jump-local  | wersdfxcv     | #N/A                       | 1           |
 | 7       | cell-jump-global | WERSDFXCV     | #N/A                       | 1           |
 | 7       | cell-walk        | hjkl          | #N/A                       | 1           |
-| 3       | create           | u             | master record or cell-test | 2           |
+| 3       | create           | u             | master record or mc-cell | 2           |
 | 7       | rotate           | nm            | master record              | 2           |
 | 7       | incell-nav       | `<up>/<down>` | focused element            | 3           |
 | 5       | inline-edit      | i             | focused element            | 3           |
@@ -331,7 +334,7 @@ here's the shared properties of a modal popup
 - containing a title (required) field and a description field
 - hit `<esc>` to cancel the operation, and close the modal
 - hit `<enter>` to confirm the operation
-  - if the title is blank or whitespace, does nothing, use `notify-test` to notify users for violation
+  - if the title is blank or whitespace, does nothing, use `mc-notifier` to notify users for violation
   - if the title is not blank or whitespace, create the record, close the modal
 
 use `<dialog>` to implement the modal
@@ -349,7 +352,7 @@ I found out that incell-nav is almost identical to rotation
 I think it is safe to remove rotation entirely, and remove the restriction of displaying 5 drs at max
 next, rework the keybindings
 replace `<up>/<down>` by `,` and `.`
-introduce new navigation key `m` which will remove dr focus if present (i.e. change focus to the active `cell-test`)
+introduce new navigation key `m` which will remove dr focus if present (i.e. change focus to the active `mc-cell`)
 
 the second issue is that the app should restore the focus after a deletion
 
@@ -367,14 +370,14 @@ expected: focus the 2nd dr after deletion
 
 case 4
 given 1 mr 1 dr; 1st dr is focused
-expected: focus the active `cell-test` after deletion
+expected: focus the active `mc-cell` after deletion
 
 ## revision 2
 
 let's improve incell-nav further
 
 change the start boundary to the 1st dr, which means hitting `,` will no longer remove dr focus
-if users want to change focus to the active `cell-test`, they may use `m` directly
+if users want to change focus to the active `mc-cell`, they may use `m` directly
 
 now both `,` and `.` does not stop on the start and end boundaries
 instead, it simply switch to the other end
