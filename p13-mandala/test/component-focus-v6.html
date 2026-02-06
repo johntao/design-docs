@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grid Web Components</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: monospace;
+      background: #fafafa;
+      padding: 10px;
+      margin: 0;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 2px;
+      border: 2px solid #555;
+      background: #555;
+    }
+
+    grid-row {
+      display: grid;
+      grid-column: span 3;
+      grid-template-columns: subgrid;
+      gap: 2px;
+      background: #888;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <grid-row>
+      <grid-item><editable-title>hey</editable-title></grid-item>
+      <grid-item><editable-title>www</editable-title></grid-item>
+      <grid-item><editable-title>oom</editable-title></grid-item>
+      <grid-item><editable-title>tom</editable-title></grid-item>
+      <grid-item><editable-title>joe</editable-title></grid-item>
+      <grid-item><editable-title>zoe</editable-title></grid-item>
+      <grid-item><editable-title>ice</editable-title></grid-item>
+      <grid-item><editable-title>tea</editable-title></grid-item>
+      <grid-item><editable-title>zoo</editable-title></grid-item>
+    </grid-row>
+    <grid-row>
+      <grid-item><editable-title>one</editable-title></grid-item>
+      <grid-item><editable-title>two</editable-title></grid-item>
+      <grid-item><editable-title>tre</editable-title></grid-item>
+      <grid-item><editable-title>for</editable-title></grid-item>
+      <grid-item><editable-title>fiv</editable-title></grid-item>
+      <grid-item><editable-title>six</editable-title></grid-item>
+      <grid-item><editable-title>svn</editable-title></grid-item>
+      <grid-item><editable-title>eit</editable-title></grid-item>
+      <grid-item><editable-title>nin</editable-title></grid-item>
+    </grid-row>
+    <grid-row>
+      <grid-item><editable-title>aaa</editable-title></grid-item>
+      <grid-item><editable-title>bbb</editable-title></grid-item>
+      <grid-item><editable-title>ccc</editable-title></grid-item>
+      <grid-item><editable-title>ddd</editable-title></grid-item>
+      <grid-item><editable-title>eee</editable-title></grid-item>
+      <grid-item><editable-title>fff</editable-title></grid-item>
+      <grid-item><editable-title>ggg</editable-title></grid-item>
+      <grid-item><editable-title>hhh</editable-title></grid-item>
+      <grid-item><editable-title>iii</editable-title></grid-item>
+    </grid-row>
+    <grid-row>
+      <grid-item><editable-title>hey</editable-title></grid-item>
+      <grid-item><editable-title>www</editable-title></grid-item>
+      <grid-item><editable-title>oom</editable-title></grid-item>
+      <grid-item><editable-title>tom</editable-title></grid-item>
+      <grid-item><editable-title>joe</editable-title></grid-item>
+      <grid-item><editable-title>zoe</editable-title></grid-item>
+      <grid-item><editable-title>ice</editable-title></grid-item>
+      <grid-item><editable-title>tea</editable-title></grid-item>
+      <grid-item><editable-title>zoo</editable-title></grid-item>
+    </grid-row>
+    <grid-row>
+      <grid-item><editable-title>one</editable-title></grid-item>
+      <grid-item><editable-title>two</editable-title></grid-item>
+      <grid-item><editable-title>tre</editable-title></grid-item>
+      <grid-item><editable-title>for</editable-title></grid-item>
+      <grid-item><editable-title>fiv</editable-title></grid-item>
+      <grid-item><editable-title>six</editable-title></grid-item>
+      <grid-item><editable-title>svn</editable-title></grid-item>
+      <grid-item><editable-title>eit</editable-title></grid-item>
+      <grid-item><editable-title>nin</editable-title></grid-item>
+    </grid-row>
+    <grid-row>
+      <grid-item><editable-title>aaa</editable-title></grid-item>
+      <grid-item><editable-title>bbb</editable-title></grid-item>
+      <grid-item><editable-title>ccc</editable-title></grid-item>
+      <grid-item><editable-title>ddd</editable-title></grid-item>
+      <grid-item><editable-title>eee</editable-title></grid-item>
+      <grid-item><editable-title>fff</editable-title></grid-item>
+      <grid-item><editable-title>ggg</editable-title></grid-item>
+      <grid-item><editable-title>hhh</editable-title></grid-item>
+      <grid-item><editable-title>iii</editable-title></grid-item>
+    </grid-row>
+    <grid-row>
+      <grid-item><editable-title>hey</editable-title></grid-item>
+      <grid-item><editable-title>www</editable-title></grid-item>
+      <grid-item><editable-title>oom</editable-title></grid-item>
+      <grid-item><editable-title>tom</editable-title></grid-item>
+      <grid-item><editable-title>joe</editable-title></grid-item>
+      <grid-item><editable-title>zoe</editable-title></grid-item>
+      <grid-item><editable-title>ice</editable-title></grid-item>
+      <grid-item><editable-title>tea</editable-title></grid-item>
+      <grid-item><editable-title>zoo</editable-title></grid-item>
+    </grid-row>
+    <grid-row>
+      <grid-item><editable-title>one</editable-title></grid-item>
+      <grid-item><editable-title>two</editable-title></grid-item>
+      <grid-item><editable-title>tre</editable-title></grid-item>
+      <grid-item><editable-title>for</editable-title></grid-item>
+      <grid-item><editable-title>fiv</editable-title></grid-item>
+      <grid-item><editable-title>six</editable-title></grid-item>
+      <grid-item><editable-title>svn</editable-title></grid-item>
+      <grid-item><editable-title>eit</editable-title></grid-item>
+      <grid-item><editable-title>nin</editable-title></grid-item>
+    </grid-row>
+    <grid-row>
+      <grid-item><editable-title>aaa</editable-title></grid-item>
+      <grid-item><editable-title>bbb</editable-title></grid-item>
+      <grid-item><editable-title>ccc</editable-title></grid-item>
+      <grid-item><editable-title>ddd</editable-title></grid-item>
+      <grid-item><editable-title>eee</editable-title></grid-item>
+      <grid-item><editable-title>fff</editable-title></grid-item>
+      <grid-item><editable-title>ggg</editable-title></grid-item>
+      <grid-item><editable-title>hhh</editable-title></grid-item>
+      <grid-item><editable-title>iii</editable-title></grid-item>
+    </grid-row>
+  </main>
+
+  <script>
+    const GRID_COLS = 9;
+
+    class GridRow extends HTMLElement {
+      constructor() {
+        super();
+      }
+    }
+
+    class GridItem extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = `
+<style>
+  :host {
+    display: block;
+    background-color: #fff;
+    padding: 6px;
+  }
+  :host(:focus) {
+    outline: 2px solid #0066cc;
+    outline: 2px solid red;
+    outline-offset: 0;
+  }
+</style>
+<slot></slot>
+        `;
+      }
+
+      connectedCallback() {
+        this.setAttribute('tabindex', '0');
+      }
+
+      handleKeydown(e) {
+        switch (e.key) {
+          case 'w':
+          case 'e':
+          case 'r':
+          case 's':
+          case 'd':
+          case 'f':
+          case 'x':
+          case 'c':
+          case 'v':
+            this.jump(e.key);
+            break;
+          case 'W':
+          case 'E':
+          case 'R':
+          case 'S':
+          case 'D':
+          case 'F':
+          case 'X':
+          case 'C':
+          case 'V':
+            this.jump2(e.key);
+            break;
+          case 'h':
+          case 'j':
+          case 'k':
+          case 'l':
+            this.navigate(e.key);
+            break;
+          case 'i':
+            const title = this.querySelector('editable-title');
+            title?.enterEditMode();
+            e.preventDefault();
+            break;
+        }
+      }
+      jump(key) {
+        const items = Array.from(this.parentElement.children);
+        const targetIndex = 'wersdfxcv'.indexOf(key);
+        items[targetIndex].focus();
+      }
+      jump2(key) {
+        const main = this.closest('main');
+        
+        const subItems = Array.from(this.parentElement.children);
+        const subIndex = subItems.indexOf(this);
+
+        const items = Array.from(main.querySelectorAll('grid-item'));
+
+        const mainIndex = 'WERSDFXCV'.indexOf(key);
+        const targetIndex = mainIndex * GRID_COLS + subIndex;
+        items[targetIndex].focus();
+      }
+      navigate(direction) {
+        const main = this.closest('main');
+        const items = Array.from(main.querySelectorAll('grid-item'));
+        const currentIndex = items.indexOf(this);
+        let nextIndex;
+
+        switch (direction) {
+          case 'h':
+            if (currentIndex % GRID_COLS === 0) return;
+            nextIndex = currentIndex - 1;
+            break;
+          case 'j':
+            nextIndex = currentIndex + GRID_COLS;
+            break;
+          case 'k':
+            nextIndex = currentIndex - GRID_COLS;
+            break;
+          case 'l':
+            if (currentIndex % GRID_COLS === GRID_COLS - 1) return;
+            nextIndex = currentIndex + 1;
+            break;
+        }
+
+        if (nextIndex >= 0 && nextIndex < items.length) {
+          items[nextIndex].focus();
+        }
+      }
+    }
+
+    class EditableTitle extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.beforeValue = '';
+        this.shadowRoot.innerHTML = `
+<style>
+  :host {
+    display: block;
+  }
+  .title {
+    outline: none;
+  }
+  .title:focus {
+    outline: 1px dashed #0066cc;
+  }
+</style>
+<div class="title" contenteditable="false"></div>
+        `;
+        this.titleEl = this.shadowRoot.querySelector('.title');
+      }
+
+      connectedCallback() {
+        this.titleEl.textContent = this.textContent;
+      }
+
+      enterEditMode() {
+        this.beforeValue = this.titleEl.textContent;
+        this.titleEl.setAttribute('contenteditable', 'true');
+        this.titleEl.focus();
+      }
+
+      exitEditMode(restore = false) {
+        if (restore) {
+          this.titleEl.textContent = this.beforeValue;
+        }
+        this.titleEl.setAttribute('contenteditable', 'false');
+        this.closest('grid-item')?.focus();
+      }
+
+      handleKeydown(e) {
+        switch (e.key) {
+          case 'Escape':
+            this.exitEditMode(true);
+            break;
+          case 'Enter':
+            this.exitEditMode(false);
+            break;
+        }
+      }
+    }
+
+    customElements.define('grid-row', GridRow);
+    customElements.define('grid-item', GridItem);
+    customElements.define('editable-title', EditableTitle);
+
+    document.addEventListener('keydown', (e) => {
+      const target = e.target;
+      switch (target.tagName) {
+        case 'EDITABLE-TITLE':
+        case 'GRID-ITEM':
+          target.handleKeydown(e);
+          break;
+        default:
+          break;
+      }
+    });
+
+    document.querySelector('grid-item')?.focus();
+  </script>
+</body>
+
+</html>
