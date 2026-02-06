@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: monospace;
+      background: #fafafa;
+      padding: 20px;
+      margin: 0;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 5px;
+      width: 300px;
+      border: 2px solid;
+      padding: 12px;
+    }
+
+    .innergrid {
+      display: subgrid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 5px;
+    }
+
+    .foc:focus,
+    li:focus {
+      outline: 2px solid #0066cc;
+      outline-offset: 2px;
+    }
+
+    .foc {
+      background-color: #999;
+      padding: 12px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <div class="innergrid">
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">hey</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">www</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">oom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">joe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">ice</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tea</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoo</div>
+      </div>
+    </div>
+    <div class="innergrid">
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">hey</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">www</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">oom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">joe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">ice</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tea</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoo</div>
+      </div>
+    </div>
+    <div class="innergrid">
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">hey</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">www</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">oom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">joe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">ice</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tea</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoo</div>
+      </div>
+    </div>
+    <div class="innergrid">
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">hey</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">www</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">oom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">joe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">ice</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tea</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoo</div>
+      </div>
+    </div>
+    <div class="innergrid">
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">hey</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">www</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">oom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">joe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">ice</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tea</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoo</div>
+      </div>
+    </div>
+    <div class="innergrid">
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">hey</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">www</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">oom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">joe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">ice</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tea</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoo</div>
+      </div>
+    </div>
+    <div class="innergrid">
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">hey</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">www</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">oom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">joe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">ice</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tea</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoo</div>
+      </div>
+    </div>
+    <div class="innergrid">
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">hey</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">www</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">oom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">joe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">ice</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tea</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoo</div>
+      </div>
+    </div>
+    <div class="innergrid">
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">hey</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">www</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">oom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">joe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">ice</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tea</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoo</div>
+      </div>
+    </div>
+    <div class="innergrid">
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">hey</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">www</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">oom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tom</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">joe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoe</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">ice</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">tea</div>
+      </div>
+      <div class="foc" tabindex="0">
+        <div class="title" contenteditable="false">zoo</div>
+      </div>
+    </div>
+  </main>
+  <script>
+
+    //v1
+    document.addEventListener('keydown', (e) => {
+      const target = e.target;
+      if (target.classList.contains('title')) {
+        switch (e.key) {
+          case 'Escape':
+            target.textContent = target.dataset.before;
+          case 'Enter':
+            target.closest('.foc')?.focus();
+            target.setAttribute('contenteditable', 'false');
+            break;
+          default:
+            break;
+        }
+      } else if (target.classList.contains('foc')) {
+        switch (e.key) {
+          case 'h':
+          case 'j':
+          case 'k':
+          case 'l':
+            handleWalk(e);
+            break;
+          case 'i':
+            const title = target.querySelector('.title');
+            title.setAttribute('contenteditable', 'true');
+            title.dataset.before = title.textContent;
+            title.focus();
+            e.preventDefault();
+            break;
+          default:
+            break;
+        }
+      }
+    });
+    function handleWalk(e) {
+      const target = e.target;
+      const main = document.querySelector('main');
+      const outerElements = Array.from(main.querySelectorAll('.foc'));
+      const currentIndex = outerElements.indexOf(target);
+      let nextIndex;
+      switch (e.key) {
+        case 'h':
+          if (currentIndex % 9 === 0) return; // If it's the first column, do nothing
+          nextIndex = currentIndex - 1;
+          break;
+        case 'j':
+          nextIndex = currentIndex + 9;
+          break;
+        case 'k':
+          nextIndex = currentIndex - 9;
+          break;
+        case 'l':
+          if (currentIndex % 9 === 8) return; // If it's the last column, do nothing
+          nextIndex = currentIndex + 1;
+          break;
+        default:
+          return; // If not a valid key, do nothing
+      }
+      if (nextIndex >= 0 && nextIndex < outerElements.length) {
+        outerElements[nextIndex].focus();
+      }
+    }
+    document.querySelector('.foc')?.focus();
+
+    //v2
+    // document.querySelectorAll('.title').forEach(title => {
+    //   title.addEventListener('keydown', (e) => {
+    //     e.stopPropagation();
+    //     const target = e.target;
+    //     switch (e.key) {
+    //       case 'Escape':
+    //         target.textContent = target.dataset.before;
+    //       case 'Enter':
+    //         target.closest('.foc')?.focus();
+    //         target.setAttribute('contenteditable', 'false');
+    //         break;
+    //       default:
+    //         break;
+    //     }
+    //   })
+    // });
+    // document.querySelectorAll('.foc').forEach(foc => {
+    //   foc.addEventListener('keydown', (e) => {
+    //     const target = e.target;
+    //     switch (e.key) {
+    //       case 'j':
+    //         target.nextElementSibling?.focus();
+    //         break;
+    //       case 'k':
+    //         target.previousElementSibling?.focus();
+    //         break;
+    //       case 'i':
+    //         const title = target.querySelector('.title');
+    //         title.setAttribute('contenteditable', 'true');
+    //         title.dataset.before = title.textContent;
+    //         title.focus();
+    //         e.preventDefault();
+    //         break;
+    //       default:
+    //         break;
+    //     }
+    //   })
+    // });
+  </script>
+</body>
+
+</html>
