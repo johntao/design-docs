@@ -25,7 +25,7 @@
       background: #555;
     }
 
-    .grid-row {
+    grid-row {
       display: grid;
       grid-column: span 3;
       grid-template-columns: subgrid;
@@ -38,7 +38,7 @@
 <body>
   <main>
     <mc-grid>
-      <div class="grid-row">
+      <grid-row>
         <grid-item><editable-title>hey</editable-title></grid-item>
         <grid-item><editable-title>www</editable-title></grid-item>
         <grid-item><editable-title>oom</editable-title></grid-item>
@@ -48,8 +48,8 @@
         <grid-item><editable-title>ice</editable-title></grid-item>
         <grid-item><editable-title>tea</editable-title></grid-item>
         <grid-item><editable-title>zoo</editable-title></grid-item>
-      </div>
-      <div class="grid-row">
+      </grid-row>
+      <grid-row>
         <grid-item><editable-title>one</editable-title></grid-item>
         <grid-item><editable-title>two</editable-title></grid-item>
         <grid-item><editable-title>tre</editable-title></grid-item>
@@ -59,8 +59,8 @@
         <grid-item><editable-title>svn</editable-title></grid-item>
         <grid-item><editable-title>eit</editable-title></grid-item>
         <grid-item><editable-title>nin</editable-title></grid-item>
-      </div>
-      <div class="grid-row">
+      </grid-row>
+      <grid-row>
         <grid-item><editable-title>aaa</editable-title></grid-item>
         <grid-item><editable-title>bbb</editable-title></grid-item>
         <grid-item><editable-title>ccc</editable-title></grid-item>
@@ -70,8 +70,8 @@
         <grid-item><editable-title>ggg</editable-title></grid-item>
         <grid-item><editable-title>hhh</editable-title></grid-item>
         <grid-item><editable-title>iii</editable-title></grid-item>
-      </div>
-      <div class="grid-row">
+      </grid-row>
+      <grid-row>
         <grid-item><editable-title>hey</editable-title></grid-item>
         <grid-item><editable-title>www</editable-title></grid-item>
         <grid-item><editable-title>oom</editable-title></grid-item>
@@ -81,8 +81,8 @@
         <grid-item><editable-title>ice</editable-title></grid-item>
         <grid-item><editable-title>tea</editable-title></grid-item>
         <grid-item><editable-title>zoo</editable-title></grid-item>
-      </div>
-      <div class="grid-row">
+      </grid-row>
+      <grid-row>
         <grid-item><editable-title>one</editable-title></grid-item>
         <grid-item><editable-title>two</editable-title></grid-item>
         <grid-item><editable-title>tre</editable-title></grid-item>
@@ -92,8 +92,8 @@
         <grid-item><editable-title>svn</editable-title></grid-item>
         <grid-item><editable-title>eit</editable-title></grid-item>
         <grid-item><editable-title>nin</editable-title></grid-item>
-      </div>
-      <div class="grid-row">
+      </grid-row>
+      <grid-row>
         <grid-item><editable-title>aaa</editable-title></grid-item>
         <grid-item><editable-title>bbb</editable-title></grid-item>
         <grid-item><editable-title>ccc</editable-title></grid-item>
@@ -103,8 +103,8 @@
         <grid-item><editable-title>ggg</editable-title></grid-item>
         <grid-item><editable-title>hhh</editable-title></grid-item>
         <grid-item><editable-title>iii</editable-title></grid-item>
-      </div>
-      <div class="grid-row">
+      </grid-row>
+      <grid-row>
         <grid-item><editable-title>hey</editable-title></grid-item>
         <grid-item><editable-title>www</editable-title></grid-item>
         <grid-item><editable-title>oom</editable-title></grid-item>
@@ -114,8 +114,8 @@
         <grid-item><editable-title>ice</editable-title></grid-item>
         <grid-item><editable-title>tea</editable-title></grid-item>
         <grid-item><editable-title>zoo</editable-title></grid-item>
-      </div>
-      <div class="grid-row">
+      </grid-row>
+      <grid-row>
         <grid-item><editable-title>one</editable-title></grid-item>
         <grid-item><editable-title>two</editable-title></grid-item>
         <grid-item><editable-title>tre</editable-title></grid-item>
@@ -125,8 +125,8 @@
         <grid-item><editable-title>svn</editable-title></grid-item>
         <grid-item><editable-title>eit</editable-title></grid-item>
         <grid-item><editable-title>nin</editable-title></grid-item>
-      </div>
-      <div class="grid-row">
+      </grid-row>
+      <grid-row>
         <grid-item><editable-title>aaa</editable-title></grid-item>
         <grid-item><editable-title>bbb</editable-title></grid-item>
         <grid-item><editable-title>ccc</editable-title></grid-item>
@@ -136,24 +136,47 @@
         <grid-item><editable-title>ggg</editable-title></grid-item>
         <grid-item><editable-title>hhh</editable-title></grid-item>
         <grid-item><editable-title>iii</editable-title></grid-item>
-      </div>
+      </grid-row>
     </mc-grid>
   </main>
 
   <script>
-    const GRID_COLS = 9;
-    const OG_CELLS = Array.from(document.querySelectorAll('.grid-row'));
-    const OG_IG_CELLS = OG_CELLS.map(row => Array.from(row.querySelectorAll('grid-item')));
-    const ALL_CELLS = Array.from(document.querySelectorAll('grid-item'));
     const hjklMap = {
       'h': [0, -1],  // left
       'j': [1, 0],   // down
       'k': [-1, 0],  // up
       'l': [0, 1]    // right
     };
+    function dissect(input) {
+      return [Math.floor(input / 3), input % 3];
+    }
+    function compose(main, sub) {
+      return main * 3 + sub;
+    }
+    function fromMS1dToGlobalRC(ms1d) {
+      const [mainIndex, subIndex] = ms1d;
+      const [mRow, mCol] = dissect(mainIndex);
+      const [sRow, sCol] = dissect(subIndex);
+      const globalRow = compose(mRow, sRow);
+      const globalCol = compose(mCol, sCol);
+      return [globalRow, globalCol];
+    }
+    function fromGlobalRCToMS1d(globalRC) {
+      const [globalRow, globalCol] = globalRC;
+      const [mRow, sRow] = dissect(globalRow);
+      const [mCol, sCol] = dissect(globalCol);
+      const mainIndex = compose(mRow, mCol);
+      const subIndex = compose(sRow, sCol);
+      return [mainIndex, subIndex];
+    }
     class McGrid extends HTMLElement {
+      kids = [...this.children];
       constructor() {
         super();
+        this.kids.reduce((acc,val,idx) => {
+          acc[idx] = val;
+          return acc;
+        }, this);
       }
       navigate(e, cell) {
         const key = e.key;
@@ -161,52 +184,40 @@
           this.walk(key, cell);
         } else if ('WERSDFXCV'.includes(key)) {
           const mainIndex = 'WERSDFXCV'.indexOf(key);
-          const idx = mainIndex * GRID_COLS + cell.index;
-          ALL_CELLS[idx].focus();
+          this[mainIndex][cell.index].focus();
         } else if ('wersdfxcv'.includes(key)) {
           const idx = 'wersdfxcv'.indexOf(key);
-          cell.siblings[idx].focus();
+          cell.parent[idx].focus();
         }
       }
-      dissect(input) {
-        return [Math.floor(input / 3), input % 3];
-      }
-      compose(main, sub) {
-        return main * 3 + sub;
-      }
-      fromMS1dToGlobalRC(ms1d) {
-        const [mainIndex, subIndex] = ms1d;
-        const [mRow, mCol] = this.dissect(mainIndex);
-        const [sRow, sCol] = this.dissect(subIndex);
-        const globalRow = this.compose(mRow, sRow);
-        const globalCol = this.compose(mCol, sCol);
-        return [globalRow, globalCol];
-      }
-      fromGlobalRCToMS1d(globalRC) {
-        const [globalRow, globalCol] = globalRC;
-        const [mRow, sRow] = this.dissect(globalRow);
-        const [mCol, sCol] = this.dissect(globalCol);
-        const mainIndex = this.compose(mRow, mCol);
-        const subIndex = this.compose(sRow, sCol);
-        return [mainIndex, subIndex];
-      }
       walk(key, cell) {
-        let mIdx = OG_CELLS.indexOf(cell.parent);
+        let mIdx = cell.parent.index;
         let sIdx = cell.index;
-
-        let [gRow, gCol] = this.fromMS1dToGlobalRC([mIdx, sIdx]);
+        let [gRow, gCol] = fromMS1dToGlobalRC([mIdx, sIdx]);
         const [dRow, dCol] = hjklMap[key];
         gRow += dRow;
         gCol += dCol;
         if (gRow < 0 || gRow > 8 || gCol < 0 || gCol > 8) return;
-        [mIdx, sIdx] = this.fromGlobalRCToMS1d([gRow, gCol]); 
-        OG_IG_CELLS[mIdx][sIdx].focus();
+        [mIdx, sIdx] = fromGlobalRCToMS1d([gRow, gCol]); 
+        cell.root[mIdx][sIdx].focus();
+      }
+    }
+    class GridRow extends HTMLElement {
+      parent = this.closest('mc-grid');
+      kids = [...this.children];
+      index = this.parent.kids.indexOf(this);
+      constructor() {
+        super();
+        this.kids.reduce((acc,val,idx) => {
+          acc[idx] = val;
+          return acc;
+        }, this);
       }
     }
     class GridItem extends HTMLElement {
-      parent = this.closest('.grid-row');
-      siblings = [...this.parentElement.children];
-      index = this.siblings.indexOf(this);
+      parent = this.closest('grid-row');
+      root = this.closest('mc-grid');
+      index = this.parent.kids.indexOf(this);
       constructor() {
         super();
         this.attachShadow({ mode: 'open' });
@@ -297,6 +308,7 @@
     }
 
     customElements.define('mc-grid', McGrid);
+    customElements.define('grid-row', GridRow);
     customElements.define('grid-item', GridItem);
     customElements.define('editable-title', EditableTitle);
 
