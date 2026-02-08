@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- 
+remove shadowDOM
+move styles to main document
+BREAKING CHANGE:
+- dataset
+- keydown event handling
+-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grid Web Components</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: monospace;
+      background: #fafafa;
+      padding: 10px;
+      margin: 0;
+    }
+
+    mc-grid {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      grid-template-rows: repeat(9, 1fr);
+      gap: 2px;
+      border: 2px solid #555;
+      background: #555;
+    }
+
+    grid-row {
+      display: grid;
+      grid-column: span 3;
+      grid-row: span 3;
+      grid-template-columns: subgrid;
+      grid-template-rows: subgrid;
+      gap: 2px;
+      background: #888;
+    }
+  grid-item {
+    display: block;
+    background-color: #fff;
+    padding: 6px;
+  }
+  grid-item:focus {
+    outline: 2px solid #0066cc;
+    outline: 2px solid red;
+    outline-offset: 0;
+  }
+  editable-title {
+    display: block;
+  }
+  .title {
+    outline: none;
+  }
+  .title:focus {
+    outline: 1px dashed #0066cc;
+  }
+  </style>
+</head>
+
+<body>
+  <main>
+    <mc-grid></mc-grid>
+  </main>
+
+  <script>
+    const hjklMap = {
+      'h': [0, -1],  // left
+      'j': [1, 0],   // down
+      'k': [-1, 0],  // up
+      'l': [0, 1]    // right
+    };
+    function dissect(input) {
+      return [Math.floor(input / 3), input % 3];
+    }
+    function compose(main, sub) {
+      return main * 3 + sub;
+    }
+    function fromMS1dToGlobalRC(ms1d) {
+      const [mainIndex, subIndex] = ms1d;
+      const [mRow, mCol] = dissect(mainIndex);
+      const [sRow, sCol] = dissect(subIndex);
+      const globalRow = compose(mRow, sRow);
+      const globalCol = compose(mCol, sCol);
+      return [globalRow, globalCol];
+    }
+    function fromGlobalRCToMS1d(globalRC) {
+      const [globalRow, globalCol] = globalRC;
+      const [mRow, sRow] = dissect(globalRow);
+      const [mCol, sCol] = dissect(globalCol);
+      const mainIndex = compose(mRow, mCol);
+      const subIndex = compose(sRow, sCol);
+      return [mainIndex, subIndex];
+    }
+    class McGrid extends HTMLElement {
+      constructor() {
+        super();
+      }
+      connectedCallback() {
+        for (let i =-1; ++i < 9;) {
+          const row = document.createElement('grid-row');
+          for (let j =-1; ++j < 9;) {
+            const item = document.createElement('grid-item');
+            const title = document.createElement('editable-title');
+            title.dataset.idx = `${i},${j}`;
+            item.appendChild(title);
+            row.appendChild(item);
+          }
+          this.appendChild(row);
+        }
+      }
+      get kids() { return [...this.children]; }
+      navigate(e, cell) {
+        const key = e.key;
+        if ('hjkl'.includes(key)) {
+          this.walk(key, cell);
+        } else if ('WERSDFXCV'.includes(key)) {
+          const mainIndex = 'WERSDFXCV'.indexOf(key);
+          this.kids[mainIndex].kids[cell.index].focus();
+        } else if ('wersdfxcv'.includes(key)) {
+          const idx = 'wersdfxcv'.indexOf(key);
+          cell.parent.kids[idx].focus();
+        }
+      }
+      walk(key, cell) {
+        let mIdx = cell.parent.index;
+        let sIdx = cell.index;
+        let [gRow, gCol] = fromMS1dToGlobalRC([mIdx, sIdx]);
+        const [dRow, dCol] = hjklMap[key];
+        gRow += dRow;
+        gCol += dCol;
+        if (gRow < 0 || gRow > 8 || gCol < 0 || gCol > 8) return;
+        [mIdx, sIdx] = fromGlobalRCToMS1d([gRow, gCol]);
+        this.kids[mIdx].kids[sIdx].focus();
+      }
+    }
+    class GridRow extends HTMLElement {
+      constructor() {
+        super();
+      }
+      get parent() { return this.closest('mc-grid'); }
+      get kids() { return [...this.children]; }
+      get index() { return this.parent.kids.indexOf(this); }
+    }
+    class GridItem extends HTMLElement {
+      constructor() {
+        super();
+      }
+      connectedCallback() {
+        this.setAttribute('tabindex', '0');
+      }
+      get parent() { return this.closest('grid-row'); }
+      get root() { return this.closest('mc-grid'); }
+      get index() { return this.parent.kids.indexOf(this); }
+
+      handleKeydown(e) {
+        switch (e.key) {
+          case 'i':
+            const title = this.querySelector('editable-title');
+            title?.enterEditMode();
+            e.preventDefault();
+            break;
+          default:
+            this.closest('mc-grid')?.navigate(e, this);
+            break;
+        }
+      }
+    }
+
+    class EditableTitle extends HTMLElement {
+      constructor() {
+        super();
+        this.beforeValue = '';
+        this.innerHTML = `<div class="title" contenteditable="false"></div>`;
+        this.titleEl = this.querySelector('.title');
+      }
+
+      connectedCallback() {
+        this.titleEl.textContent = this.dataset.idx || '';
+      }
+
+      enterEditMode() {
+        this.beforeValue = this.titleEl.textContent;
+        this.titleEl.setAttribute('contenteditable', 'true');
+        this.titleEl.focus();
+      }
+
+      exitEditMode(restore = false) {
+        if (restore) {
+          this.titleEl.textContent = this.beforeValue;
+        }
+        this.titleEl.setAttribute('contenteditable', 'false');
+        this.closest('grid-item')?.focus();
+      }
+
+      handleKeydown(e) {
+        switch (e.key) {
+          case 'Escape':
+            this.exitEditMode(true);
+            break;
+          case 'Enter':
+            this.exitEditMode(false);
+            break;
+        }
+      }
+    }
+
+    customElements.define('mc-grid', McGrid);
+    customElements.define('grid-row', GridRow);
+    customElements.define('grid-item', GridItem);
+    customElements.define('editable-title', EditableTitle);
+
+    document.addEventListener('keydown', (e) => {
+      const target = e.target;
+      switch (target.tagName) {
+        case 'DIV':
+          if (target.classList.contains('title')) {
+            target.parentElement.handleKeydown(e);
+          }
+          break;
+        case 'GRID-ITEM':
+          target.handleKeydown(e);
+          break;
+        default:
+          break;
+      }
+    });
+
+    document.querySelector('grid-item')?.focus();
+  </script>
+</body>
+
+</html>
