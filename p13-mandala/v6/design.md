@@ -65,29 +65,14 @@ the app is composed by these web components:
   - dedup focusable elements whenever possible
   - prefer the outer element if duplication found
   - e.g. both "mc-cell" and "mr" represent the mr => keep "mc-cell" as focusable, make "mr" non-focusable
-<!--
-refer to file `../test/component-focus.html` as an example
-
-types of focus
-
-in the example file, the `mc-cell` is also focused when a dr is focused  
-thus, there are two types of focus
-- type1: a `mc-cell` and a dr is focused
-  - in this case "feature 4,5,6" operates on the dr
-- type2: a `mc-cell` is focused without any other dr is focused
-  - in this case "feature 4,5,6" operates on the mr
-
--->
 
 ## mc-app
 
 is the root of the application
-here's the mockup:
+here's the mockup or refer to file @v6/example.html
 ```html
 <main>
-  <mc-grid>
-    <mc-cell></mc-cell>
-  </mc-grid>
+  <mc-grid></mc-grid>
   <mc-help-bar></mc-help-bar>
   <mc-data-migration></mc-data-migration>
 </main>
@@ -135,6 +120,12 @@ newly created mr nodes are placed in the following order
   - if lvl1 node already contains eight lvl2 nodes, return false
 - lvl2 nodes always return false in this version
 
+### data persistence
+
+store all the data in the localStorage
+
+ensure there will be no data loss on page refresh
+
 ## mc-grid
 
 ### implementation guide
@@ -162,6 +153,7 @@ given current focused element position `og[1,2][0,0]`
 - hitting r, move to `og[1,2][0,2]`
 - hitting f, move to `og[1,2][1,2]`
 - hitting x, move to `og[1,2][2,0]`
+- etc
 
 conclusion: change ig position; og position doesn't change
 
@@ -177,6 +169,7 @@ given current focused element position `og[0,0][1,2]`
 - hitting R, move to `og[0,2][1,2]`
 - hitting F, move to `og[1,2][1,2]`
 - hitting X, move to `og[2,0][1,2]`
+- etc
 
 conclusion: change og position; ig doesn't change
 
@@ -275,60 +268,6 @@ use `mc-notifier` to notify deletion with an undo button
 
 used by `mc-cell`
 
-### implementation guide
-
-is a modal popup implemented by `<dialog>`
-
-## mc-notifier
-
-is a toast component used by `mc-cell` and `mc-modal`
-
-## mc-help-bar
-
-## mc-help-modal
-
-## mc-data-migration
-
-
----
-
-refer to file @v4/design/composition.txt and @v4/test/composition.html
-
-mc-cell:
-- hit arrows up/ down to focus different mc-cell
-  - stop on the boundary
-  - the begin of the boundary is `.top>mc-cell`
-  - the end of the boundary is `.bot>mc-cell`
-
-## cell web component
-
-
-
-
-
-### misc
-
-there are four types of actions:
-1. actions without operands
-2. actions that take a master record as operand
-3. actions that take the current focused element as operand
-  - this type of action is covered in [previous section](#types-of-focus)
-
-
-| feature | action           | key           | operate on                 | action type |
-| ------- | ---------------- | ------------- | -------------------------- | ----------- |
-| 7       | cell-jump-local  | wersdfxcv     | #N/A                       | 1           |
-| 7       | cell-jump-global | WERSDFXCV     | #N/A                       | 1           |
-| 7       | cell-walk        | hjkl          | #N/A                       | 1           |
-| 3       | create           | u             | master record or mc-cell | 2           |
-| 7       | rotate           | nm            | master record              | 2           |
-| 7       | incell-nav       | `<up>/<down>` | focused element            | 3           |
-| 5       | inline-edit      | i             | focused element            | 3           |
-| 6       | detail-edit      | o             | focused element            | 3           |
-| 4       | delete           | `<del>`       | focused element            | 3           |
-
-## modal component
-
 there are two types of modal: creation and update
 here's the shared properties of a modal popup
 - containing a title (required) field and a description field
@@ -337,78 +276,30 @@ here's the shared properties of a modal popup
   - if the title is blank or whitespace, does nothing, use `mc-notifier` to notify users for violation
   - if the title is not blank or whitespace, create the record, close the modal
 
-use `<dialog>` to implement the modal
+### implementation guide
 
-## notification component
+- implement the modal using HTML5 `<dialog>`
 
-notify deletion and fields validation
+## mc-notifier
 
-## revision 1
+used by `mc-cell` and `mc-modal`
 
-found a few problems
+notify users for deletion and fields validation
 
-first let's rework the incell navigation
-I found out that incell-nav is almost identical to rotation
-I think it is safe to remove rotation entirely, and remove the restriction of displaying 5 drs at max
-next, rework the keybindings
-replace `<up>/<down>` by `,` and `.`
-introduce new navigation key `m` which will remove dr focus if present (i.e. change focus to the active `mc-cell`)
+## mc-help-bar
 
-the second issue is that the app should restore the focus after a deletion
+a succinct bar containing all the keyboard shortcuts
 
-case 1
-given 1 mr 2 drs; 2nd dr is focused
-expected: focus the 1st dr after deletion
+## mc-help-modal
 
-case 2
-given 1 mr 2 drs; 1st dr is focused
-expected: focus the 1st dr after deletion
+using key '?' to trigger the popup
 
-case 3
-given 1 mr 3 drs; 2nd dr is focused
-expected: focus the 2nd dr after deletion
+is a read-only popup without any data manipulation
 
-case 4
-given 1 mr 1 dr; 1st dr is focused
-expected: focus the active `mc-cell` after deletion
+## mc-data-migration
 
-## revision 2
+expose two buttons import and export
 
-let's improve incell-nav further
-
-change the start boundary to the 1st dr, which means hitting `,` will no longer remove dr focus
-if users want to change focus to the active `mc-cell`, they may use `m` directly
-
-now both `,` and `.` does not stop on the start and end boundaries
-instead, it simply switch to the other end
-
-cases:
-given 3 drs; 1st dr is focused; user press `,`
-expected: focus 3rd dr
-
-given 3 drs; 1st dr is focused; user press `.`
-expected: focus 2nd dr
-
-given 3 drs; 3rd dr is focused; user press `,`
-expected: focus 2nd dr
-
-given 3 drs; 3rd dr is focused; user press `.`
-expected: focus 1st dr
-
-given 3 drs; no dr is focused; user press `,`
-expected: focus 3rd dr
-
-given 3 drs; no dr is focused; user press `.`
-expected: focus 1st dr
-
-## revision 3
-
-let's add a few data-related features
-
-the first one is to store all the data in the localStorage
-ensure there will be no data loss on page refresh
-
-secondly, provide import/ export functions
 import:
 - clear all the existing data, import data from a file input
 - this function should also update the localStorage
@@ -416,93 +307,34 @@ import:
 export:
 - dump the localStorage to a text file
 
-refer to file @v5/mandala.md for example data
+refer to file @v6/demo1.txt for example data
 parse instruction:
-1. set `cells[4,4]` (or `mg[1,1];sg[1,1]`) mr's title as the file name
-2. list items without indentation is lvl1 items
-   - place them in the subgrid inside the maincell `mg[1,1]`
+1. set `cells[4,4]` (or `og[1,1][1,1]`) mr's title as the file name
+2. the grammar is defined by the following five tokens: `{indentation}{nodetype-token}{title}us{metadata}us{description}`
+  - us stands as an unit separator: ``
+  - nodetype-token: mr equals to `- `
+  - title: the title of a mr
+  - metadata: the metadata of a mr
+  - description: the description of a mr
+3. list items without indentation (zero tab character) is lvl1 items
+   - place them in the subgrid inside the maincell `og[1,1]`
    - items are placed in the following order
-   - lvl1-item10: `mg[1,1];sg[0,0]`; dup at `mg[0,0];sg[1,1]`
-   - lvl1-item20: `mg[1,1];sg[0,1]`; dup at `mg[0,1];sg[1,1]`
-   - lvl1-item30: `mg[1,1];sg[0,2]`; dup at `mg[0,2];sg[1,1]`
-   - lvl1-item40: `mg[1,1];sg[1,0]`; dup at `mg[1,0];sg[1,1]`
-   - lvl1-item50: `mg[1,1];sg[1,2]`; dup at `mg[1,2];sg[1,1]`
-   - lvl1-item60: `mg[1,1];sg[2,0]`; dup at `mg[2,0];sg[1,1]`
-   - lvl1-item70: `mg[1,1];sg[2,1]`; dup at `mg[2,1];sg[1,1]`
-   - lvl1-item80: `mg[1,1];sg[2,2]`; dup at `mg[2,2];sg[1,1]`
-   - note that the mid-mid is already occupied by the file name
-   - these value are also duplicate in the center of surrounding maincell
-3. list items with indentation are lvl2 items
+   - lvl1-item10: `og[1,1][0,0]`; sync to `og[0,0][1,1]`
+   - lvl1-item20: `og[1,1][0,1]`; sync to `og[0,1][1,1]`
+   - lvl1-item30: `og[1,1][0,2]`; sync to `og[0,2][1,1]`
+   - lvl1-item40: `og[1,1][1,0]`; sync to `og[1,0][1,1]`
+   - lvl1-item50: `og[1,1][1,2]`; sync to `og[1,2][1,1]`
+   - lvl1-item60: `og[1,1][2,0]`; sync to `og[2,0][1,1]`
+   - lvl1-item70: `og[1,1][2,1]`; sync to `og[2,1][1,1]`
+   - lvl1-item80: `og[1,1][2,2]`; sync to `og[2,2][1,1]`
+4. list items with indentation (one tab character) are lvl2 items
    - these items are placed at the rest of the subcells of the correspond maincell
-   - lvl2-item11: `mg[0,0];sg[0,0]`
-   - lvl2-item12: `mg[0,0];sg[0,1]`
-   - lvl2-item13: `mg[0,0];sg[0,2]`
-   - lvl2-item14: `mg[0,0];sg[1,0]`
-   - lvl2-item15: `mg[0,0];sg[1,2]`
-   - lvl2-item16: `mg[0,0];sg[2,0]`
-   - lvl2-item17: `mg[0,0];sg[2,1]`
-   - lvl2-item18: `mg[0,0];sg[2,2]`
-4. throw parse exception if either lvl1 or lvl2 items exceed 8 rows
-
-## revision 4
-
-refer to file @v5/mandala.md for extended example data
-
-let's enhance the data parser further
-in the previous version, the parser have the concept of lvl1 and lvl2
-in this version, we will introduce "folder/ file" type and "fields"
-the grammar is defined by the following five tokens: `{indentation}{folder-or-file}{title}us{metadata}us{description}`
-us stands as an unit separator: ``
-indentation: lvl1 consist zero whitespace; lvl2 consist two whitespaces
-folder-or-file: folder equals to `- `; file equals to `  `
-title: the title of a folder or file
-metadata: the metadata of a folder or file
-description: the description of a folder or file
-
-note that a folder should be parsed as a mr; whereas a file should be parsed as a dr, and then, store into the nearest parent folder (mr)
-throw exception if the parser cannot find a nearest parent folder for a file
-
-## revision 5
-
-found out two problems
-
-firstly, I made a mistake that items in the center maincell are not "duplicated" to the surrounding maincells
-instead, these items are synchornized, changes made at one place should reflect to the other
-refer to the following list
-- lvl1-item10: `mg[1,1];sg[0,0]`; sync to `mg[0,0];sg[1,1]`
-- lvl1-item20: `mg[1,1];sg[0,1]`; sync to `mg[0,1];sg[1,1]`
-- lvl1-item30: `mg[1,1];sg[0,2]`; sync to `mg[0,2];sg[1,1]`
-- lvl1-item40: `mg[1,1];sg[1,0]`; sync to `mg[1,0];sg[1,1]`
-- lvl1-item50: `mg[1,1];sg[1,2]`; sync to `mg[1,2];sg[1,1]`
-- lvl1-item60: `mg[1,1];sg[2,0]`; sync to `mg[2,0];sg[1,1]`
-- lvl1-item70: `mg[1,1];sg[2,1]`; sync to `mg[2,1];sg[1,1]`
-- lvl1-item80: `mg[1,1];sg[2,2]`; sync to `mg[2,2];sg[1,1]`
-
-secondly, I found out that the parser didn't handle file-type properly
-refer to file @v5/mandala.md
-the expected output (listed only folders containing files):
-- data placed at `mg[1,1];sg[0,0]` and `mg[0,0];sg[1,1]`, containing 2 files (drs)
-- pkm placed at `mg[0,0];sg[0,2]`, containing 2 files (drs)
-- local-storage placed at `mg[0,1];sg[0,2]`, containing 2 files (drs)
-- import placed at `mg[1,1];sg[0,2]` and `mg[0,2];sg[1,1]`, containing 2 files (drs)
-- blog placed at `mg[1,1];sg[1,0]` and `mg[1,0];sg[1,1]`, containing 3 files (drs)
-- ui-ux placed at `mg[1,1];sg[1,2]` and `mg[1,2];sg[1,1]`, containing 3 files (drs)
-- copy-paste placed at `mg[2,0];sg[0,1]`, containing 3 files (drs)
-- port placed at `mg[1,1];sg[2,0]` and `mg[2,0];sg[1,1]`, containing 4 files (drs)
-
-actual output (listed only folders containing files):
-
-- data placed at `mg[1,1];sg[0,0]` and `mg[0,0];sg[1,1]`, containing 0 file (drs)
-- pkm placed at `mg[0,0];sg[0,2]`, containing 2 files (drs)
-- local-storage placed at `mg[0,1];sg[0,2]`, containing 2 files (drs)
-- import placed at `mg[1,1];sg[0,2]` and `mg[0,2];sg[1,1]`, containing 0 file (drs)
-- blog placed at `mg[1,1];sg[1,0]` and `mg[1,0];sg[1,1]`, containing 0 file (drs)
-- ui-ux placed at `mg[1,1];sg[1,2]` and `mg[1,2];sg[1,1]`, containing 0 file (drs)
-- copy-paste placed at `mg[2,0];sg[0,1]`, containing 3 files (drs)
-- port placed at `mg[1,1];sg[2,0]` and `mg[2,0];sg[1,1]`, containing 0 file (drs)
-
-## revision 6
-
-there a hint bar in the bottom of the UI
-please add a popup to show descriptive shortcut information
-using key '?' to trigger the popup
+   - lvl2-item11: `og[0,0][0,0]`
+   - lvl2-item12: `og[0,0][0,1]`
+   - lvl2-item13: `og[0,0][0,2]`
+   - lvl2-item14: `og[0,0][1,0]`
+   - lvl2-item15: `og[0,0][1,2]`
+   - lvl2-item16: `og[0,0][2,0]`
+   - lvl2-item17: `og[0,0][2,1]`
+   - lvl2-item18: `og[0,0][2,2]`
+5. throw parse exception if either lvl1 or lvl2 items exceed 8 rows
