@@ -169,16 +169,7 @@ input.error { border-color: #cc0000; }
     if (!this._draggedItem) return;
     this._draggedItem.classList.remove('dragging');
     const items = [...this._childList.querySelectorAll('.child-item')];
-    this._children = items.map(item => this._children[parseInt(item.dataset.index)] || this._children[0]);
-    // fix: rebuild with correct indices
-    const reordered = [];
-    const origChildren = [...this._children];
-    this._childList.innerHTML = '';
-    items.forEach((item, i) => {
-      const origIdx = parseInt(item.dataset.index);
-      reordered.push(origChildren[origIdx] || origChildren[0]);
-    });
-    this._children = reordered;
+    this._children = items.map(item => this._children[parseInt(item.dataset.index)]);
     this._renderChildList();
     this._draggedItem = null;
   }
