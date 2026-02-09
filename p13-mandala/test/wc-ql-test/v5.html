@@ -1,198 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
-<!--
-remove editable-title
-
-BREAKING CHANGE:
-- getRootNode().host -> shadowRoot.host
-- port editable-title logic into grid-item
--->
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grid Web Components</title>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: monospace;
-      background: #fafafa;
-      padding: 10px;
-      margin: 0;
-    }
-
-    mc-grid {
-      display: grid;
-      grid-template-columns: repeat(9, 1fr);
-      grid-template-rows: repeat(9, 1fr);
-      gap: 2px;
-      border: 2px solid #555;
-      background: #555;
-    }
-
-    grid-row {
-      display: grid;
-      grid-column: span 3;
-      grid-row: span 3;
-      grid-template-columns: subgrid;
-      grid-template-rows: subgrid;
-      gap: 2px;
-      background: #888;
-    }
-  </style>
+  <title>Grid Web Components - Best Practices</title>
 </head>
-
 <body>
-  <main>
-    <mc-grid></mc-grid>
-  </main>
-
+  <mc-grid></mc-grid>
   <script>
-    const hjklMap = {
-      'h': [0, -1],  // left
-      'j': [1, 0],   // down
-      'k': [-1, 0],  // up
-      'l': [0, 1]    // right
-    };
-    function dissect(input) {
-      return [Math.floor(input / 3), input % 3];
-    }
-    function compose(main, sub) {
-      return main * 3 + sub;
-    }
-    function fromMS1dToGlobalRC(ms1d) {
-      const [mainIndex, subIndex] = ms1d;
-      const [mRow, mCol] = dissect(mainIndex);
-      const [sRow, sCol] = dissect(subIndex);
-      const globalRow = compose(mRow, sRow);
-      const globalCol = compose(mCol, sCol);
-      return [globalRow, globalCol];
-    }
-    function fromGlobalRCToMS1d(globalRC) {
-      const [globalRow, globalCol] = globalRC;
-      const [mRow, sRow] = dissect(globalRow);
-      const [mCol, sCol] = dissect(globalCol);
-      const mainIndex = compose(mRow, mCol);
-      const subIndex = compose(sRow, sCol);
-      return [mainIndex, subIndex];
-    }
     class McGrid extends HTMLElement {
-      constructor() {
-        super();
-      }
       connectedCallback() {
-        for (let i =-1; ++i < 9;) {
-          const row = document.createElement('grid-row');
-          for (let j =-1; ++j < 9;) {
-            const item = document.createElement('grid-item');
-            item.dataset.idx = `${i},${j}`;
-            row.appendChild(item);
-          }
-          this.appendChild(row);
-        }
-      }
-      get kids() { return [...this.children]; }
-      navigate(e, cell) {
-        const key = e.key;
-        if ('hjkl'.includes(key)) {
-          this.walk(key, cell);
-        } else if ('WERSDFXCV'.includes(key)) {
-          const mainIndex = 'WERSDFXCV'.indexOf(key);
-          this.kids[mainIndex].kids[cell.index].focus();
-        } else if ('wersdfxcv'.includes(key)) {
-          const idx = 'wersdfxcv'.indexOf(key);
-          cell.parent.kids[idx].focus();
-        }
-      }
-      walk(key, cell) {
-        let mIdx = cell.parent.index;
-        let sIdx = cell.index;
-        let [gRow, gCol] = fromMS1dToGlobalRC([mIdx, sIdx]);
-        const [dRow, dCol] = hjklMap[key];
-        gRow += dRow;
-        gCol += dCol;
-        if (gRow < 0 || gRow > 8 || gCol < 0 || gCol > 8) return;
-        [mIdx, sIdx] = fromGlobalRCToMS1d([gRow, gCol]);
-        this.kids[mIdx].kids[sIdx].focus();
+        const row = document.createElement('grid-row');
+        const item = document.createElement('grid-item');
+        const title = document.createElement('editable-title');
+        title.setAttribute('value', 'something');
+        item.appendChild(title);
+        row.appendChild(item);
+        this.appendChild(row);
       }
     }
     class GridRow extends HTMLElement {
-      constructor() {
-        super();
-      }
-      get parent() { return this.closest('mc-grid'); }
-      get kids() { return [...this.children]; }
-      get index() { return this.parent.kids.indexOf(this); }
     }
     class GridItem extends HTMLElement {
-      constructor() {
-        super();
-        this.attachShadow({ mode: 'open' });
-        this.shadowRoot.innerHTML = `
-<style>
-  :host {
-    display: block;
-    background-color: #fff;
-    padding: 6px;
-  }
-  :host(:focus) {
-    outline: 2px solid #0066cc;
-    outline: 2px solid red;
-    outline-offset: 0;
-  }
-  .title {
-    outline: none;
-  }
-  .title:focus {
-    outline: 1px dashed #0066cc;
-  }
-</style>
-<div class="title" contenteditable="false"></div>`;
-        this.titleEl = this.shadowRoot.querySelector('.title');
-      }
       connectedCallback() {
         this.setAttribute('tabindex', '0');
-        this.titleEl.textContent = this.shadowRoot.host.dataset.idx || '';
       }
-      get parent() { return this.closest('grid-row'); }
-      get root() { return this.closest('mc-grid'); }
-      get index() { return this.parent.kids.indexOf(this); }
-
       handleKeydown(e) {
-        const path = e.composedPath();
-        const titleEl = path.find(el => el.classList?.contains('title'));
-        if (titleEl) {
-          this.textFieldKeydown(e);
-          return;
-        }
+        // debugger;
         switch (e.key) {
           case 'i':
-            this.enterEditMode();
+            this.querySelector('editable-title')?.enterEditMode();
             e.preventDefault();
             break;
-          default:
-            this.closest('mc-grid')?.navigate(e, this);
-            break;
         }
       }
-
-      enterEditMode() {
-        this.beforeValue = this.titleEl.textContent;
-        this.titleEl.setAttribute('contenteditable', 'true');
-        this.titleEl.focus();
+    }
+    class EditableTitle extends HTMLElement {
+      static get observedAttributes() {
+        return ['value'];
       }
-
+      constructor() {
+        super();
+        this._beforeValue = '';
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = `
+          <style>
+            .title {
+              min-height: 1.2em;
+              padding: 2px 4px;
+            }
+            .title:focus {
+              outline: 2px solid #0066cc;
+              background: #f0f8ff;
+            }
+          </style>
+          <div class="title" part="title"></div>
+        `;
+        this._titleEl = this.shadowRoot.querySelector('.title');
+      }
+      attributeChangedCallback(name, oldValue, newValue) {
+        if (name === 'value' && this._titleEl) {
+          this._titleEl.textContent = newValue ?? '';
+        }
+      }
+      get value() {
+        return this.getAttribute('value') ?? '';
+      }
+      set value(val) {
+        this.setAttribute('value', val);
+      }
+      enterEditMode() {
+        this._beforeValue = this._titleEl.textContent;
+        this._titleEl.setAttribute('contenteditable', 'true');
+        this._titleEl.focus();
+        const range = document.createRange();
+        range.selectNodeContents(this._titleEl);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
       exitEditMode(restore = false) {
         if (restore) {
-          this.titleEl.textContent = this.beforeValue;
+          this._titleEl.textContent = this._beforeValue;
+        } else {
+          this.setAttribute('value', this._titleEl.textContent);
         }
-        this.titleEl.setAttribute('contenteditable', 'false');
-        this.shadowRoot.host.focus();
+        this._titleEl.setAttribute('contenteditable', 'false');
+        this.closest('grid-item')?.focus();
       }
-
-      textFieldKeydown(e) {
+      handleKeydown(e) {
+        // e.stopPropagation();
         switch (e.key) {
           case 'Escape':
             this.exitEditMode(true);
@@ -203,24 +100,22 @@ BREAKING CHANGE:
         }
       }
     }
-
     customElements.define('mc-grid', McGrid);
     customElements.define('grid-row', GridRow);
     customElements.define('grid-item', GridItem);
-
+    customElements.define('editable-title', EditableTitle);
     document.addEventListener('keydown', (e) => {
-      const target = e.target;
-      switch (target.tagName) {
+      const el = e.target;
+      switch (el.tagName) {
+        case 'EDITABLE-TITLE':
         case 'GRID-ITEM':
-          target.handleKeydown(e);
+          el.handleKeydown(e);
           break;
         default:
           break;
       }
     });
-
     document.querySelector('grid-item')?.focus();
   </script>
 </body>
-
 </html>
