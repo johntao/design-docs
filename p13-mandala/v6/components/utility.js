@@ -47,3 +47,11 @@ export function nextStatus(current) {
   const i = STATUSES.indexOf(current || 'na');
   return STATUSES[(i + 1) % STATUSES.length];
 }
+
+export const DVORAK_TO_QWERTY = {
+  'g': 'u', 'c': 'i', 'r': 'o', 'f': 'y',
+  'h': 'h', 't': 'j', 'n': 'k', 's': 'l',
+  ',': 'w', '.': 'e', 'p': 'r', 'o': 's', 'e': 'd', 'u': 'f', 'q': 'x', 'j': 'c', 'k': 'v',
+  '<': 'W', '>': 'E', 'P': 'R', 'O': 'S', 'E': 'D', 'U': 'F', 'Q': 'X', 'J': 'C', 'K': 'V',
+  'Z': '?'
+};

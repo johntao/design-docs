@@ -232,3 +232,66 @@ add after the `Del` shortcut item (line 30):
 5. import `demo1.txt`, verify all records default to `na` status
 6. export, verify metadata field contains status values
 7. refresh page, verify status persisted in localStorage
+
+## revision 1
+
+### quality of life 1
+
+on creating new items, check the status of the parent node first
+if the status equals to 'na', then the status of the new item defaults to 'na'
+else, defaults to 'now'
+
+### quality of life 2
+
+problem:
+user hit 'u' for creating new items
+when users focused on a cell without a properly existing parent node or root node, the action fail silently
+
+solution:
+teleport user to the nearest empty parent node, then trigger the 'u' function again
+
+case 1:
+- focus on a lvl2 node (e.g. `og[0,1][2,2]`)
+  - the lvl2 node doesn't have a lvl1 parent node
+  - the root is already set
+expected: teleport to the position `og[0,1][1,1]`
+
+case 2:
+- focus on a lvl2 node (e.g. `og[0,1][2,2]`)
+  - the lvl2 node doesn't have a lvl1 parent node
+  - the root is not set
+expected: teleport to the root position `og[1,1][1,1]`
+
+case 3:
+- focus on a lvl1 node (e.g. `og[0,1][1,1]`)
+  - the root is not set
+expected: teleport to the root position `og[1,1][1,1]`
+
+case 4:
+- focus on a lvl1 node (e.g. `og[1,1][0,1]`)
+  - the root is not set
+expected: teleport to the root position `og[1,1][1,1]`
+
+### quality of life 3
+
+problem:
+the app is not dvorak-friendly
+
+solution:
+provide a select box aside to the `mc-data-migration` widget
+allowing users to switch keyboard emulating options (QWERTY and dvorak)
+option defaults to QWERTY
+on change the option, remap all the keybindings
+
+use the following mappings:
+QWERTY --> Dvorak
+```txt
+u --> g
+i --> c
+o --> r
+y --> f
+hjkl --> htns
+wersdfxcv --> ,.poeuqjk
+WERSDFXCV --> <>POEUQJK
+? --> Z
+```

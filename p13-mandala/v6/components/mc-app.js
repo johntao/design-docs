@@ -1,4 +1,4 @@
-import { positionToIndex, indexToPosition, HJKL_MAP, JUMP_KEYS, nextStatus, STATUSES } from './utility.js';
+import { positionToIndex, indexToPosition, HJKL_MAP, JUMP_KEYS, nextStatus, STATUSES, DVORAK_TO_QWERTY } from './utility.js';
 
 const STORAGE_KEY = 'mandala-v6-data';
 const CENTER_INDEX = 40;
@@ -32,6 +32,7 @@ export default class McApp extends HTMLElement {
     this._helpModal = this.querySelector('mc-help-modal');
 
     this._loadFromStorage();
+    this._keyboardLayout = localStorage.getItem('mandala-v6-keyboard') || 'qwerty';
     this._renderTree();
 
     // Focus center cell
@@ -51,6 +52,11 @@ export default class McApp extends HTMLElement {
     // Migration events
     this.addEventListener('migration-export', () => this._exportData());
     this.addEventListener('migration-import', (e) => this._importData(e.detail.content, e.detail.fileName));
+
+    // Keyboard layout
+    this.addEventListener('keyboard-change', (e) => {
+      this._keyboardLayout = e.detail.layout;
+    });
   }
 
   // === Tree-to-grid mapping ===
@@ -152,10 +158,19 @@ export default class McApp extends HTMLElement {
 
   // === Keydown dispatch ===
 
+  _translateKey(key) {
+    if (this._keyboardLayout === 'dvorak') {
+      return DVORAK_TO_QWERTY[key] || key;
+    }
+    return key;
+  }
+
   _onKeydown(e) {
     if (this._modal.isOpen) return;
 
-    if (e.key === '?') {
+    const key = this._translateKey(e.key);
+
+    if (key === '?') {
       e.preventDefault();
       if (this._helpModal.isOpen) this._helpModal.close();
       else this._helpModal.open();
@@ -167,8 +182,6 @@ export default class McApp extends HTMLElement {
     const focused = document.activeElement;
     if (!focused || focused.tagName !== 'MC-CELL') return;
     if (focused.isEditing) return;
-
-    const key = e.key;
 
     // Navigation keys
     if (HJKL_MAP[key] || JUMP_KEYS[key]) {
@@ -222,9 +235,10 @@ export default class McApp extends HTMLElement {
     // If cell has no record but is an empty lvl1/lvl2 slot
     if (!info.record && info.parent) {
       const level = info.level;
-      if (level === 1 && !info.isSynced) {
+      if (level === 1) {
         // Create lvl1 child - but only if slot is next in order
-        this._modal.open('create', { modalTitle: 'Create Record' });
+        const defaultStatus = (this._root.status || 'na') === 'na' ? 'na' : 'now';
+        this._modal.open('create', { modalTitle: 'Create Record', status: defaultStatus });
         this._modalListen((detail) => {
           if (!this._root.children) this._root.children = [];
           const newRecord = { title: detail.title, description: detail.description, status: detail.status || 'na', children: [] };
@@ -244,7 +258,8 @@ export default class McApp extends HTMLElement {
         return;
       }
       if (level === 2 && info.parent) {
-        this._modal.open('create', { modalTitle: 'Create Record' });
+        const defaultStatus = (info.parent.status || 'na') === 'na' ? 'na' : 'now';
+        this._modal.open('create', { modalTitle: 'Create Record', status: defaultStatus });
         this._modalListen((detail) => {
           if (!info.parent.children) info.parent.children = [];
           const newRecord = { title: detail.title, description: detail.description, status: detail.status || 'na' };
@@ -269,7 +284,8 @@ export default class McApp extends HTMLElement {
         this._notifier.show('Maximum children reached (8)');
         return;
       }
-      this._modal.open('create', { modalTitle: 'Create Child Record' });
+      const defaultStatus = (info.record.status || 'na') === 'na' ? 'na' : 'now';
+      this._modal.open('create', { modalTitle: 'Create Child Record', status: defaultStatus });
       this._modalListen((detail) => {
         if (!info.record.children) info.record.children = [];
         const newRecord = { title: detail.title, description: detail.description, status: detail.status || 'na' };
@@ -279,6 +295,22 @@ export default class McApp extends HTMLElement {
         this._renderTree();
         cell.focus();
       }, () => cell.focus());
+      return;
+    }
+
+    // Teleport to nearest empty ancestor
+    if (!this._root) {
+      const rootCell = this._grid.cellAt(CENTER_INDEX);
+      rootCell.focus();
+      this._handleCreate(rootCell);
+      return;
+    }
+    const pos = indexToPosition(cell.cellIndex);
+    if (!(pos.mgRow === 1 && pos.mgCol === 1)) {
+      const parentCellIdx = positionToIndex(pos.mgRow, pos.mgCol, 1, 1);
+      const parentCell = this._grid.cellAt(parentCellIdx);
+      parentCell.focus();
+      this._handleCreate(parentCell);
     }
   }
 

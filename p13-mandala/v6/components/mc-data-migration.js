@@ -8,15 +8,32 @@ export default class McDataMigration extends HTMLElement {
 button { padding: 4px 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; font-size: 12px; font-family: monospace; }
 button:hover { background: #f5f5f5; }
 input[type="file"] { display: none; }
+.separator { color: #ccc; }
+select { padding: 3px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff; font-size: 12px; font-family: monospace; cursor: pointer; }
+select:hover { background: #f5f5f5; }
 </style>
 <button class="btn-export">Export</button>
 <button class="btn-import">Import</button>
 <input type="file" class="file-input" accept=".md,.txt">
+<span class="separator">|</span>
+<select class="layout-select">
+  <option value="qwerty">QWERTY</option>
+  <option value="dvorak">Dvorak</option>
+</select>
     `;
     this._exportBtn = this.shadowRoot.querySelector('.btn-export');
     this._importBtn = this.shadowRoot.querySelector('.btn-import');
     this._fileInput = this.shadowRoot.querySelector('.file-input');
+    this._layoutSelect = this.shadowRoot.querySelector('.layout-select');
+    this._layoutSelect.value = localStorage.getItem('mandala-v6-keyboard') || 'qwerty';
 
+    this._layoutSelect.addEventListener('change', () => {
+      localStorage.setItem('mandala-v6-keyboard', this._layoutSelect.value);
+      this.dispatchEvent(new CustomEvent('keyboard-change', {
+        bubbles: true,
+        detail: { layout: this._layoutSelect.value }
+      }));
+    });
     this._exportBtn.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('migration-export', { bubbles: true }));
     });
