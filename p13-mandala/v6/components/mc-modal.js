@@ -10,6 +10,8 @@ h3 { margin: 0 0 16px 0; font-size: 16px; font-weight: 600; }
 label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; }
 input, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; font-family: inherit; box-sizing: border-box; }
 textarea { resize: vertical; min-height: 60px; }
+select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; font-family: inherit; box-sizing: border-box; }
+select:focus { outline: none; border-color: #0066cc; }
 input:focus, textarea:focus { outline: none; border-color: #0066cc; }
 input.error { border-color: #cc0000; }
 .field { margin-bottom: 12px; }
@@ -40,6 +42,14 @@ input.error { border-color: #cc0000; }
   <label>Description</label>
   <textarea class="input-desc" placeholder="Enter description (optional)"></textarea>
 </div>
+<div class="field field-status" hidden>
+  <label>Status</label>
+  <select class="input-status">
+    <option value="na">na</option>
+    <option value="now">now</option>
+    <option value="done">done</option>
+  </select>
+</div>
 <div class="child-section" hidden>
   <h4>Childnodes (drag to reorder)</h4>
   <ul class="child-list"></ul>
@@ -57,6 +67,8 @@ input.error { border-color: #cc0000; }
     this._errorMsg = this.shadowRoot.querySelector('.error-msg');
     this._childSection = this.shadowRoot.querySelector('.child-section');
     this._childList = this.shadowRoot.querySelector('.child-list');
+    this._statusField = this.shadowRoot.querySelector('.field-status');
+    this._inputStatus = this.shadowRoot.querySelector('.input-status');
     this._cancelBtn = this.shadowRoot.querySelector('.btn-cancel');
     this._confirmBtn = this.shadowRoot.querySelector('.btn-confirm');
     this._mode = null;
@@ -83,6 +95,8 @@ input.error { border-color: #cc0000; }
     this._inputTitle.value = data.title || '';
     this._inputDesc.value = data.description || '';
     this._modalTitle.textContent = data.modalTitle || 'Record';
+    this._statusField.hidden = false;
+    this._inputStatus.value = data.status || 'na';
     if (mode === 'update' && data.children && data.children.length > 0) {
       this._children = data.children.map(c => ({ ...c }));
       this._renderChildList();
@@ -121,7 +135,7 @@ input.error { border-color: #cc0000; }
       this.dispatchEvent(new CustomEvent('modal-validation-error', { detail: { message: 'Title cannot be blank' } }));
       return;
     }
-    const detail = { mode: this._mode, title, description: this._inputDesc.value.trim() };
+    const detail = { mode: this._mode, title, description: this._inputDesc.value.trim(), status: this._inputStatus.value };
     if (this._mode === 'update') detail.children = this._children;
     this._dialog.close();
     this.dispatchEvent(new CustomEvent('modal-confirm', { detail }));

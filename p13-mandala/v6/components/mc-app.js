@@ -1,4 +1,4 @@
-import { positionToIndex, indexToPosition, HJKL_MAP, JUMP_KEYS } from './utility.js';
+import { positionToIndex, indexToPosition, HJKL_MAP, JUMP_KEYS, nextStatus, STATUSES } from './utility.js';
 
 const STORAGE_KEY = 'mandala-v6-data';
 const CENTER_INDEX = 40;
@@ -195,6 +195,10 @@ export default class McApp extends HTMLElement {
         e.preventDefault();
         this._handleDelete(focused);
         break;
+      case 'y':
+        e.preventDefault();
+        this._handleCycleStatus(focused);
+        break;
     }
   }
 
@@ -207,7 +211,7 @@ export default class McApp extends HTMLElement {
       // Create root
       this._modal.open('create', { modalTitle: 'Create Root Record' });
       this._modalListen((detail) => {
-        this._root = { title: detail.title, description: detail.description, children: [] };
+        this._root = { title: detail.title, description: detail.description, status: detail.status || 'na', children: [] };
         this._saveToStorage();
         this._renderTree();
         cell.focus();
@@ -223,7 +227,7 @@ export default class McApp extends HTMLElement {
         this._modal.open('create', { modalTitle: 'Create Record' });
         this._modalListen((detail) => {
           if (!this._root.children) this._root.children = [];
-          const newRecord = { title: detail.title, description: detail.description, children: [] };
+          const newRecord = { title: detail.title, description: detail.description, status: detail.status || 'na', children: [] };
           // Place at the correct slot index
           if (info.slotIndex === this._root.children.length) {
             this._root.children.push(newRecord);
@@ -243,7 +247,7 @@ export default class McApp extends HTMLElement {
         this._modal.open('create', { modalTitle: 'Create Record' });
         this._modalListen((detail) => {
           if (!info.parent.children) info.parent.children = [];
-          const newRecord = { title: detail.title, description: detail.description };
+          const newRecord = { title: detail.title, description: detail.description, status: detail.status || 'na' };
           if (info.slotIndex === info.parent.children.length) {
             info.parent.children.push(newRecord);
           } else {
@@ -268,7 +272,7 @@ export default class McApp extends HTMLElement {
       this._modal.open('create', { modalTitle: 'Create Child Record' });
       this._modalListen((detail) => {
         if (!info.record.children) info.record.children = [];
-        const newRecord = { title: detail.title, description: detail.description };
+        const newRecord = { title: detail.title, description: detail.description, status: detail.status || 'na' };
         if (info.level < 2) newRecord.children = [];
         info.record.children.push(newRecord);
         this._saveToStorage();
@@ -291,12 +295,14 @@ export default class McApp extends HTMLElement {
       modalTitle: 'Update Record',
       title: info.record.title,
       description: info.record.description || '',
+      status: info.record.status || 'na',
       children: info.record.children || []
     });
 
     this._modalListen((detail) => {
       info.record.title = detail.title;
       info.record.description = detail.description;
+      info.record.status = detail.status;
       if (detail.children) info.record.children = detail.children;
       this._saveToStorage();
       this._renderTree();
@@ -330,6 +336,14 @@ export default class McApp extends HTMLElement {
         this._renderTree();
       });
     }
+  }
+
+  _handleCycleStatus(cell) {
+    const info = this._getCellTreeInfo(cell.cellIndex);
+    if (!info.record) return;
+    info.record.status = nextStatus(info.record.status);
+    this._saveToStorage();
+    this._renderTree();
   }
 
   _modalListen(onConfirm, onClose) {
@@ -374,10 +388,10 @@ export default class McApp extends HTMLElement {
     let output = '';
     const children = this._root.children || [];
     for (const child of children) {
-      output += '- ' + [child.title, '', child.description || ''].join(US) + '\n';
+      output += '- ' + [child.title, STATUSES.indexOf(child.status || 'na'), child.description || ''].join(US) + '\n';
       const grandchildren = child.children || [];
       for (const gc of grandchildren) {
-        output += '\t- ' + [gc.title, '', gc.description || ''].join(US) + '\n';
+        output += '\t- ' + [gc.title, STATUSES.indexOf(gc.status || 'na'), gc.description || ''].join(US) + '\n';
       }
     }
     const blob = new Blob([output], { type: 'text/plain' });
@@ -406,7 +420,8 @@ export default class McApp extends HTMLElement {
           const parts = text.split(US);
           currentLvl1.children.push({
             title: (parts[0] || '').trim(),
-            description: (parts[2] || '').trim()
+            description: (parts[2] || '').trim(),
+            status: STATUSES[parseInt(parts[1])] || 'na'
           });
         } else if (line.startsWith('- ')) {
           // lvl1 item
@@ -415,6 +430,7 @@ export default class McApp extends HTMLElement {
           currentLvl1 = {
             title: (parts[0] || '').trim(),
             description: (parts[2] || '').trim(),
+            status: STATUSES[parseInt(parts[1])] || 'na',
             children: []
           };
           root.children.push(currentLvl1);

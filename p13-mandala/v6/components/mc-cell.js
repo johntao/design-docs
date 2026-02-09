@@ -1,3 +1,5 @@
+import { calcProgress } from './utility.js';
+
 export default class McCell extends HTMLElement {
   constructor() {
     super();
@@ -40,11 +42,13 @@ export default class McCell extends HTMLElement {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.mr-children {
+.mr-status {
   font-size: 10px;
-  color: #666;
   padding: 1px 4px;
+  display: flex;
+  justify-content: space-between;
 }
+.mr-status[hidden] { display: none; }
 .inline-input {
   width: 100%;
   border: none;
@@ -58,15 +62,15 @@ export default class McCell extends HTMLElement {
 <div class="empty"></div>
 <div class="mr" hidden>
 <div class="mr-title"></div>
+<div class="mr-status"></div>
 <div class="mr-desc"></div>
-<div class="mr-children"></div>
 </div>
     `;
     this._empty = this.shadowRoot.querySelector('.empty');
     this._mrEl = this.shadowRoot.querySelector('.mr');
     this._mrTitle = this.shadowRoot.querySelector('.mr-title');
     this._mrDesc = this.shadowRoot.querySelector('.mr-desc');
-    this._mrChildren = this.shadowRoot.querySelector('.mr-children');
+    this._mrStatus = this.shadowRoot.querySelector('.mr-status');
     this._record = null;
     this._isEditing = false;
     this._isSynced = false; // true if this cell is a sync mirror
@@ -96,8 +100,15 @@ export default class McCell extends HTMLElement {
     this._mrEl.hidden = false;
     this._mrTitle.textContent = this._record.title;
     this._mrDesc.textContent = this._record.description || '';
-    const childCount = (this._record.children || []).length;
-    this._mrChildren.textContent = childCount > 0 ? `[${childCount} children]` : '';
+    const status = this._record.status || 'na';
+    if (status === 'na') {
+      this._mrStatus.hidden = true;
+    } else {
+      this._mrStatus.hidden = false;
+      const progress = calcProgress(this._record);
+      const icon = status === 'done' ? '✅' : '🔧';
+      this._mrStatus.innerHTML = `<span>${icon}</span><span>${progress}%</span>`;
+    }
   }
 
   startInlineEdit() {

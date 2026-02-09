@@ -28,6 +28,7 @@ kbd { background: #f0f0f0; padding: 4px 8px; border-radius: 4px; border: 1px sol
   <div class="shortcut-item"><div class="keys"><kbd>i</kbd></div><div class="desc">Inline edit title directly in cell</div></div>
   <div class="shortcut-item"><div class="keys"><kbd>o</kbd></div><div class="desc">Detail edit - open modal for full editing</div></div>
   <div class="shortcut-item"><div class="keys"><kbd>Del</kbd></div><div class="desc">Delete the current record and all children</div></div>
+  <div class="shortcut-item"><div class="keys"><kbd>y</kbd></div><div class="desc">Cycle status: na → now → done</div></div>
   </div>
 </div>
 <div class="section">

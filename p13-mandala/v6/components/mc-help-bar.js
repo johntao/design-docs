@@ -12,6 +12,7 @@ kbd { background: #eee; padding: 2px 5px; border-radius: 3px; border: 1px solid 
 <kbd>i</kbd> inline edit |
 <kbd>o</kbd> detail edit |
 <kbd>Del</kbd> delete |
+<kbd>y</kbd> status |
 <kbd>hjkl</kbd> walk |
 <kbd>wersdfxcv</kbd> inner jump |
 <kbd>WERSDFXCV</kbd> outer jump |

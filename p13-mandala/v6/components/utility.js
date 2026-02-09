@@ -30,3 +30,20 @@ export function indexToPosition(index) {
     sgCol: col % 3
   };
 }
+
+export const STATUSES = ['na', 'now', 'done'];
+
+export function calcProgress(record) {
+  const children = record.children || [];
+  const active = children.filter(c => (c.status || 'na') !== 'na');
+  if (active.length === 0) {
+    return (record.status || 'na') === 'done' ? 100 : 0;
+  }
+  const doneCount = active.filter(c => (c.status || 'na') === 'done').length;
+  return Math.round(doneCount / active.length * 100);
+}
+
+export function nextStatus(current) {
+  const i = STATUSES.indexOf(current || 'na');
+  return STATUSES[(i + 1) % STATUSES.length];
+}
