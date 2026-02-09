@@ -18,11 +18,9 @@ export default class McApp extends HTMLElement {
 
   connectedCallback() {
     this.innerHTML = `
-<main>
-  <mc-grid></mc-grid>
-  <mc-help-bar></mc-help-bar>
-  <mc-data-migration></mc-data-migration>
-</main>
+<mc-grid></mc-grid>
+<mc-help-bar></mc-help-bar>
+<mc-data-migration></mc-data-migration>
 <mc-help-modal></mc-help-modal>
 <mc-modal></mc-modal>
 <mc-notifier></mc-notifier>

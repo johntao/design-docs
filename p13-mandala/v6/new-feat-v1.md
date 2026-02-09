@@ -1,0 +1,234 @@
+# new feature: status tracking with progress rollup
+
+## overview
+
+each mc-record gains a `status` field: `na` | `now` | `done`
+- default status for new records: `na`
+- users cycle status via a keyboard shortcut on a focused cell
+- items marked with `na` are backward compatible, doesn't affected by the new features
+- items marked with `now` or `done` are "tasks" which enables the new feature
+  - i.e. tasks == `children.filter(c => c.status !== 'na')`
+
+## progress rollup
+
+- lvl2 records (leaf nodes): progress is binary — `done` = 100%, else 0%
+- lvl1 records: progress = count of `done` tasks / total tasks
+- lvl0 root: progress = count of `done` lvl1 tasks / total lvl1 tasks
+- a parent with zero tasks has its own binary progress (like a leaf)
+
+## display
+
+- mc-cell shows the progress as a whole number percentage (e.g. `75%`)
+- mc-cell shows the current status label (e.g. `now` as 🔧; `done` as ✅)
+- status is visible alongside the existing title and description
+
+## interaction
+
+- keyboard shortcut to cycle status: press `y` on a focused cell
+  - cycles: `na` → `now` → `done` → `na`
+- the mc-modal (detail edit `o`) also exposes a status dropdown
+
+## persistence
+
+- status is stored as part of the mc-record in localStorage
+- import/export: status maps to the metadata field in the text format
+
+## iteration 2: detailed design
+
+### data model change
+
+mc-record grows one field:
+```
+{ title, description?, children?, status: 'na' | 'now' | 'done' }
+```
+- `status` defaults to `'na'` when omitted (backward compat with existing data)
+- the rollup percentage is **computed on render**, not stored
+
+### rollup calculation (function `calcProgress(record)`)
+
+```
+if record has no tasks → return record.status === 'done' ? 100 : 0
+else → return Math.round(tasks.filter(c => c.status === 'done').length / tasks.length * 100)
+```
+
+edge cases:
+- parent marks by `na`, disable all the new features
+- parent marks by `now` with 0 tasks: behaves as leaf (binary 0 or 100)
+- parent marks by `now` with some tasks but parent itself marked `done` manually:
+  the displayed percentage still comes from tasks, but the status label shows `done`
+  (status and rollup are independent — status is user-set, rollup is auto-calculated)
+- synced cells (lvl1 shown in both center-grid and outer-grid center):
+  both copies show the same status and rollup since they reference the same record object
+
+### mc-cell layout change
+
+current cell content (top to bottom):
+```
+[title]
+[description]
+[N children]
+```
+
+new cell content:
+```
+[title]
+[status] [progress%]
+[description]
+```
+
+- status is rendered as an unicode char: `na` (nothing), `now` (🔧), `done` (✅)
+- progress is rendered as `75%` in the same line, right-aligned
+- `[N children]` line is replaced by the status/progress line
+- if no sub-tasks and status is `na`, hide the progress line
+- if no sub-tasks and status is `now`, the progress line shows `now 0%`
+- if status is `done` and no sub-tasks, shows `done 100%`
+
+### keyboard shortcut `y`
+
+- registered in mc-app's keydown handler alongside `u`, `i`, `o`, `Del`
+- pressing `y` on a cell with a record cycles: `na` → `now` → `done` → `na`
+- pressing `y` on an empty cell: no-op
+- after cycling, triggers save + re-render (same as inline edit)
+
+### mc-modal changes
+
+- add a `<select>` dropdown for status below the description field
+  - options: `na`, `now`, `done`
+  - pre-populated with current status in update mode
+  - defaults to `na` in create mode
+- the confirmed detail includes `status` in the event payload
+
+### mc-help-bar / mc-help-modal update
+
+- add `y` shortcut to both: `<kbd>t</kbd> cycle status`
+
+### import/export mapping
+
+the existing text format has: `{title}\x1f{metadata}\x1f{description}`
+- metadata field now carries the status value: `na`, `now`, or `done` (represent as 0|1|2 separatedly)
+- on import: if metadata is empty or unrecognized, default to `na`
+- on export: write the status string into the metadata position
+
+## iteration 3: file-by-file implementation plan
+
+### files to modify
+
+#### 1. `v6/components/utility.js` — add `calcProgress` helper
+
+```js
+const STATUSES = ['na', 'now', 'done'];
+
+function calcProgress(record) {
+  const children = record.children || [];
+  const active = children.filter(c => (c.status || 'na') !== 'na');
+  if (active.length === 0) {
+    return (record.status || 'na') === 'done' ? 100 : 0;
+  }
+  const doneCount = active.filter(c => (c.status || 'na') === 'done').length;
+  return Math.round(doneCount / active.length * 100);
+}
+
+function nextStatus(current) {
+  const i = STATUSES.indexOf(current || 'na');
+  return STATUSES[(i + 1) % STATUSES.length];
+}
+```
+
+export `STATUSES`, `calcProgress`, `nextStatus`
+
+#### 2. `v6/components/mc-cell.js` — display status + progress
+
+**shadow DOM template changes:**
+- replace `.mr-children` div with `.mr-status` div
+- add style: `.mr-status { font-size: 10px; padding: 1px 4px; display: flex; justify-content: space-between; }`
+- add status color styles: `.status-na { color: #999; }`, `.status-now { color: #e67e00; }`, `.status-done { color: #2e7d32; }`
+
+**`_render()` changes** (line 89-101):
+- replace the `this._mrChildren.textContent = ...` block with:
+  ```js
+  const status = this._record.status || 'na';
+  const progress = calcProgress(this._record);
+  this._mrStatus.innerHTML =
+    `<span class="status-${status}">${status}</span><span>${progress}%</span>`;
+  ```
+
+**imports:** add `import { calcProgress } from './utility.js';`
+
+#### 3. `v6/components/mc-app.js` — add `y` keydown handler
+
+**`_onKeydown` switch block** (line 183-200):
+- add case after `'Delete'`:
+  ```js
+  case 'y':
+    e.preventDefault();
+    this._handleCycleStatus(focused);
+    break;
+  ```
+
+**new method `_handleCycleStatus(cell)`:**
+```js
+_handleCycleStatus(cell) {
+  const info = this._getCellTreeInfo(cell.cellIndex);
+  if (!info.record) return;
+  info.record.status = nextStatus(info.record.status);
+  this._saveToStorage();
+  this._renderTree();
+}
+```
+
+**imports:** add `nextStatus` from `./utility.js`
+
+**`_handleCreate` adjustments:**
+- when creating new records, include `status: 'na'` in the record object
+
+**`_handleDetailEdit` adjustments:**
+- pass `status: info.record.status || 'na'` to modal open data
+- on confirm, set `info.record.status = detail.status;`
+
+**import/export adjustments:**
+- `_exportData` line 379: change `''` (empty metadata) to `child.status || 'na'`
+- `_importData`: read `parts[1]` as status, default to `'na'` if empty/unrecognized
+
+#### 4. `v6/components/mc-modal.js` — add status dropdown
+
+**shadow DOM template changes:**
+- add a new `.field` div between description and child-section:
+  ```html
+  <div class="field field-status" hidden>
+    <label>Status</label>
+    <select class="input-status">
+      <option value="na">na</option>
+      <option value="now">now</option>
+      <option value="done">done</option>
+    </select>
+  </div>
+  ```
+- add style: `select { width: 100%; padding: 8px; ... }` (match input style)
+
+**`open()` method:**
+- show status field in both create and update mode: `this._statusField.hidden = false;`
+- set value: `this._inputStatus.value = data.status || 'na';`
+
+**`_confirm()` method:**
+- include `status: this._inputStatus.value` in the detail payload
+
+#### 5. `v6/components/mc-help-bar.js` — add `y` to bar
+
+line 14: add `<kbd>y</kbd> status |` after the delete entry
+
+#### 6. `v6/components/mc-help-modal.js` — add `y` to editing section
+
+add after the `Del` shortcut item (line 30):
+```html
+<div class="shortcut-item"><div class="keys"><kbd>y</kbd></div><div class="desc">Cycle status: na → now → done</div></div>
+```
+
+### verification
+
+1. open the app, create root + children
+2. press `y` on cells to cycle through `na → now → done → na`
+3. verify progress% updates: parent shows `done / (now + done)` as integer
+4. press `o` to detail edit, verify status dropdown present and pre-filled
+5. import `demo1.txt`, verify all records default to `na` status
+6. export, verify metadata field contains status values
+7. refresh page, verify status persisted in localStorage

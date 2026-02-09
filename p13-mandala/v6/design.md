@@ -71,11 +71,9 @@ the app is composed by these web components:
 is the root of the application
 here's the mockup or refer to file @v6/example.html
 ```html
-<main>
-  <mc-grid></mc-grid>
-  <mc-help-bar></mc-help-bar>
-  <mc-data-migration></mc-data-migration>
-</main>
+<mc-grid></mc-grid>
+<mc-help-bar></mc-help-bar>
+<mc-data-migration></mc-data-migration>
 <mc-help-modal></mc-help-modal>
 <mc-modal></mc-modal>
 <mc-notifier></mc-notifier>
