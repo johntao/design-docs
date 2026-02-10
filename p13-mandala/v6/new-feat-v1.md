@@ -342,3 +342,41 @@ expected:
 - on initializing the app, root is created with empty fields, all the unset lvl1 nodes are filled with `null`
 - teleport to the root position `og[1,1][1,1]`
 - open the update popup
+
+## revision 3
+
+we need to rework `_getCellTreeInfo` and `_handleCreate` in `v6/components/mc-app.js`
+I was wrong about the previous revision
+stuffing nulls on its own should be enough to eliminate the annoying message "Records must be created in order"
+the previou decision that makes the root node always existing leads to inconsistency
+
+here's the latest design:
+- introduce `null` value. the root is initialized as `null`
+  - the rest of the nodes are undefined and initialized on demands
+- trying to create a record on an undefined node run checks on the tree structure, then, change focus based on the following cases
+
+### case 1
+
+given:
+the root is null; you are currently focusing on a lvl1 or lvl2 node
+
+expected:
+focus to position `og[1,1][1,1]`; open the creation popup for the root node
+on creating the root node, initialize all lvl1 node with null value
+
+### case 2
+
+given:
+the lvl1 is null; you are currently focusing on a lvl2 node (e.g. `og[0,1][2,2]`) having its lvl1 parent node uninitialized
+
+expected:
+focus to the position `og[0,1][1,1]`; open the creation popup for the lvl1 node
+on creating the lvl1 node, initialize all its lvl2 children node with null value
+
+### case 3
+
+given:
+you are currently focusing on a lvl2 node with null value
+
+expected:
+open the creation popup for the lvl2 node as usual. nothing special here

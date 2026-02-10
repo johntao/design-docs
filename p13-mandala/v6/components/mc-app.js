@@ -12,7 +12,7 @@ const PLACEMENT_ORDER = [
 export default class McApp extends HTMLElement {
   constructor() {
     super();
-    // Tree data: root mc-record (always exists after connectedCallback)
+    // Tree data: root mc-record or null
     this._root = null;
   }
 
@@ -102,7 +102,6 @@ export default class McApp extends HTMLElement {
   // === Determine what a cell represents in the tree ===
 
   _getCellTreeInfo(cellIndex) {
-    debugger;
     if (cellIndex === CENTER_INDEX) {
       return { level: 0, record: this._root, parent: null, childIndex: -1 };
     }
@@ -116,7 +115,7 @@ export default class McApp extends HTMLElement {
       if (idx !== -1 && idx < children.length && children[idx]) {
         return { level: 1, record: children[idx], parent: this._root, childIndex: idx };
       }
-      // Empty lvl1 slot (null or beyond length)
+      // Empty lvl1 slot (null)
       return { level: 1, record: null, parent: this._root, childIndex: idx, slotIndex: idx };
     }
 
@@ -141,9 +140,9 @@ export default class McApp extends HTMLElement {
         }
         return { level: 2, record: null, parent: parentRecord, childIndex: gcIdx, slotIndex: gcIdx };
       }
-      // Parent slot is null — treat as empty lvl2 with no parent
-      if (parentIdx !== -1 && parentIdx < children.length && !children[parentIdx]) {
-        return { level: 1, record: null, parent: this._root, childIndex: parentIdx, slotIndex: parentIdx };
+      // Parent slot is null or uninitialized — lvl2 with no parent
+      if (parentIdx !== -1) {
+        return { level: 2, record: null, parent: null, childIndex: -1, parentSlotIndex: parentIdx };
       }
       return { level: -1, record: null, parent: null, childIndex: -1 };
     }
@@ -226,21 +225,17 @@ export default class McApp extends HTMLElement {
   // === Cell actions ===
 
   _handleCreate(cell) {
-    const info = this._getCellTreeInfo(cell.cellIndex);
-
-    // Root cell with empty title — open update modal to set title
-    if (cell.cellIndex === CENTER_INDEX && !this._root.title) {
-      this._modal.open('update', {
-        modalTitle: 'Update Root Record',
-        title: '',
-        description: this._root.description || '',
-        status: this._root.status || 'na',
-        children: (this._root.children || []).filter(c => c !== null)
-      });
+    // Case 1: Root is null — teleport to center if needed, then create root
+    if (!this._root) {
+      if (cell.cellIndex !== CENTER_INDEX) {
+        const rootCell = this._grid.cellAt(CENTER_INDEX);
+        rootCell.focus();
+        this._handleCreate(rootCell);
+        return;
+      }
+      this._modal.open('create', { modalTitle: 'Create Root Record' });
       this._modalListen((detail) => {
-        this._root.title = detail.title;
-        this._root.description = detail.description;
-        this._root.status = detail.status;
+        this._root = { title: detail.title, description: detail.description, status: detail.status || 'na', children: new Array(8).fill(null) };
         this._saveToStorage();
         this._renderTree();
         cell.focus();
@@ -248,10 +243,22 @@ export default class McApp extends HTMLElement {
       return;
     }
 
-    // Empty lvl1/lvl2 slot — create record directly at that position
+    const info = this._getCellTreeInfo(cell.cellIndex);
+
+    // Case 2: lvl2 cell whose parent (lvl1) doesn't exist — teleport to parent's synced cell
+    if (info.level === 2 && !info.parent && info.parentSlotIndex !== undefined) {
+      const [mgRow, mgCol] = PLACEMENT_ORDER[info.parentSlotIndex];
+      const parentCellIdx = positionToIndex(mgRow, mgCol, 1, 1);
+      const parentCell = this._grid.cellAt(parentCellIdx);
+      parentCell.focus();
+      this._handleCreate(parentCell);
+      return;
+    }
+
+    // Empty lvl1/lvl2 slot (null) — create record directly at that position
     if (!info.record && info.parent) {
-      const level = info.level;
-      if (level === 1) {
+      if (info.level === 1) {
+        // Case 2 target / direct lvl1 null slot: create lvl1 with 8 null children
         const defaultStatus = (this._root.status || 'na') === 'na' ? 'na' : 'now';
         this._modal.open('create', { modalTitle: 'Create Record', status: defaultStatus });
         this._modalListen((detail) => {
@@ -263,7 +270,8 @@ export default class McApp extends HTMLElement {
         }, () => cell.focus());
         return;
       }
-      if (level === 2 && info.parent) {
+      if (info.level === 2) {
+        // Case 3: lvl2 null slot with existing parent — create lvl2
         const defaultStatus = (info.parent.status || 'na') === 'na' ? 'na' : 'now';
         this._modal.open('create', { modalTitle: 'Create Record', status: defaultStatus });
         this._modalListen((detail) => {
@@ -295,27 +303,6 @@ export default class McApp extends HTMLElement {
         this._renderTree();
         cell.focus();
       }, () => cell.focus());
-      return;
-    }
-
-    // Teleport to nearest empty ancestor
-    if (!this._root.title) {
-      const rootCell = this._grid.cellAt(CENTER_INDEX);
-      rootCell.focus();
-      this._handleCreate(rootCell);
-      return;
-    }
-    const pos = indexToPosition(cell.cellIndex);
-    if (!(pos.mgRow === 1 && pos.mgCol === 1)) {
-      const parentCellIdx = positionToIndex(pos.mgRow, pos.mgCol, 1, 1);
-      const parentInfo = this._getCellTreeInfo(parentCellIdx);
-      if (!parentInfo.record) {
-        // Parent slot is null — teleport and create there
-        const parentCell = this._grid.cellAt(parentCellIdx);
-        debugger;
-        parentCell.focus();
-        this._handleCreate(parentCell);
-      }
     }
   }
 
@@ -362,9 +349,8 @@ export default class McApp extends HTMLElement {
     if (!info.record) return;
 
     if (info.level === 0) {
-      // Clear root fields but keep structure
       const backup = JSON.parse(JSON.stringify(this._root));
-      this._root = { title: '', description: '', status: 'na', children: new Array(8).fill(null) };
+      this._root = null;
       this._saveToStorage();
       this._renderTree();
       this._notifier.show('Record deleted', () => {
@@ -426,9 +412,7 @@ export default class McApp extends HTMLElement {
   }
 
   _ensureStructure() {
-    if (!this._root) {
-      this._root = { title: '', description: '', status: 'na', children: new Array(8).fill(null) };
-    }
+    if (!this._root) return;
     if (!this._root.children) this._root.children = [];
     while (this._root.children.length < 8) this._root.children.push(null);
     for (let i = 0; i < 8; i++) {
@@ -443,7 +427,7 @@ export default class McApp extends HTMLElement {
   // === Import/Export ===
 
   _exportData() {
-    if (!this._root || !this._root.title) {
+    if (!this._root) {
       this._notifier.show('No data to export');
       return;
     }
