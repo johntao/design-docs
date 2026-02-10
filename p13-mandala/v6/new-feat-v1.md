@@ -380,3 +380,24 @@ you are currently focusing on a lvl2 node with null value
 
 expected:
 open the creation popup for the lvl2 node as usual. nothing special here
+
+## revision 4
+
+we need to revisit how `v6/components/mc-modal.js` handles null values
+let's make a draggable item displaying `[blank node]` for each null values
+this would ensure the drag and drop works properly with the latest changes
+
+## revision 5
+
+we're not planning to serve lvl3 nodes in this version
+please hide the draggable list while opening the popup modal on a lvl2 node
+
+## revision 6
+
+our final QOL feature which implements a fool-proof alias on null or undefined cells
+
+problem:
+previously users hit `io` on a blank cell would fail silently (since these two commands only works on a cell with existing data entry)
+
+solution:
+now users hitting `io` on a blank cell would also open a creation popup without failing silently

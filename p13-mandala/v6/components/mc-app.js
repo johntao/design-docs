@@ -307,37 +307,27 @@ export default class McApp extends HTMLElement {
   }
 
   _handleInlineEdit(cell) {
-    if (!cell.record) return;
+    if (!cell.record) { this._handleCreate(cell); return; }
     cell.startInlineEdit();
   }
 
   _handleDetailEdit(cell) {
     const info = this._getCellTreeInfo(cell.cellIndex);
-    if (!info.record) return;
-
-    // Filter out null children for the modal display
-    const realChildren = (info.record.children || []).filter(c => c !== null);
+    if (!info.record) { this._handleCreate(cell); return; }
 
     this._modal.open('update', {
       modalTitle: 'Update Record',
       title: info.record.title,
       description: info.record.description || '',
       status: info.record.status || 'na',
-      children: realChildren
+      children: info.level < 2 ? (info.record.children || []) : []
     });
 
     this._modalListen((detail) => {
       info.record.title = detail.title;
       info.record.description = detail.description;
       info.record.status = detail.status;
-      if (detail.children) {
-        // Reconstruct sparse array: place returned children into positions, fill rest with null
-        const sparse = new Array(8).fill(null);
-        for (let i = 0; i < detail.children.length && i < 8; i++) {
-          sparse[i] = detail.children[i];
-        }
-        info.record.children = sparse;
-      }
+      if (detail.children) info.record.children = detail.children;
       this._saveToStorage();
       this._renderTree();
       cell.focus();

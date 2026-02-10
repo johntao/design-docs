@@ -26,6 +26,7 @@ input.error { border-color: #cc0000; }
 .child-item.dragging { opacity: 0.5; }
 .child-item .handle { margin-right: 8px; color: #999; }
 .child-item .title { flex: 1; }
+.child-item .blank-title { color: #bbb; font-style: italic; }
 .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 .actions button { padding: 6px 14px; border-radius: 4px; font-size: 14px; cursor: pointer; }
 .btn-cancel { background: #f0f0f0; border: 1px solid #ccc; }
@@ -98,7 +99,7 @@ input.error { border-color: #cc0000; }
     this._statusField.hidden = false;
     this._inputStatus.value = data.status || 'na';
     if (mode === 'update' && data.children && data.children.length > 0) {
-      this._children = data.children.map(c => ({ ...c }));
+      this._children = data.children.map(c => c ? { ...c } : null);
       this._renderChildList();
       this._childSection.hidden = false;
     } else {
@@ -153,7 +154,11 @@ input.error { border-color: #cc0000; }
       li.className = 'child-item';
       li.draggable = true;
       li.dataset.index = i;
-      li.innerHTML = `<span class="handle">\u2807</span><span class="title">${this._esc(child.title)}</span>`;
+      if (child) {
+        li.innerHTML = `<span class="handle">\u2807</span><span class="title">${this._esc(child.title)}</span>`;
+      } else {
+        li.innerHTML = `<span class="handle">\u2807</span><span class="title blank-title">[blank node]</span>`;
+      }
       this._childList.appendChild(li);
     });
   }
