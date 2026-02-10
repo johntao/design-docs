@@ -295,3 +295,50 @@ wersdfxcv --> ,.poeuqjk
 WERSDFXCV --> <>POEUQJK
 ? --> Z
 ```
+
+## revision 2
+
+I found out the error message "Records must be created in order" to be annoying
+please help eliminate this message from the app
+
+possible solution:
+1. make root node always existing with a blank title field
+2. fill in lvl1 node with `null` value if unset
+this would allow users to create records on arbitrary positions
+(i.e. the position of existing items are now persists)
+this changes also reflect to import/ export
+this changes also reflect to the reorder function
+refer to file @v6/demo1.txt as a reference
+
+### deletion behavior
+
+delete now only set records to `null` instead of wipe it out entirely
+- delete the root
+  - clean up the fields of the root
+  - wipe out all lvl2 nodes
+  - set all lvl1 nodes to `null`
+- delete a lvl1 node
+  - wipe out all containing lvl2 nodes
+  - set lvl1 to null
+- delete a lvl2 node
+  - set lvl2 to null
+
+### creation behavior
+
+case 1:
+- the root is already set
+- one of the lvl1 is unset
+- focus on a lvl2 node having its' parent node unset
+- hit 'u' on the lvl2 node (e.g. `og[0,1][2,2]`)
+expected:
+- on initializing the app, all the unset lvl1 nodes are filled with `null`
+- teleport to `og[0,1][1,1]`, open the creation popup
+
+case 2:
+- the root is not set
+- all of the lvl1 are unset
+- focus on a lvl2 node (e.g. `og[0,1][2,2]`)
+expected:
+- on initializing the app, root is created with empty fields, all the unset lvl1 nodes are filled with `null`
+- teleport to the root position `og[1,1][1,1]`
+- open the update popup

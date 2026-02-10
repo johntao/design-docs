@@ -34,7 +34,7 @@ export function indexToPosition(index) {
 export const STATUSES = ['na', 'now', 'done'];
 
 export function calcProgress(record) {
-  const children = record.children || [];
+  const children = (record.children || []).filter(c => c !== null);
   const active = children.filter(c => (c.status || 'na') !== 'na');
   if (active.length === 0) {
     return (record.status || 'na') === 'done' ? 100 : 0;
