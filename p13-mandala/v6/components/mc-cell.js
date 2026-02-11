@@ -15,7 +15,10 @@ export default class McCell extends HTMLElement {
 }
 :host(:focus) {
   outline: 2px solid #0066cc;
-  outline-offset: -2px;
+  outline-offset: -1px;
+  /*
+  outline-color: red;
+  */
 }
 .empty {
   color: #bbb;
