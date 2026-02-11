@@ -41,6 +41,7 @@ distinction matters for the create command:
 
 ## children array
 
+ig stand as inner-grid or subgrid
 always exactly 8 slots when initialized:
 ```
 children[0] = ig[0,0]

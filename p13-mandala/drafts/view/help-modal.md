@@ -16,33 +16,33 @@ read-only; no data manipulation.
 
 ### navigation
 
-| key | description |
-|-----|-------------|
-| `h` | move left |
-| `j` | move down |
-| `k` | move up |
-| `l` | move right |
-| `H` | jump 3 left |
-| `J` | jump 3 down |
-| `K` | jump 3 up |
-| `L` | jump 3 right |
-| `wersdfxcv` | jump within subgrid |
+| key         | description           |
+| ----------- | --------------------- |
+| `h`         | move left             |
+| `j`         | move down             |
+| `k`         | move up               |
+| `l`         | move right            |
+| `H`         | jump 3 left           |
+| `J`         | jump 3 down           |
+| `K`         | jump 3 up             |
+| `L`         | jump 3 right          |
+| `wersdfxcv` | jump within subgrid   |
 | `WERSDFXCV` | jump between subgrids |
 
 ### editing
 
-| key | description |
-|-----|-------------|
-| `u` | create new record |
-| `i` | inline edit title |
-| `o` | open detail editor |
-| `Del` | delete record |
-| `y` | cycle status: na -> now -> done |
+| key   | description                     |
+| ----- | ------------------------------- |
+| `u`   | create new record               |
+| `i`   | inline edit title               |
+| `o`   | open detail editor              |
+| `Del` | delete record                   |
+| `y`   | cycle status: na -> now -> done |
 
 ### other
 
-| key | description |
-|-----|-------------|
+| key | description            |
+| --- | ---------------------- |
 | `?` | toggle this help modal |
 
 ## layout

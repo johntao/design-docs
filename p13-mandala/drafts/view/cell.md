@@ -46,13 +46,11 @@ mc-cell web component: the focusable, interactable unit of the grid.
 
 ## status/progress line
 
-replaces the old `[N children]` display.
-
-| status | icon | progress display            |
-|--------|------|-----------------------------|
-| `na`   | —    | hidden if no sub-tasks      |
-| `now`  | 🔧   | `{progress}%`               |
-| `done` | ✅   | `{progress}%`               |
+| status | icon | progress display |
+| ------ | ---- | ---------------- |
+| `na`   | 📝    | `NA`             |
+| `now`  | 🔧    | `{progress}%`    |
+| `done` | ✅    | `{progress}%`    |
 
 progress is computed via `calcProgress(record)` on each render.
 

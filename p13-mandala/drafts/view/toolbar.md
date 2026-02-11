@@ -1,6 +1,6 @@
 # toolbar
 
-mc-data-migration web component: toolbar with export, import, and layout options.
+mc-toolbar web component: toolbar with export, import, and keyboard layout options.
 
 ## buttons
 

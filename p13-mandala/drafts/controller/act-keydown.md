@@ -46,6 +46,7 @@ i --> c       (inline edit)
 o --> r       (detail edit)
 y --> f       (cycle status)
 hjkl --> htns (cell walk)
+HJKL --> HTNS (cell hop)
 wersdfxcv --> ,.poeuqjk   (inner jump)
 WERSDFXCV --> <>POEUQJK   (outer jump)
 ? --> Z       (help modal)
@@ -57,7 +58,7 @@ explicit list of focusable elements in the app:
 - `mc-cell` (81 cells in the 9x9 grid)
 - `<input>` and `<textarea>` inside mc-modal (when modal is open)
 - `<select>` inside mc-modal (status dropdown)
-- `<button>` elements in mc-modal, mc-notifier, mc-data-migration
+- `<button>` elements in mc-modal, mc-toast, mc-toolbar
 
 mc-cell is the primary focusable element for all grid interactions.
 modal/toast elements become focusable only when their dialog is open.

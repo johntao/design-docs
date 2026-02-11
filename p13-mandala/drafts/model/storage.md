@@ -56,4 +56,4 @@ used by import/export (see migration.md for details).
 format: `{indentation}{nodetype-token}{title}␟{metadata}␟{description}`
 - `␟` = unit separator (`\x1f`)
 - metadata = status encoded as `0|1|2`
-- first line is always root context (file name = root title)
+- first line is always root context

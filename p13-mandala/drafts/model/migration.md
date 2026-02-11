@@ -10,8 +10,8 @@ grammar: `{indentation}{nodetype-token}{title}␟{metadata}␟{description}`
 - indentation: zero tabs = lvl1, one tab = lvl2
 - metadata: status value (`0` = na, `1` = now, `2` = done)
 
-the file name becomes the root node's title.
-first content lines are lvl1 items; indented lines are lvl2 items.
+the first line is the root node in this grammar: `{title}␟{metadata}␟{description}`
+lines without indentation are lvl1 items; indented lines are lvl2 items.
 
 ## export
 
@@ -20,21 +20,22 @@ dump the tree to a plain-text file.
 steps:
 1. file name = root title (sanitized for filesystem)
 2. for each lvl1 child (in placement order):
-   - if null: skip (or write empty line placeholder as needed)
+   - if null: write `- null`
    - else: write `- {title}␟{status}␟{description}`
 3. for each lvl2 child under that lvl1:
-   - if null: skip
+   - if null: write `\t- null`
    - else: write `\t- {title}␟{status}␟{description}`
 
-trigger: export button in mc-data-migration toolbar.
+trigger: export button in mc-toolbar.
 
 ## import
 
 clear existing data and load from file.
 
 steps:
-1. read file; set root title from file name
+1. read file
 2. parse lines:
+   - first line: root node
    - no indentation: lvl1 record
    - one tab: lvl2 record under the preceding lvl1
 3. for each line, split on `␟`:
@@ -55,7 +56,7 @@ after import:
 ## null handling
 
 - null lvl1/lvl2 slots are preserved during import
-- on export, null slots are omitted from the output file
+- on export, null slots are preserved in the output file
 - positions of non-null records are maintained by their order in the file
 
 ## update localStorage

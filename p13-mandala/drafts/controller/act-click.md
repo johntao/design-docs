@@ -7,11 +7,12 @@ click event handling strategy.
 - register one click event per web component on the outermost element
 - use `event.target` to dispatch logic within the handler
 - prefer least click event registration overall
+- focus management relies on browser native behavior, not custom click-to-focus
 
 ## mc-cell
 
-clicking a `mc-cell` focuses it via browser default (`tabindex="0"`).
-no custom click handler needed for basic focus.
+clicking a `mc-cell` focuses it; thanks to `tabindex="0"`
+no custom click handler needed for basic focus
 
 ## mc-modal
 
@@ -23,7 +24,7 @@ dispatch targets:
 
 the drag-and-drop child reorder also lives inside the modal's event scope.
 
-## mc-notifier
+## mc-toast
 
 registered on the toast container.
 
@@ -31,7 +32,7 @@ dispatch targets:
 - undo button: fire undo event, dismiss the toast
 - rest of toast body: no-op
 
-## mc-data-migration
+## mc-toolbar
 
 registered on the toolbar container.
 
@@ -44,8 +45,3 @@ dispatch targets:
 
 clicking the backdrop or close area dismisses the modal.
 
-## notes
-
-- click events are secondary to keyboard interactions
-- the app is keyboard-first
-- focus management relies on browser native behavior, not custom click-to-focus

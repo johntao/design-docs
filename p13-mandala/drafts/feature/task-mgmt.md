@@ -13,7 +13,7 @@ each mc-record has a `status` field: `na` | `now` | `done`
 ## status display
 
 unicode labels:
-- `na`: nothing shown
+- `na`: 📝
 - `now`: 🔧
 - `done`: ✅
 
@@ -50,12 +50,12 @@ else:
 
 ```
 [title]
-[status-icon] [progress%]    (replaces the old [N children] line)
+[status-icon] [progress%]
 [description]
 ```
 
 visibility rules:
-- `na` with no sub-tasks: hide status/progress line
+- `na` with no sub-tasks: show `📝 NA`
 - `now` with no sub-tasks: show `🔧 0%`
 - `done` with no sub-tasks: show `✅ 100%`
 

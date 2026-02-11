@@ -74,7 +74,7 @@ no-op.
 ### on occupied cell
 
 delete behavior depends on level:
-- delete root: clear root fields, set all lvl1 to null, wipe all lvl2
+- delete root: set root to null, wipe all its lvl1 children
 - delete lvl1: set lvl1 to null, wipe all its lvl2 children
 - delete lvl2: set lvl2 to null
 

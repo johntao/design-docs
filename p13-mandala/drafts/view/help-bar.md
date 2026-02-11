@@ -16,7 +16,7 @@ format: `<kbd>key</kbd> action | <kbd>key</kbd> action | ...`
 ## shortcut entries
 
 ```
-u new | i edit | o detail | Del delete | y status | hjkl move | wersdfxcv jump | WERSDFXCV grid | ? help
+u new | i edit | o detail | Del delete | y status | hjklHJKL move | wersdfxcv jump | WERSDFXCV grid | ? help
 ```
 
 ## styling

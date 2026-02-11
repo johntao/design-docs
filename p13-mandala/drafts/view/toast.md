@@ -1,6 +1,6 @@
 # toast
 
-mc-notifier web component: transient notification messages.
+mc-toast web component: transient notification messages.
 
 ## purpose
 
