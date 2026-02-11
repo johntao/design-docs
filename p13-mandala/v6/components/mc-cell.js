@@ -105,7 +105,8 @@ export default class McCell extends HTMLElement {
     this._mrDesc.textContent = this._record.description || '';
     const status = this._record.status || 'na';
     if (status === 'na') {
-      this._mrStatus.hidden = true;
+      this._mrStatus.hidden = false;
+      this._mrStatus.innerHTML = `<span>📝 NA</span>`;
     } else {
       this._mrStatus.hidden = false;
       const progress = calcProgress(this._record);

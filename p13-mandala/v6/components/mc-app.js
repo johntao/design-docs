@@ -1,4 +1,4 @@
-import { positionToIndex, indexToPosition, HJKL_MAP, JUMP_KEYS, nextStatus, STATUSES, DVORAK_TO_QWERTY } from './utility.js';
+import { positionToIndex, indexToPosition, HJKL_MAP, HJKL_MAP_FAST, JUMP_KEYS, nextStatus, STATUSES, DVORAK_TO_QWERTY } from './utility.js';
 
 const STORAGE_KEY = 'mandala-v6-data';
 const CENTER_INDEX = 40;
@@ -18,10 +18,12 @@ export default class McApp extends HTMLElement {
 
   connectedCallback() {
     this.innerHTML = `
-<mc-grid></mc-grid>
-<mc-help-bar></mc-help-bar>
-<mc-data-migration></mc-data-migration>
-<mc-help-modal></mc-help-modal>
+<div class="mc-layout">
+  <mc-grid></mc-grid>
+  <mc-side-panel>
+    <mc-toolbar></mc-toolbar>
+  </mc-side-panel>
+</div>
 <mc-modal></mc-modal>
 <mc-notifier></mc-notifier>
     `;
@@ -29,7 +31,7 @@ export default class McApp extends HTMLElement {
     this._grid = this.querySelector('mc-grid');
     this._modal = this.querySelector('mc-modal');
     this._notifier = this.querySelector('mc-notifier');
-    this._helpModal = this.querySelector('mc-help-modal');
+    this._sidePanel = this.querySelector('mc-side-panel');
 
     this._loadFromStorage();
     this._ensureStructure();
@@ -179,19 +181,16 @@ export default class McApp extends HTMLElement {
 
     if (key === '?') {
       e.preventDefault();
-      if (this._helpModal.isOpen) this._helpModal.close();
-      else this._helpModal.open();
+      this._sidePanel.toggle();
       return;
     }
-
-    if (this._helpModal.isOpen) return;
 
     const focused = document.activeElement;
     if (!focused || focused.tagName !== 'MC-CELL') return;
     if (focused.isEditing) return;
 
     // Navigation keys
-    if (HJKL_MAP[key] || JUMP_KEYS[key]) {
+    if (HJKL_MAP[key] || HJKL_MAP_FAST[key] || JUMP_KEYS[key]) {
       e.preventDefault();
       this._grid.navigate(key, focused);
       return;
@@ -208,6 +207,7 @@ export default class McApp extends HTMLElement {
         this._handleInlineEdit(focused);
         break;
       case 'o':
+      case 'Enter':
         e.preventDefault();
         this._handleDetailEdit(focused);
         break;
@@ -218,6 +218,10 @@ export default class McApp extends HTMLElement {
       case 'y':
         e.preventDefault();
         this._handleCycleStatus(focused);
+        break;
+      case 'Y':
+        e.preventDefault();
+        this._handleCompleteChildren(focused);
         break;
     }
   }
@@ -368,6 +372,38 @@ export default class McApp extends HTMLElement {
     info.record.status = nextStatus(info.record.status);
     this._saveToStorage();
     this._renderTree();
+  }
+
+  _handleCompleteChildren(cell) {
+    const info = this._getCellTreeInfo(cell.cellIndex);
+    if (!info.record) return;
+    if (info.level === 2) return; // no children
+
+    const children = info.record.children;
+    if (!children) return;
+
+    const backup = JSON.parse(JSON.stringify(children));
+
+    let changed = false;
+    for (let i = 0; i < children.length; i++) {
+      if (children[i] && (children[i].status || 'na') !== 'na' && children[i].status !== 'done') {
+        children[i].status = 'done';
+        changed = true;
+      }
+    }
+
+    if (!changed) {
+      this._notifier.show('No active children to complete');
+      return;
+    }
+
+    this._saveToStorage();
+    this._renderTree();
+    this._notifier.show('All children completed', () => {
+      info.record.children = backup;
+      this._saveToStorage();
+      this._renderTree();
+    });
   }
 
   _modalListen(onConfirm, onClose) {

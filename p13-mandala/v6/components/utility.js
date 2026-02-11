@@ -14,6 +14,13 @@ export const HJKL_MAP = {
   'l': [0, 1]
 };
 
+export const HJKL_MAP_FAST = {
+  'H': [0, -3],
+  'J': [3, 0],
+  'K': [-3, 0],
+  'L': [0, 3]
+};
+
 export function positionToIndex(mgRow, mgCol, sgRow, sgCol) {
   const row = mgRow * 3 + sgRow;
   const col = mgCol * 3 + sgCol;
@@ -53,5 +60,6 @@ export const DVORAK_TO_QWERTY = {
   'h': 'h', 't': 'j', 'n': 'k', 's': 'l',
   ',': 'w', '.': 'e', 'p': 'r', 'o': 's', 'e': 'd', 'u': 'f', 'q': 'x', 'j': 'c', 'k': 'v',
   '<': 'W', '>': 'E', 'P': 'R', 'O': 'S', 'E': 'D', 'U': 'F', 'Q': 'X', 'J': 'C', 'K': 'V',
+  'G': 'U', 'F': 'Y', 'T': 'J', 'N': 'K',
   'Z': '?'
 };

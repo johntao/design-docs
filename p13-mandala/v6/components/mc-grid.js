@@ -1,4 +1,4 @@
-import { JUMP_KEYS, HJKL_MAP, positionToIndex, indexToPosition } from './utility.js';
+import { JUMP_KEYS, HJKL_MAP, HJKL_MAP_FAST, positionToIndex, indexToPosition } from './utility.js';
 
 function dissect(input) {
   return [Math.floor(input / 3), input % 3];
@@ -53,12 +53,11 @@ export default class McGrid extends HTMLElement {
     const pos = indexToPosition(index);
     const allCells = this._cells;
 
-    if (HJKL_MAP[key]) {
+    if (HJKL_MAP[key] || HJKL_MAP_FAST[key]) {
       const [gRow, gCol] = [pos.mgRow * 3 + pos.sgRow, pos.mgCol * 3 + pos.sgCol];
-      const [dRow, dCol] = HJKL_MAP[key];
-      const nRow = gRow + dRow;
-      const nCol = gCol + dCol;
-      if (nRow < 0 || nRow > 8 || nCol < 0 || nCol > 8) return;
+      const [dRow, dCol] = HJKL_MAP[key] || HJKL_MAP_FAST[key];
+      const nRow = Math.max(0, Math.min(8, gRow + dRow));
+      const nCol = Math.max(0, Math.min(8, gCol + dCol));
       allCells[nRow * 9 + nCol].focus();
     } else if (JUMP_KEYS[key] && key === key.toLowerCase()) {
       const [sgRow, sgCol] = JUMP_KEYS[key];
