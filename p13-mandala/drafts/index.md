@@ -27,7 +27,7 @@ outline:
 - view
   - cell.md
   - grid.md
-  - helpbar.md
+  - help-bar.md
   - help-modal.md
   - modal.md
   - toast.md
