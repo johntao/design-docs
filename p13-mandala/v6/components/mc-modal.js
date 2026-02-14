@@ -96,8 +96,24 @@ input.error { border-color: #cc0000; }
     this._inputTitle.value = data.title || '';
     this._inputDesc.value = data.description || '';
     this._modalTitle.textContent = data.modalTitle || 'Record';
-    this._statusField.hidden = false;
-    this._inputStatus.value = data.status || 'na';
+    if (data.hideStatus) {
+      this._statusField.hidden = true;
+    } else {
+      this._statusField.hidden = false;
+      // Rebuild options if statusOptions provided
+      if (data.statusOptions) {
+        this._inputStatus.innerHTML = '';
+        for (const st of data.statusOptions) {
+          const opt = document.createElement('option');
+          opt.value = st;
+          opt.textContent = st;
+          this._inputStatus.appendChild(opt);
+        }
+      } else {
+        this._inputStatus.innerHTML = '<option value="na">na</option><option value="now">now</option><option value="done">done</option>';
+      }
+      this._inputStatus.value = data.status || 'na';
+    }
     if (mode === 'update' && data.children && data.children.length > 0) {
       this._children = data.children.map(c => c ? { ...c } : null);
       this._renderChildList();

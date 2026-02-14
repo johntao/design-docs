@@ -39,20 +39,41 @@ export function indexToPosition(index) {
 }
 
 export const STATUSES = ['na', 'now', 'done'];
+export const LVL1_STATUSES = ['na', 'goal'];
 
 export function calcProgress(record) {
   const children = (record.children || []).filter(c => c !== null);
   const active = children.filter(c => (c.status || 'na') !== 'na');
-  if (active.length === 0) {
-    return (record.status || 'na') === 'done' ? 100 : 0;
-  }
+  if (active.length === 0) return null;
   const doneCount = active.filter(c => (c.status || 'na') === 'done').length;
-  return Math.round(doneCount / active.length * 100);
+  return { pct: Math.round(doneCount / active.length * 100), done: doneCount, total: active.length };
+}
+
+export function calcRootProgress(root) {
+  let done = 0, total = 0;
+  for (const child of (root.children || [])) {
+    if (!child) continue;
+    for (const gc of (child.children || [])) {
+      if (!gc) continue;
+      const st = gc.status || 'na';
+      if (st !== 'na') {
+        total++;
+        if (st === 'done') done++;
+      }
+    }
+  }
+  if (total === 0) return null;
+  return { pct: Math.round(done / total * 100), done, total };
 }
 
 export function nextStatus(current) {
   const i = STATUSES.indexOf(current || 'na');
   return STATUSES[(i + 1) % STATUSES.length];
+}
+
+export function nextLvl1Status(current) {
+  const i = LVL1_STATUSES.indexOf(current || 'na');
+  return LVL1_STATUSES[(i + 1) % LVL1_STATUSES.length];
 }
 
 export const DVORAK_TO_QWERTY = {

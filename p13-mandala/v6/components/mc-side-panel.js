@@ -88,8 +88,7 @@ kbd {
       <div class="shortcut-item"><div class="keys"><kbd>i</kbd></div><div>Inline edit title</div></div>
       <div class="shortcut-item"><div class="keys"><kbd>o</kbd> <kbd>Enter</kbd></div><div>Detail edit (modal)</div></div>
       <div class="shortcut-item"><div class="keys"><kbd>Del</kbd></div><div>Delete record</div></div>
-      <div class="shortcut-item"><div class="keys"><kbd>y</kbd></div><div>Cycle status: na → now → done</div></div>
-      <div class="shortcut-item"><div class="keys"><kbd>Y</kbd></div><div>Complete all children</div></div>
+      <div class="shortcut-item"><div class="keys"><kbd>y</kbd></div><div>Cycle status (lvl2: 📄→🟩→✅, lvl1: 📄→🎯)</div></div>
     </div>
   </div>
   <div class="section">

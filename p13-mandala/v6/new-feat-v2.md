@@ -19,7 +19,3 @@
   - make `enter` as shortcut `o` alias
 - adjust UI logic for NA item
   - make it display `📝 NA` instead of showing nothing
-
-
-- support complete mouse click actions
-  - the following click event only works when a `mc-cell` is focused

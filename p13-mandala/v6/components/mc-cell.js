@@ -1,4 +1,6 @@
-import { calcProgress } from './utility.js';
+import { calcProgress, calcRootProgress } from './utility.js';
+
+const STATUS_ICONS = { 'na': '📄', 'now': '🟩', 'done': '✅', 'goal': '🎯' };
 
 export default class McCell extends HTMLElement {
   constructor() {
@@ -16,9 +18,6 @@ export default class McCell extends HTMLElement {
 :host(:focus) {
   outline: 2px solid #0066cc;
   outline-offset: -1px;
-  /*
-  outline-color: red;
-  */
 }
 .empty {
   color: #bbb;
@@ -28,55 +27,43 @@ export default class McCell extends HTMLElement {
 }
 .mr {
   height: 100%;
+  word-break: break-word;
 }
 .mr[hidden] { display: none; }
+.mr-icon {
+  font-size: 11px;
+}
+.mr-progress {
+  font-size: 10px;
+  color: #666;
+  cursor: default;
+}
 .mr-title {
   font-weight: 500;
-  padding: 2px 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.mr-desc {
-  font-size: 10px;
-  color: #888;
-  padding: 1px 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.mr-status {
-  font-size: 10px;
-  padding: 1px 4px;
-  display: flex;
-  justify-content: space-between;
-}
-.mr-status[hidden] { display: none; }
-.inline-input {
+.inline-edit {
+  display: block;
   width: 100%;
   border: none;
   background: #fffde7;
   font: inherit;
   font-weight: 500;
-  padding: 2px 4px;
+  padding: 2px;
   outline: 1px dashed #0066cc;
+  resize: none;
+  min-height: 100%;
+  box-sizing: border-box;
 }
 </style>
 <div class="empty"></div>
-<div class="mr" hidden>
-<div class="mr-title"></div>
-<div class="mr-status"></div>
-<div class="mr-desc"></div>
-</div>
+<div class="mr" hidden></div>
     `;
     this._empty = this.shadowRoot.querySelector('.empty');
     this._mrEl = this.shadowRoot.querySelector('.mr');
-    this._mrTitle = this.shadowRoot.querySelector('.mr-title');
-    this._mrDesc = this.shadowRoot.querySelector('.mr-desc');
-    this._mrStatus = this.shadowRoot.querySelector('.mr-status');
     this._record = null;
+    this._level = -1;
     this._isEditing = false;
-    this._isSynced = false; // true if this cell is a sync mirror
+    this._isSynced = false;
   }
 
   connectedCallback() {
@@ -87,9 +74,10 @@ export default class McCell extends HTMLElement {
   get isEditing() { return this._isEditing; }
   get cellIndex() { return parseInt(this.dataset.index); }
 
-  setRecord(record, isSynced = false) {
+  setRecord(record, isSynced = false, level = -1) {
     this._record = record;
     this._isSynced = isSynced;
+    this._level = level;
     this._render();
   }
 
@@ -101,37 +89,57 @@ export default class McCell extends HTMLElement {
     }
     this._empty.hidden = true;
     this._mrEl.hidden = false;
-    this._mrTitle.textContent = this._record.title;
-    this._mrDesc.textContent = this._record.description || '';
-    const status = this._record.status || 'na';
-    if (status === 'na') {
-      this._mrStatus.hidden = false;
-      this._mrStatus.innerHTML = `<span>📝</span><span></span>`;
+
+    const level = this._level;
+    const title = this._record.title;
+
+    if (level === 0) {
+      // root: 🎯 {progress}% title — all inline
+      const prog = calcRootProgress(this._record);
+      const progHtml = prog
+        ? `<span class="mr-progress" title="${prog.done} / ${prog.total}">${prog.pct}%</span> `
+        : '';
+      this._mrEl.innerHTML = `<span class="mr-icon">🎯</span> ${progHtml}<span class="mr-title">${this._esc(title)}</span>`;
+    } else if (level === 1) {
+      // lvl1: {icon} {progress}% title — all inline
+      const icon = STATUS_ICONS[this._record.status || 'na'] || '📄';
+      const prog = calcProgress(this._record);
+      const progHtml = prog
+        ? `<span class="mr-progress" title="${prog.done} / ${prog.total}">${prog.pct}%</span> `
+        : '';
+      this._mrEl.innerHTML = `<span class="mr-icon">${icon}</span> ${progHtml}<span class="mr-title">${this._esc(title)}</span>`;
+    } else if (level === 2) {
+      // lvl2: {icon} title — all inline
+      const icon = STATUS_ICONS[this._record.status || 'na'] || '📄';
+      this._mrEl.innerHTML = `<span class="mr-icon">${icon}</span> <span class="mr-title">${this._esc(title)}</span>`;
     } else {
-      this._mrStatus.hidden = false;
-      const progress = calcProgress(this._record);
-      const icon = status === 'done' ? '✅' : '🔧';
-      this._mrStatus.innerHTML = `<span>${icon}</span><span>${progress}%</span>`;
+      // fallback
+      this._mrEl.innerHTML = `<span class="mr-title">${this._esc(title)}</span>`;
     }
+  }
+
+  _esc(str) {
+    const d = document.createElement('span');
+    d.textContent = str;
+    return d.innerHTML;
   }
 
   startInlineEdit() {
     if (!this._record) return;
     this._isEditing = true;
     const original = this._record.title;
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'inline-input';
-    input.value = original;
+    const ta = document.createElement('textarea');
+    ta.className = 'inline-edit';
+    ta.value = original;
 
-    this._mrTitle.textContent = '';
-    this._mrTitle.appendChild(input);
-    input.focus();
-    input.select();
+    this._mrEl.innerHTML = '';
+    this._mrEl.appendChild(ta);
+    ta.focus();
+    ta.select();
 
     const finish = (save) => {
       this._isEditing = false;
-      const newVal = input.value.trim();
+      const newVal = ta.value.trim();
       if (save && newVal) {
         this._record.title = newVal;
         this.dispatchEvent(new CustomEvent('cell-change', { bubbles: true }));
@@ -140,11 +148,11 @@ export default class McCell extends HTMLElement {
       this.focus();
     };
 
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finish(true); }
       else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
       e.stopPropagation();
     });
-    input.addEventListener('blur', () => finish(true));
+    ta.addEventListener('blur', () => finish(true));
   }
 }
