@@ -23,3 +23,7 @@ the implementation:
 - the first one is goal demo; map to file @v6/sample/goal-01.txt
 - the second one is task demo; map to file @v6/sample/task-01.txt
 - the third one is weekly template; map to file @v6/sample/tpl-01.txt
+
+## revision 1
+
+support arrow keys as alias of hjkl (a user friendly enhancement)

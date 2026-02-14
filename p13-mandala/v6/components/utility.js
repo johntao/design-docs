@@ -11,7 +11,11 @@ export const HJKL_MAP = {
   'h': [0, -1],
   'j': [1, 0],
   'k': [-1, 0],
-  'l': [0, 1]
+  'l': [0, 1],
+  'ArrowLeft': [0, -1],
+  'ArrowDown': [1, 0],
+  'ArrowUp': [-1, 0],
+  'ArrowRight': [0, 1]
 };
 
 export const HJKL_MAP_FAST = {
