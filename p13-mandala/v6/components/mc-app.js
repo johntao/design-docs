@@ -69,6 +69,9 @@ export default class McApp extends HTMLElement {
     this.addEventListener('migration-export', () => this._exportData());
     this.addEventListener('migration-import', (e) => this._importData(e.detail.content, e.detail.fileName));
 
+    // Sample data
+    this.addEventListener('load-sample', (e) => this._loadSampleData(e.detail.file));
+
     // Keyboard layout
     this.addEventListener('keyboard-change', (e) => {
       this._keyboardLayout = e.detail.layout;
@@ -231,10 +234,6 @@ export default class McApp extends HTMLElement {
       case 'y':
         e.preventDefault();
         this._handleCycleStatus(focused);
-        break;
-      case 'Y':
-        e.preventDefault();
-        this._handleCompleteChildren(focused);
         break;
     }
   }
@@ -426,38 +425,6 @@ export default class McApp extends HTMLElement {
     this._renderTree();
   }
 
-  _handleCompleteChildren(cell) {
-    const info = this._getCellTreeInfo(cell.cellIndex);
-    if (!info.record) return;
-    if (info.level === 2) return; // no children
-
-    const children = info.record.children;
-    if (!children) return;
-
-    const backup = JSON.parse(JSON.stringify(children));
-
-    let changed = false;
-    for (let i = 0; i < children.length; i++) {
-      if (children[i] && (children[i].status || 'na') !== 'na' && children[i].status !== 'done') {
-        children[i].status = 'done';
-        changed = true;
-      }
-    }
-
-    if (!changed) {
-      this._notifier.show('No active children to complete');
-      return;
-    }
-
-    this._saveToStorage();
-    this._renderTree();
-    this._notifier.show('All children completed', () => {
-      info.record.children = backup;
-      this._saveToStorage();
-      this._renderTree();
-    });
-  }
-
   _modalListen(onConfirm, onClose) {
     const modal = this._modal;
     const confirmHandler = (e) => {
@@ -539,6 +506,12 @@ export default class McApp extends HTMLElement {
   }
 
   _importData(content, fileName) {
+    if (this._root) {
+      if (!confirm('Current data will be replaced. Save your data first if needed.\n\nContinue?')) return;
+    }
+
+    const backup = this._root ? JSON.parse(JSON.stringify(this._root)) : null;
+
     try {
       const lines = content.split('\n');
       let lineIdx = 0;
@@ -616,9 +589,25 @@ export default class McApp extends HTMLElement {
       this._ensureStructure();
       this._saveToStorage();
       this._renderTree();
-      this._notifier.show('Import successful');
+      this._notifier.show('Data loaded', () => {
+        this._root = backup;
+        this._ensureStructure();
+        this._saveToStorage();
+        this._renderTree();
+      });
     } catch (err) {
-      this._notifier.show('Import error: ' + err.message);
+      this._notifier.show('Load error: ' + err.message);
+    }
+  }
+
+  async _loadSampleData(fileName) {
+    try {
+      const resp = await fetch(`sample/${fileName}`);
+      if (!resp.ok) throw new Error('Failed to fetch sample data');
+      const content = await resp.text();
+      this._importData(content, fileName);
+    } catch (err) {
+      this._notifier.show('Load error: ' + err.message);
     }
   }
 }

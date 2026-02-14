@@ -12,8 +12,8 @@ input[type="file"] { display: none; }
 select { padding: 3px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff; font-size: 12px; font-family: monospace; cursor: pointer; }
 select:hover { background: #f5f5f5; }
 </style>
-<button class="btn-export">Export</button>
-<button class="btn-import">Import</button>
+<button class="btn-export">Save</button>
+<button class="btn-import">Load</button>
 <input type="file" class="file-input" accept=".md,.txt">
 <span class="separator">|</span>
 <select class="layout-select">

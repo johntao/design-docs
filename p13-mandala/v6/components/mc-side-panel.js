@@ -79,6 +79,28 @@ kbd {
   padding-top: 12px;
   border-top: 1px solid #eee;
 }
+.demo-section {
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+  margin-top: 12px;
+}
+.demo-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.demo-buttons button {
+  padding: 4px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: monospace;
+}
+.demo-buttons button:hover {
+  background: #f5f5f5;
+}
 </style>
 <div class="panel-content">
   <div class="section">
@@ -126,9 +148,27 @@ kbd {
   <div class="toolbar-slot">
     <slot></slot>
   </div>
+  <div class="demo-section">
+    <h3>Demo Data</h3>
+    <div class="demo-buttons">
+      <button class="btn-goal">Goal Demo</button>
+      <button class="btn-task">Task Demo</button>
+      <button class="btn-tpl">Template</button>
+    </div>
+  </div>
 </div>
     `;
     this._expanded = true;
+
+    this.shadowRoot.querySelector('.btn-goal').addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('load-sample', { bubbles: true, detail: { file: 'goal-01.txt' } }));
+    });
+    this.shadowRoot.querySelector('.btn-task').addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('load-sample', { bubbles: true, detail: { file: 'task-01.txt' } }));
+    });
+    this.shadowRoot.querySelector('.btn-tpl').addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('load-sample', { bubbles: true, detail: { file: 'tpl-01.txt' } }));
+    });
   }
 
   expand() {
