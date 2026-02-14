@@ -18,6 +18,7 @@ export default class McCell extends HTMLElement {
 :host(:focus) {
   outline: 2px solid #0066cc;
   outline-offset: -1px;
+  cursor: pointer;
 }
 .empty {
   color: #bbb;
@@ -33,6 +34,9 @@ export default class McCell extends HTMLElement {
 .mr-icon {
   font-size: 11px;
 }
+:host(:focus) .mr-icon {
+  cursor: pointer;
+}
 .mr-progress {
   font-size: 10px;
   color: #666;
@@ -40,6 +44,9 @@ export default class McCell extends HTMLElement {
 }
 .mr-title {
   font-weight: 500;
+}
+:host(:focus) .mr-title {
+  cursor: text;
 }
 .inline-edit {
   display: block;
@@ -64,10 +71,46 @@ export default class McCell extends HTMLElement {
     this._level = -1;
     this._isEditing = false;
     this._isSynced = false;
+    this._wasFocused = false;
+    this._clickTimer = null;
   }
 
   connectedCallback() {
     this.setAttribute('tabindex', '0');
+
+    this.addEventListener('mousedown', () => {
+      this._wasFocused = document.activeElement === this;
+    });
+
+    this.addEventListener('click', (e) => {
+      if (!this._wasFocused || this._isEditing) return;
+
+      const path = e.composedPath();
+      const onIcon = path.some(el => el.classList?.contains('mr-icon'));
+      const onTitle = path.some(el => el.classList?.contains('mr-title'));
+
+      if (e.detail >= 2) {
+        clearTimeout(this._clickTimer);
+        this.dispatchEvent(new CustomEvent('cell-click-create', { bubbles: true }));
+        return;
+      }
+
+      clearTimeout(this._clickTimer);
+
+      if (onIcon) {
+        this._clickTimer = setTimeout(() => {
+          this.dispatchEvent(new CustomEvent('cell-click-status', { bubbles: true }));
+        }, 200);
+      } else if (onTitle) {
+        this._clickTimer = setTimeout(() => {
+          this.startInlineEdit();
+        }, 200);
+      } else {
+        this._clickTimer = setTimeout(() => {
+          this.dispatchEvent(new CustomEvent('cell-click-open', { bubbles: true }));
+        }, 200);
+      }
+    });
   }
 
   get record() { return this._record; }
@@ -94,14 +137,12 @@ export default class McCell extends HTMLElement {
     const title = this._record.title;
 
     if (level === 0) {
-      // root: 🎯 {progress}% title — all inline
       const prog = calcRootProgress(this._record);
       const progHtml = prog
         ? `<span class="mr-progress" title="${prog.done} / ${prog.total}">${prog.pct}%</span> `
         : '';
       this._mrEl.innerHTML = `<span class="mr-icon">🎯</span> ${progHtml}<span class="mr-title">${this._esc(title)}</span>`;
     } else if (level === 1) {
-      // lvl1: {icon} {progress}% title — all inline
       const icon = STATUS_ICONS[this._record.status || 'na'] || '📄';
       const prog = calcProgress(this._record);
       const progHtml = prog
@@ -109,11 +150,9 @@ export default class McCell extends HTMLElement {
         : '';
       this._mrEl.innerHTML = `<span class="mr-icon">${icon}</span> ${progHtml}<span class="mr-title">${this._esc(title)}</span>`;
     } else if (level === 2) {
-      // lvl2: {icon} title — all inline
       const icon = STATUS_ICONS[this._record.status || 'na'] || '📄';
       this._mrEl.innerHTML = `<span class="mr-icon">${icon}</span> <span class="mr-title">${this._esc(title)}</span>`;
     } else {
-      // fallback
       this._mrEl.innerHTML = `<span class="mr-title">${this._esc(title)}</span>`;
     }
   }

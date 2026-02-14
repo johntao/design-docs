@@ -52,6 +52,19 @@ export default class McApp extends HTMLElement {
       this._renderTree();
     });
 
+    // Click events
+    this._grid.addEventListener('cell-click-status', (e) => {
+      this._handleCycleStatus(e.target);
+    });
+    this._grid.addEventListener('cell-click-open', (e) => {
+      const cell = e.target;
+      if (cell.record) this._handleDetailEdit(cell);
+      else this._handleCreate(cell);
+    });
+    this._grid.addEventListener('cell-click-create', (e) => {
+      this._handleCreate(e.target);
+    });
+
     // Migration events
     this.addEventListener('migration-export', () => this._exportData());
     this.addEventListener('migration-import', (e) => this._importData(e.detail.content, e.detail.fileName));
@@ -291,6 +304,10 @@ export default class McApp extends HTMLElement {
 
     // Cell has a record — create a child in the first null slot
     if (info.record) {
+      if (info.level === 2) {
+        this._notifier.show('Lvl3 nodes are not supported');
+        return;
+      }
       if (!this._checkAvailability(cell.cellIndex)) {
         this._notifier.show('Maximum children reached (8)');
         return;

@@ -92,18 +92,3 @@ make all three elements inline
 
 currently, when the user hit 'i', an editable field appear
 make sure the editable field is a block-level element that span multiple lines, instead of an inline text field
-
-
----
-
-let's tweak the style of `mc-cell`
-no need to show description in the cell
-the cell display only the status, progress and title
-make the title field wrap for a long string (wrap into multiple lines)
-no need to show progress on a leaf node (lvl2)
-make status and progress 
-
-🎯
-
-- support complete mouse click actions
-  - the following click event only works when a `mc-cell` is focused
