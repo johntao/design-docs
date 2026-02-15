@@ -4,6 +4,7 @@ import McModal from './components/mc-modal.js';
 import McNotifier from './components/mc-notifier.js';
 import McToolbar from './components/mc-toolbar.js';
 import McSidePanel from './components/mc-side-panel.js';
+import McHelpModal from './components/mc-help-modal.js';
 import McApp from './components/mc-app.js';
 
 customElements.define('mc-cell', McCell);
@@ -19,5 +20,7 @@ customElements.define('mc-notifier', McNotifier);
 customElements.define('mc-toolbar', McToolbar);
 
 customElements.define('mc-side-panel', McSidePanel);
+
+customElements.define('mc-help-modal', McHelpModal);
 
 customElements.define('mc-app', McApp);

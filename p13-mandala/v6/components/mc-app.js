@@ -25,11 +25,13 @@ export default class McApp extends HTMLElement {
   </mc-side-panel>
 </div>
 <mc-modal></mc-modal>
+<mc-help-modal></mc-help-modal>
 <mc-notifier></mc-notifier>
     `;
 
     this._grid = this.querySelector('mc-grid');
     this._modal = this.querySelector('mc-modal');
+    this._helpModal = this.querySelector('mc-help-modal');
     this._notifier = this.querySelector('mc-notifier');
     this._sidePanel = this.querySelector('mc-side-panel');
 
@@ -196,6 +198,17 @@ export default class McApp extends HTMLElement {
     const key = this._translateKey(e.key);
 
     if (key === '?') {
+      e.preventDefault();
+      this._helpModal.toggle();
+      return;
+    }
+
+    if (this._helpModal.isOpen) {
+      if (e.key === 'Escape') this._helpModal.close();
+      return;
+    }
+
+    if (key === ']') {
       e.preventDefault();
       this._sidePanel.toggle();
       return;

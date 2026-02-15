@@ -141,7 +141,8 @@ kbd {
   <div class="section">
     <h3>Other</h3>
     <div class="shortcut-list">
-      <div class="shortcut-item"><div class="keys"><kbd>?</kbd></div><div>Toggle this panel</div></div>
+      <div class="shortcut-item"><div class="keys"><kbd>]</kbd></div><div>Toggle this panel</div></div>
+      <div class="shortcut-item"><div class="keys"><kbd>?</kbd></div><div>Toggle the help text</div></div>
       <div class="shortcut-item"><div class="keys"><kbd>Esc</kbd></div><div>Close popup / cancel edit</div></div>
     </div>
   </div>
