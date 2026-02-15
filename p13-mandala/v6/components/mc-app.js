@@ -27,6 +27,7 @@ export default class McApp extends HTMLElement {
 <mc-modal></mc-modal>
 <mc-help-modal></mc-help-modal>
 <mc-notifier></mc-notifier>
+<mc-ring-menu></mc-ring-menu>
     `;
 
     this._grid = this.querySelector('mc-grid');
@@ -34,6 +35,10 @@ export default class McApp extends HTMLElement {
     this._helpModal = this.querySelector('mc-help-modal');
     this._notifier = this.querySelector('mc-notifier');
     this._sidePanel = this.querySelector('mc-side-panel');
+    this._ringMenu = this.querySelector('mc-ring-menu');
+    this._ringTimer = null;
+    this._ringActive = false;
+    this._ringJustUsed = false;
 
     this._loadFromStorage();
     this._ensureStructure();
@@ -78,6 +83,54 @@ export default class McApp extends HTMLElement {
     this.addEventListener('keyboard-change', (e) => {
       this._keyboardLayout = e.detail.layout;
     });
+
+    // Ring menu: long-press on focused cell
+    this._grid.addEventListener('pointerdown', (e) => {
+      const cell = e.target.closest('mc-cell');
+      if (!cell || cell.isEditing) return;
+      if (document.activeElement !== cell) return;
+      clearTimeout(this._ringTimer);
+      this._ringTimer = setTimeout(() => {
+        this._ringMenu.show(e.clientX, e.clientY);
+        this._ringActive = true;
+      }, 300);
+    });
+
+    document.addEventListener('pointermove', (e) => {
+      if (!this._ringActive) return;
+      this._ringMenu.track(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('pointerup', (e) => {
+      clearTimeout(this._ringTimer);
+      if (!this._ringActive) return;
+      const cmd = this._ringMenu.selectedCommand;
+      this._ringMenu.hide();
+      this._ringActive = false;
+      if (cmd) {
+        this._ringJustUsed = true;
+        setTimeout(() => { this._ringJustUsed = false; }, 0);
+        const focused = document.activeElement;
+        if (focused && focused.tagName === 'MC-CELL') {
+          this._dispatchRingCommand(cmd, focused);
+        }
+      }
+    });
+
+    document.addEventListener('pointercancel', () => {
+      clearTimeout(this._ringTimer);
+      if (this._ringActive) {
+        this._ringMenu.hide();
+        this._ringActive = false;
+      }
+    });
+
+    // Click suppression after ring menu use
+    this._grid.addEventListener('click', (e) => {
+      if (this._ringJustUsed) {
+        e.stopImmediatePropagation();
+      }
+    }, true);
   }
 
   // === Tree-to-grid mapping ===
@@ -181,6 +234,15 @@ export default class McApp extends HTMLElement {
       return (info.record.children || []).some(c => c === null);
     }
     return false; // lvl2 always false
+  }
+
+  _dispatchRingCommand(cmd, cell) {
+    switch (cmd) {
+      case 'create': this._handleCreate(cell); break;
+      case 'delete': this._handleDelete(cell); break;
+      case 'inline': this._handleInlineEdit(cell); break;
+      case 'detail': this._handleDetailEdit(cell); break;
+    }
   }
 
   // === Keydown dispatch ===
