@@ -4,21 +4,29 @@ export default class McToolbar extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this.shadowRoot.innerHTML = `
 <style>
-:host { display: flex; gap: 8px; align-items: center; }
-button { padding: 4px 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; font-size: 12px; font-family: monospace; }
-button:hover { background: #f5f5f5; }
+:host { display: flex; flex-direction: column; gap: 6px; }
+button, select {
+  display: block;
+  width: 100%;
+  padding: 6px 2px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: monospace;
+  text-align: center;
+  box-sizing: border-box;
+}
+button:hover, select:hover { background: #f5f5f5; }
 input[type="file"] { display: none; }
-.separator { color: #ccc; }
-select { padding: 3px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff; font-size: 12px; font-family: monospace; cursor: pointer; }
-select:hover { background: #f5f5f5; }
 </style>
 <button class="btn-export">Save</button>
 <button class="btn-import">Load</button>
 <input type="file" class="file-input" accept=".md,.txt">
-<span class="separator">|</span>
 <select class="layout-select">
-  <option value="qwerty">QWERTY</option>
-  <option value="dvorak">Dvorak</option>
+  <option value="qwerty">QWE</option>
+  <option value="dvorak">DVK</option>
 </select>
     `;
     this._exportBtn = this.shadowRoot.querySelector('.btn-export');

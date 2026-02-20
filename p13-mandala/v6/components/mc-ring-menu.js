@@ -43,6 +43,16 @@ export default class McRingMenu extends HTMLElement {
   transform: scale(1.2);
   background: #e8f0fe;
 }
+.cmd-center {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+}
+.cmd-center.active {
+  transform: translate(-50%, -50%) scale(1.2);
+}
+:host(.click-mode) .cmd-center { display: flex; }
 .cmd-top    { left: 58px; top: 0; }
 .cmd-bottom { left: 58px; bottom: 0; }
 .cmd-left   { left: 0; top: 58px; }
@@ -54,6 +64,7 @@ export default class McRingMenu extends HTMLElement {
     <div class="cmd cmd-right" data-cmd="detail">🔍</div>
     <div class="cmd cmd-bottom" data-cmd="delete">🗑</div>
     <div class="cmd cmd-left" data-cmd="inline">📝</div>
+    <div class="cmd cmd-center" data-cmd="cancel">🚫</div>
   </div>
 </div>
     `;
@@ -98,6 +109,7 @@ export default class McRingMenu extends HTMLElement {
   promote() {
     this._ring.style.display = '';
     this._mode = 'click';
+    this.classList.add('click-mode');
   }
 
   show(x, y) {
@@ -108,6 +120,7 @@ export default class McRingMenu extends HTMLElement {
     this.style.display = 'block';
     this._isOpen = true;
     this._mode = 'click';
+    this.classList.add('click-mode');
   }
 
   hide() {
@@ -117,6 +130,7 @@ export default class McRingMenu extends HTMLElement {
     this._clearActive();
     this._ring.style.display = '';
     this._mode = 'idle';
+    this.classList.remove('click-mode');
   }
 
   track(px, py) {
@@ -128,7 +142,14 @@ export default class McRingMenu extends HTMLElement {
     this._clearActive();
     this._selected = null;
 
-    if (dist < 20) return;
+    if (dist < 20) {
+      if (this._mode === 'click') {
+        this._selected = 'cancel';
+        const el = this.shadowRoot.querySelector('[data-cmd="cancel"]');
+        if (el) el.classList.add('active');
+      }
+      return;
+    }
 
     const angle = Math.atan2(dy, dx) * (180 / Math.PI);
     let cmd;

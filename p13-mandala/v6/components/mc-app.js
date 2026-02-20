@@ -59,17 +59,9 @@ export default class McApp extends HTMLElement {
       this._renderTree();
     });
 
-    // Click events
+    // Click events (status icon only — ring menu handles the rest)
     this._grid.addEventListener('cell-click-status', (e) => {
       this._handleCycleStatus(e.target);
-    });
-    this._grid.addEventListener('cell-click-open', (e) => {
-      const cell = e.target;
-      if (cell.record) this._handleDetailEdit(cell);
-      else this._handleCreate(cell);
-    });
-    this._grid.addEventListener('cell-click-create', (e) => {
-      this._handleCreate(e.target);
     });
 
     // Migration events
@@ -84,19 +76,55 @@ export default class McApp extends HTMLElement {
       this._keyboardLayout = e.detail.layout;
     });
 
-    // Ring menu: hybrid swipe/click (Blender-style, distance-based)
+    // Help modal toggle from side panel button
+    this.addEventListener('toggle-help', () => {
+      this._helpModal.toggle();
+    });
+
+    // Screen size detection: big = grid fits, small = scrollbars needed
+    const bigScreenMq = window.matchMedia('(min-height: 920px)');
+    this._isBigScreen = bigScreenMq.matches;
+    bigScreenMq.addEventListener('change', (e) => { this._isBigScreen = e.matches; });
+
+    this._ringTwoStep = localStorage.getItem('mandala-v6-ring-twostep') === 'true';
+
     const DRAG_THRESHOLD = 24;
 
+    const isOnStatusIcon = (e) => {
+      return e.composedPath().some(el => el.classList?.contains('mr-icon'));
+    };
+
+    // --- Big screen: hold-drag-release ---
     this._grid.addEventListener('pointerdown', (e) => {
+      if (!this._isBigScreen) return;
       if (this._ringMenu.mode !== 'idle') return;
       const cell = e.target.closest('mc-cell');
       if (!cell || cell.isEditing) return;
-      if (document.activeElement !== cell) return;
+      if (isOnStatusIcon(e)) return;
+      cell.focus();
       this._ringAnchor = { x: e.clientX, y: e.clientY };
       this._ringCell = cell;
       this._ringMenu.beginTracking(e.clientX, e.clientY);
     });
 
+    // --- Small screen: click-to-open ---
+    this._grid.addEventListener('click', (e) => {
+      if (this._isBigScreen) return;
+      if (this._ringJustUsed) { e.stopImmediatePropagation(); return; }
+      if (this._ringMenu.mode !== 'idle') return;
+      const cell = e.target.closest('mc-cell');
+      if (!cell || cell.isEditing) return;
+      if (isOnStatusIcon(e)) return;
+      if (this._ringTwoStep && document.activeElement !== cell) {
+        cell.focus();
+        return;
+      }
+      cell.focus();
+      this._ringCell = cell;
+      this._ringMenu.show(e.clientX, e.clientY);
+    });
+
+    // --- Shared: pointermove tracking ---
     document.addEventListener('pointermove', (e) => {
       const mode = this._ringMenu.mode;
       if (mode === 'idle') return;
@@ -110,6 +138,7 @@ export default class McApp extends HTMLElement {
       }
     });
 
+    // --- Shared: pointerup ---
     document.addEventListener('pointerup', (e) => {
       const mode = this._ringMenu.mode;
       if (mode === 'idle') return;
@@ -119,7 +148,9 @@ export default class McApp extends HTMLElement {
           const dx = e.clientX - this._ringAnchor.x;
           const dy = e.clientY - this._ringAnchor.y;
           if (dx * dx + dy * dy <= DRAG_THRESHOLD * DRAG_THRESHOLD) {
-            this._ringMenu.promote();
+            // Released under threshold → dismiss
+            this._ringMenu.hide();
+            this._ringAnchor = null;
             return;
           }
         }
@@ -138,9 +169,9 @@ export default class McApp extends HTMLElement {
       }
     });
 
-    // Click suppression after ring menu use
+    // Click suppression after ring menu use (big screen)
     this._grid.addEventListener('click', (e) => {
-      if (this._ringJustUsed) {
+      if (this._isBigScreen && this._ringJustUsed) {
         e.stopImmediatePropagation();
       }
     }, true);
@@ -252,7 +283,7 @@ export default class McApp extends HTMLElement {
   _fireRingSelection() {
     const cmd = this._ringMenu.selectedCommand;
     this._ringMenu.hide();
-    if (cmd && this._ringCell) {
+    if (cmd && cmd !== 'cancel' && this._ringCell) {
       this._ringJustUsed = true;
       setTimeout(() => { this._ringJustUsed = false; }, 0);
       this._dispatchRingCommand(cmd, this._ringCell);
