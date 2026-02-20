@@ -61,12 +61,16 @@ h2 {
   font-weight: 700;
 }
 h3 {
-  margin: 14px 0 6px 0;
   font-size: 13px;
   font-weight: 600;
   color: #555;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+h3 {
+  margin-block: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #333;
 }
 p {
   margin: 6px 0;
@@ -108,6 +112,14 @@ kbd {
   grid-template-columns: 1fr 2fr;
   gap: 3px;
   align-items: center;
+}
+.crud {
+  grid-column:1/3;
+}
+@media (max-height: 920px) {
+  .desktop {
+    display: none;
+  }
 }
 </style>
 <div class="overlay">
@@ -173,6 +185,22 @@ kbd {
   <div class="keys">Level 2 (tasks)</div><div>📄 NA → 🟩 Now → ✅ Done</div>
 </div>
 
+<h3>Ring Menu</h3>
+<div class="grid">
+  <div class="crud">💡 Create &nbsp; 🔍 Detail &nbsp; 📝 Inline &nbsp; 🗑 Delete</div>
+  <div class="keys">Click status icon</div><div>Toggle status 📄 🎯 🟩 ✅</div>
+  <div class="keys">Hold + drag</div><div>Swipe to fire command (big screen)</div>
+  <div class="keys">Click cell</div><div>Open ring menu (small screen)</div>
+</div>
+
+<h3>Side Panel</h3>
+<div class="grid">
+  <div class="keys">Save / Load</div><div>Export or import data as text file</div>
+  <div class="keys">Goal / Task / Tpl</div><div>Load demo data or blank template</div>
+  <div class="keys">QWE / DVK</div><div>Switch keyboard layout (QWERTY / Dvorak)</div>
+</div>
+
+<div class="desktop">
 <h3>Editing</h3>
 <div class="grid">
   <div class="keys"><kbd>u</kbd></div><div>Create record / add child</div>
@@ -200,27 +228,12 @@ kbd {
   <div class="key-grid"><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>X</kbd><kbd>C</kbd><kbd>V</kbd></div>
   <div>Jump across 3×3 blocks</div>
 </div>
-
-<h3>Ring Menu</h3>
-<div>💡 Create &nbsp; 🔍 Detail &nbsp; 📝 Inline &nbsp; 🗑 Delete</div>
-<div class="grid">
-  <div class="keys">Click status icon</div><div>Toggle status 📄 🎯 🟩 ✅</div>
-  <div class="keys">Hold + drag</div><div>Swipe to fire command (big screen)</div>
-  <div class="keys">Click cell</div><div>Open ring menu (small screen)</div>
-</div>
-
-<h3>Side Panel</h3>
-<div class="grid">
-  <div class="keys">Save / Load</div><div>Export or import data as text file</div>
-  <div class="keys">QWE / DVK</div><div>Switch keyboard layout (QWERTY / Dvorak)</div>
-  <div class="keys">Goal / Task / Tpl</div><div>Load demo data or blank template</div>
-</div>
-
 <h3>Other</h3>
 <div class="grid">
-  <div class="keys"><kbd>]</kbd></div><div>Toggle side panel</div>
-  <div class="keys"><kbd>?</kbd></div><div>Toggle this help</div>
-  <div class="keys"><kbd>Esc</kbd></div><div>Close popup / cancel edit</div>
+<div class="keys"><kbd>]</kbd></div><div>Toggle side panel</div>
+<div class="keys"><kbd>?</kbd></div><div>Toggle this help</div>
+<div class="keys"><kbd>Esc</kbd></div><div>Close popup / cancel edit</div>
+</div>
 </div>
     `;
   }
@@ -237,6 +250,22 @@ kbd {
   <div class="keys">第二層（任務）</div><div>📄 未啟用 → 🟩 進行中 → ✅ 完成</div>
 </div>
 
+<h3>環形選單</h3>
+<div class="grid">
+  <div class="crud">💡 新增 &nbsp; 🔍 詳細 &nbsp; 📝 行內 &nbsp; 🗑 刪除</div>
+  <div class="keys">點擊狀態圖示</div><div>切換狀態 📄 🎯 🟩 ✅</div>
+  <div class="keys">按住 + 拖曳</div><div>滑動觸發指令（大螢幕）</div>
+  <div class="keys">點擊格子</div><div>開啟環形選單（小螢幕）</div>
+</div>
+
+<h3>側面板</h3>
+<div class="grid">
+  <div class="keys">Save / Load</div><div>匯出或匯入資料為文字檔</div>
+  <div class="keys">Goal / Task / Tpl</div><div>載入範例資料或空白模板</div>
+  <div class="keys">QWE / DVK</div><div>切換鍵盤佈局（QWERTY / Dvorak）</div>
+</div>
+
+<div class="desktop">
 <h3>編輯</h3>
 <div class="grid">
   <div class="keys"><kbd>u</kbd></div><div>新增紀錄 / 新增子項</div>
@@ -265,26 +294,12 @@ kbd {
   <div>跨 3×3 區塊跳轉</div>
 </div>
 
-<h3>環形選單</h3>
-<div>💡 新增 &nbsp; 🔍 詳細 &nbsp; 📝 行內 &nbsp; 🗑 刪除</div>
-<div class="grid">
-  <div class="keys">點擊狀態圖示</div><div>切換狀態 📄 🎯 🟩 ✅</div>
-  <div class="keys">按住 + 拖曳</div><div>滑動觸發指令（大螢幕）</div>
-  <div class="keys">點擊格子</div><div>開啟環形選單（小螢幕）</div>
-</div>
-
-<h3>側面板</h3>
-<div class="grid">
-  <div class="keys">Save / Load</div><div>匯出或匯入資料為文字檔</div>
-  <div class="keys">QWE / DVK</div><div>切換鍵盤佈局（QWERTY / Dvorak）</div>
-  <div class="keys">Goal / Task / Tpl</div><div>載入範例資料或空白模板</div>
-</div>
-
 <h3>其他</h3>
 <div class="grid">
-  <div class="keys"><kbd>]</kbd></div><div>切換側面板</div>
-  <div class="keys"><kbd>?</kbd></div><div>切換此說明</div>
-  <div class="keys"><kbd>Esc</kbd></div><div>關閉彈窗 / 取消編輯</div>
+<div class="keys"><kbd>]</kbd></div><div>切換側面板</div>
+<div class="keys"><kbd>?</kbd></div><div>切換此說明</div>
+<div class="keys"><kbd>Esc</kbd></div><div>關閉彈窗 / 取消編輯</div>
+</div>
 </div>
     `;
   }
