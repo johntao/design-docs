@@ -20,9 +20,7 @@ export default class McApp extends HTMLElement {
     this.innerHTML = `
 <div class="mc-layout">
   <mc-grid></mc-grid>
-  <mc-side-panel>
-    <mc-toolbar></mc-toolbar>
-  </mc-side-panel>
+  <mc-side-panel></mc-side-panel>
 </div>
 <mc-modal></mc-modal>
 <mc-help-modal></mc-help-modal>
@@ -101,10 +99,12 @@ export default class McApp extends HTMLElement {
       const cell = e.target.closest('mc-cell');
       if (!cell || cell.isEditing) return;
       if (isOnStatusIcon(e)) return;
+      e.preventDefault(); // prevent text selection during hold-drag
       cell.focus();
       this._ringAnchor = { x: e.clientX, y: e.clientY };
       this._ringCell = cell;
       this._ringMenu.beginTracking(e.clientX, e.clientY);
+      this._ringMenu.showRing(); // show ring immediately
     });
 
     // --- Small screen: click-to-open ---
@@ -126,16 +126,8 @@ export default class McApp extends HTMLElement {
 
     // --- Shared: pointermove tracking ---
     document.addEventListener('pointermove', (e) => {
-      const mode = this._ringMenu.mode;
-      if (mode === 'idle') return;
+      if (this._ringMenu.mode === 'idle') return;
       this._ringMenu.track(e.clientX, e.clientY);
-      if (mode === 'tracking' && this._ringAnchor) {
-        const dx = e.clientX - this._ringAnchor.x;
-        const dy = e.clientY - this._ringAnchor.y;
-        if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) {
-          this._ringMenu.showRing();
-        }
-      }
     });
 
     // --- Shared: pointerup ---

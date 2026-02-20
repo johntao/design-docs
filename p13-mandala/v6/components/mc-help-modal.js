@@ -209,6 +209,13 @@ kbd {
   <div class="keys">Click cell</div><div>Open ring menu (small screen)</div>
 </div>
 
+<h3>Side Panel</h3>
+<div class="grid">
+  <div class="keys">Save / Load</div><div>Export or import data as text file</div>
+  <div class="keys">QWE / DVK</div><div>Switch keyboard layout (QWERTY / Dvorak)</div>
+  <div class="keys">Goal / Task / Tpl</div><div>Load demo data or blank template</div>
+</div>
+
 <h3>Other</h3>
 <div class="grid">
   <div class="keys"><kbd>]</kbd></div><div>Toggle side panel</div>
@@ -264,6 +271,13 @@ kbd {
   <div class="keys">點擊狀態圖示</div><div>切換狀態 📄 🎯 🟩 ✅</div>
   <div class="keys">按住 + 拖曳</div><div>滑動觸發指令（大螢幕）</div>
   <div class="keys">點擊格子</div><div>開啟環形選單（小螢幕）</div>
+</div>
+
+<h3>側面板</h3>
+<div class="grid">
+  <div class="keys">Save / Load</div><div>匯出或匯入資料為文字檔</div>
+  <div class="keys">QWE / DVK</div><div>切換鍵盤佈局（QWERTY / Dvorak）</div>
+  <div class="keys">Goal / Task / Tpl</div><div>載入範例資料或空白模板</div>
 </div>
 
 <h3>其他</h3>

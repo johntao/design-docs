@@ -68,41 +68,80 @@ export default class McSidePanel extends HTMLElement {
 .panel-content select:hover {
   background: #f5f5f5;
 }
-.separator {
-  border: none;
-  border-top: 1px solid #eee;
-  margin: 2px 0;
+.section-label {
+  font-size: 9px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin: 4px 0 0 0;
+  padding: 0;
 }
-.toolbar-slot {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+input[type="file"] { display: none; }
 </style>
 <div class="side-buttons">
   <button class="side-btn toggle-btn">◀</button>
   <button class="side-btn help-btn">?</button>
 </div>
 <div class="panel-content">
-  <div class="toolbar-slot">
-    <slot></slot>
-  </div>
-  <hr class="separator">
-  <button class="btn-goal">Goal</button>
-  <button class="btn-task">Task</button>
-  <button class="btn-tpl">Tpl</button>
+  <div class="section-label">File</div>
+  <button class="btn-export" title="Export data to file">Save</button>
+  <button class="btn-import" title="Import data from file">Load</button>
+  <input type="file" class="file-input" accept=".md,.txt">
+  <div class="section-label">Layout</div>
+  <select class="layout-select" title="Keyboard layout">
+    <option value="qwerty">QWE</option>
+    <option value="dvorak">DVK</option>
+  </select>
+  <div class="section-label">Demo</div>
+  <button class="btn-goal" title="Load goal planning demo">Goal</button>
+  <button class="btn-task" title="Load task tracking demo">Task</button>
+  <button class="btn-tpl" title="Load blank template">Tpl</button>
 </div>
     `;
     this._expanded = true;
     this._toggleBtn = this.shadowRoot.querySelector('.toggle-btn');
     this._helpBtn = this.shadowRoot.querySelector('.help-btn');
     this._panelContent = this.shadowRoot.querySelector('.panel-content');
+    this._fileInput = this.shadowRoot.querySelector('.file-input');
+    this._layoutSelect = this.shadowRoot.querySelector('.layout-select');
+    this._layoutSelect.value = localStorage.getItem('mandala-v6-keyboard') || 'qwerty';
 
     this._toggleBtn.addEventListener('click', () => this.toggle());
     this._helpBtn.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('toggle-help', { bubbles: true }));
     });
 
+    // File operations
+    this.shadowRoot.querySelector('.btn-export').addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('migration-export', { bubbles: true }));
+    });
+    this.shadowRoot.querySelector('.btn-import').addEventListener('click', () => this._fileInput.click());
+    this._fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          this.dispatchEvent(new CustomEvent('migration-import', {
+            bubbles: true,
+            detail: { content: ev.target.result, fileName: file.name }
+          }));
+        };
+        reader.readAsText(file);
+      }
+      this._fileInput.value = '';
+    });
+
+    // Keyboard layout
+    this._layoutSelect.addEventListener('change', () => {
+      localStorage.setItem('mandala-v6-keyboard', this._layoutSelect.value);
+      this.dispatchEvent(new CustomEvent('keyboard-change', {
+        bubbles: true,
+        detail: { layout: this._layoutSelect.value }
+      }));
+    });
+
+    // Demo data
     this.shadowRoot.querySelector('.btn-goal').addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('load-sample', { bubbles: true, detail: { file: 'goal-01.txt' } }));
     });
