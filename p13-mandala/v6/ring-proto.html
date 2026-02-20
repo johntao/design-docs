@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ring Menu Prototype</title>
+<style>
+* { box-sizing: border-box; margin: 0; }
+body { font-family: system-ui; background: #f5f5f5; padding: 20px; }
+
+h2 { margin-bottom: 12px; font-size: 16px; }
+
+.controls {
+  display: flex; gap: 16px; align-items: center;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+.controls label { font-size: 13px; color: #444; }
+.controls input[type=range] { width: 120px; }
+.controls span { font-size: 13px; font-weight: 600; min-width: 40px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px; background: #ddd;
+  max-width: 480px;
+}
+.cell {
+  background: #fff;
+  min-height: 120px;
+  padding: 8px;
+  font-size: 13px;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+.cell:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: -2px;
+}
+
+.log {
+  margin-top: 16px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  max-width: 480px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 12px;
+  font-family: monospace;
+  color: #333;
+}
+.log div { padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
+.log .cmd-create { color: #e67e00; }
+.log .cmd-delete { color: #cc0000; }
+.log .cmd-inline { color: #0066cc; }
+.log .cmd-detail { color: #6a0dad; }
+
+/* ===== Ring menu overlay ===== */
+#ring-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 9999;
+}
+.ring {
+  position: absolute;
+  width: 160px; height: 160px;
+  pointer-events: none;
+  transition: opacity 0.08s;
+}
+.ring.hidden { opacity: 0; }
+.ring.visible { opacity: 1; }
+.cmd {
+  position: absolute;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  pointer-events: none;
+  transition: transform 0.1s, border-color 0.1s, background 0.1s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.cmd.active {
+  border-color: #0066cc;
+  transform: scale(1.2);
+  background: #e8f0fe;
+}
+/* ghost: shown before ring appears, follows pointer direction */
+.cmd-ghost {
+  position: absolute;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2px dashed #aaa;
+  background: rgba(255,255,255,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  pointer-events: none;
+  transition: opacity 0.08s;
+}
+.cmd-top    { left: 58px; top: 0; }
+.cmd-bottom { left: 58px; bottom: 0; }
+.cmd-left   { left: 0; top: 58px; }
+.cmd-right  { right: 0; top: 58px; }
+</style>
+</head>
+<body>
+
+<h2>Ring Menu Prototype</h2>
+
+<div class="controls">
+  <label>Delay:
+    <input type="range" id="delay-slider" min="0" max="500" value="100" step="10">
+    <span id="delay-val">100ms</span>
+  </label>
+  <label>
+    <input type="checkbox" id="chk-swipe"> Swipe-to-fire (before ring shows)
+  </label>
+  <label>
+    <input type="checkbox" id="chk-click"> Click-to-open mode
+  </label>
+</div>
+
+<div class="grid" id="grid">
+  <div class="cell" tabindex="0">Cell A</div>
+  <div class="cell" tabindex="0">Cell B</div>
+  <div class="cell" tabindex="0">Cell C</div>
+  <div class="cell" tabindex="0">Cell D</div>
+  <div class="cell" tabindex="0">Cell E</div>
+  <div class="cell" tabindex="0">Cell F</div>
+  <div class="cell" tabindex="0">Cell G</div>
+  <div class="cell" tabindex="0">Cell H</div>
+  <div class="cell" tabindex="0">Cell I</div>
+</div>
+
+<div class="log" id="log"></div>
+
+<!-- Ring overlay (outside grid) -->
+<div id="ring-overlay">
+  <div class="ring hidden" id="ring">
+    <div class="cmd cmd-top" data-cmd="create">💡</div>
+    <div class="cmd cmd-right" data-cmd="detail">🔍</div>
+    <div class="cmd cmd-bottom" data-cmd="delete">🗑</div>
+    <div class="cmd cmd-left" data-cmd="inline">📝</div>
+  </div>
+  <div class="cmd-ghost" id="ghost"></div>
+</div>
+
+<script>
+const overlay = document.getElementById('ring-overlay');
+const ring = document.getElementById('ring');
+const ghost = document.getElementById('ghost');
+const cmds = ring.querySelectorAll('.cmd');
+const grid = document.getElementById('grid');
+const logEl = document.getElementById('log');
+
+const delaySlider = document.getElementById('delay-slider');
+const delayVal = document.getElementById('delay-val');
+const chkSwipe = document.getElementById('chk-swipe');
+const chkClick = document.getElementById('chk-click');
+
+delaySlider.addEventListener('input', () => {
+  delayVal.textContent = delaySlider.value + 'ms';
+});
+
+// ===== State =====
+let timer = null;
+let active = false;       // overlay is up (ring may or may not be visible)
+let ringVisible = false;  // ring icons are showing
+let cx = 0, cy = 0;      // anchor point
+let selected = null;
+let clickMode = false;    // click-to-open mode: ring stays open until dismissed
+
+// ===== Helpers =====
+function getDelay() { return parseInt(delaySlider.value); }
+
+function resolveCommand(px, py) {
+  const dx = px - cx, dy = py - cy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 20) return null;
+  const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+  if (angle >= -45 && angle < 45) return 'detail';
+  if (angle >= 45 && angle < 135) return 'delete';
+  if (angle >= -135 && angle < -45) return 'create';
+  return 'inline';
+}
+
+const cmdEmoji = { create: '💡', delete: '🗑', inline: '📝', detail: '🔍' };
+
+function clearActive() {
+  cmds.forEach(c => c.classList.remove('active'));
+}
+
+function showRing(x, y) {
+  const rw = 160, rh = 160;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  cx = Math.max(rw / 2, Math.min(x, vw - rw / 2));
+  cy = Math.max(rh / 2, Math.min(y, vh - rh / 2));
+  ring.style.left = (cx - rw / 2) + 'px';
+  ring.style.top = (cy - rh / 2) + 'px';
+  selected = null;
+  clearActive();
+  overlay.style.display = 'block';
+  ring.classList.remove('hidden');
+  ring.classList.add('visible');
+  ringVisible = true;
+  active = true;
+  ghost.style.display = 'none';
+}
+
+function showOverlayOnly(x, y) {
+  cx = x; cy = y;
+  overlay.style.display = 'block';
+  ring.classList.add('hidden');
+  ring.classList.remove('visible');
+  ringVisible = false;
+  active = true;
+  selected = null;
+  clearActive();
+}
+
+function hideAll() {
+  overlay.style.display = 'none';
+  ring.classList.add('hidden');
+  ring.classList.remove('visible');
+  ghost.style.display = 'none';
+  active = false;
+  ringVisible = false;
+  selected = null;
+  clickMode = false;
+  clearActive();
+}
+
+function fireCommand(cmd) {
+  if (!cmd) return;
+  const entry = document.createElement('div');
+  entry.className = 'cmd-' + cmd;
+  entry.textContent = `${cmdEmoji[cmd]} ${cmd}`;
+  logEl.prepend(entry);
+}
+
+// ===== Pointer handling =====
+
+grid.addEventListener('pointerdown', (e) => {
+  const cell = e.target.closest('.cell');
+  if (!cell) return;
+
+  // --- Click-to-open mode ---
+  if (chkClick.checked) {
+    e.preventDefault();
+    if (!active) {
+      // First click on cell: focus + open ring immediately
+      cell.focus();
+      showRing(e.clientX, e.clientY);
+      clickMode = true;
+    }
+    return;
+  }
+
+  // --- Hold mode (original + experiments) ---
+  if (document.activeElement !== cell) return;
+  e.preventDefault();
+
+  clearTimeout(timer);
+
+  // Immediately show overlay (invisible ring) so we can track swipe direction
+  showOverlayOnly(e.clientX, e.clientY);
+
+  timer = setTimeout(() => {
+    if (!active) return;
+    // Promote to visible ring
+    const rw = 160, rh = 160;
+    ring.style.left = (cx - rw / 2) + 'px';
+    ring.style.top = (cy - rh / 2) + 'px';
+    ring.classList.remove('hidden');
+    ring.classList.add('visible');
+    ringVisible = true;
+    ghost.style.display = 'none';
+    // Re-apply current selection highlight
+    if (selected) {
+      const el = ring.querySelector(`[data-cmd="${selected}"]`);
+      if (el) el.classList.add('active');
+    }
+  }, getDelay());
+});
+
+document.addEventListener('pointermove', (e) => {
+  if (!active) return;
+
+  const cmd = resolveCommand(e.clientX, e.clientY);
+  clearActive();
+  selected = cmd;
+
+  if (ringVisible) {
+    // Ring is showing: highlight the sector
+    if (cmd) {
+      const el = ring.querySelector(`[data-cmd="${cmd}"]`);
+      if (el) el.classList.add('active');
+    }
+  } else if (chkSwipe.checked && cmd) {
+    // Ring not yet visible, but swipe-to-fire is on: show ghost indicator
+    ghost.style.display = 'flex';
+    ghost.textContent = cmdEmoji[cmd];
+    ghost.style.left = (e.clientX - 18) + 'px';
+    ghost.style.top = (e.clientY - 18) + 'px';
+  }
+});
+
+document.addEventListener('pointerup', (e) => {
+  clearTimeout(timer);
+
+  if (!active) return;
+
+  if (clickMode) {
+    // In click-to-open mode, pointerup on a command fires it
+    const cmd = resolveCommand(e.clientX, e.clientY);
+    if (cmd) {
+      fireCommand(cmd);
+      hideAll();
+    }
+    // If no command selected, ring stays open (dismissed by clicking outside)
+    return;
+  }
+
+  // Hold mode
+  const cmd = selected;
+  hideAll();
+
+  if (cmd) {
+    if (!ringVisible && chkSwipe.checked) {
+      // Swipe-to-fire: fired before ring appeared
+      fireCommand(cmd);
+      const entry = document.createElement('div');
+      entry.textContent = '  ^ swipe-fired (ring not shown)';
+      entry.style.color = '#999';
+      logEl.prepend(entry);
+    } else if (ringVisible) {
+      fireCommand(cmd);
+    }
+  }
+});
+
+document.addEventListener('pointercancel', () => {
+  clearTimeout(timer);
+  hideAll();
+});
+
+// Click-to-open mode: click on overlay (outside ring commands) to dismiss
+overlay.addEventListener('pointerdown', (e) => {
+  if (!clickMode) return;
+  // If clicking far from ring center, dismiss
+  const dx = e.clientX - cx, dy = e.clientY - cy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist > 80) {
+    hideAll();
+    e.stopPropagation();
+  }
+});
+
+// Prevent context menu on cells
+grid.addEventListener('contextmenu', (e) => e.preventDefault());
+</script>
+</body>
+</html>

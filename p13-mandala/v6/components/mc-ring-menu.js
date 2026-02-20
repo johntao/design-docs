@@ -63,12 +63,14 @@ export default class McRingMenu extends HTMLElement {
     this._selected = null;
     this._cx = 0;
     this._cy = 0;
+    this._mode = 'idle'; // 'idle' | 'tracking' | 'click'
   }
 
   get isOpen() { return this._isOpen; }
   get selectedCommand() { return this._selected; }
+  get mode() { return this._mode; }
 
-  show(x, y) {
+  _position(x, y) {
     const rw = 160, rh = 160;
     const vw = window.innerWidth, vh = window.innerHeight;
     const cx = Math.max(rw / 2, Math.min(x, vw - rw / 2));
@@ -77,10 +79,35 @@ export default class McRingMenu extends HTMLElement {
     this._cy = cy;
     this._ring.style.left = (cx - rw / 2) + 'px';
     this._ring.style.top = (cy - rh / 2) + 'px';
+  }
+
+  beginTracking(x, y) {
+    this._position(x, y);
     this._selected = null;
     this._clearActive();
+    this._ring.style.display = 'none';
     this.style.display = 'block';
     this._isOpen = true;
+    this._mode = 'tracking';
+  }
+
+  showRing() {
+    this._ring.style.display = '';
+  }
+
+  promote() {
+    this._ring.style.display = '';
+    this._mode = 'click';
+  }
+
+  show(x, y) {
+    this._position(x, y);
+    this._selected = null;
+    this._clearActive();
+    this._ring.style.display = '';
+    this.style.display = 'block';
+    this._isOpen = true;
+    this._mode = 'click';
   }
 
   hide() {
@@ -88,10 +115,12 @@ export default class McRingMenu extends HTMLElement {
     this._isOpen = false;
     this._selected = null;
     this._clearActive();
+    this._ring.style.display = '';
+    this._mode = 'idle';
   }
 
   track(px, py) {
-    if (!this._isOpen) return;
+    if (this._mode === 'idle') return;
     const dx = px - this._cx;
     const dy = py - this._cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
