@@ -172,7 +172,8 @@ p {
 
 <h3>Cell Walk</h3>
 <table>
-  <tr><td><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> / Arrows</td><td>Move 1 cell</td></tr>
+  <tr><td><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></td><td>Move 1 cell</td></tr>
+  <tr><td><kbd>⬅</kbd><kbd>⬇</kbd><kbd>⬆</kbd><kbd>➡</kbd></td><td>Move 1 cell</td></tr>
   <tr><td><kbd>H</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd></td><td>Move 3 cells</td></tr>
 </table>
 
@@ -226,7 +227,8 @@ p {
 
 <h3>格子移動</h3>
 <table>
-  <tr><td><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> / 方向鍵</td><td>移動 1 格</td></tr>
+  <tr><td><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></td><td>移動 1 格</td></tr>
+  <tr><td><kbd>⬅</kbd><kbd>⬇</kbd><kbd>⬆</kbd><kbd>➡</kbd></td><td>移動 1 格</td></tr>
   <tr><td><kbd>H</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd></td><td>移動 3 格</td></tr>
 </table>
 
