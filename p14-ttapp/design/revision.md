@@ -17,11 +17,7 @@ introduce trigger widget
 - move task-trigger, timer, btn-stop, btn-merge from the toolbar to this widget
 - fixed trigger widget in the middle of the screen (both horizontally and vertically centered)
 
-## v2
-
-now let's tweak a few parts of the app
-
-## rework trigger widget UX
+## revision 2: rework trigger widget UX
 
 predefined tasks with estimation duration should display differently in the ring menu
 - prefix the task name by `[est dur]` would be sufficient
@@ -41,3 +37,7 @@ combine btn-play and btn-stop into one button
 add a new button '✕' to discard the current running task
 - reset to the status where a predefined task is loaded
 - make sure to display the estimation duration if defined
+
+## revision 3
+
+tweak the merge button logic

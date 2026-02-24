@@ -12,6 +12,30 @@
 </head>
 <body>
   <tt-app></tt-app>
-  <script src="app.js"></script>
+  <script type="module">
+import { TtApp } from "./js/TtApp.js";
+import { TtConfig } from "./js/TtConfig.js";
+import { TtDial } from "./js/TtDial.js";
+import { TtEntry } from "./js/TtEntry.js";
+import { TtEntryEdit } from "./js/TtEntryEdit.js";
+import { TtHelp } from "./js/TtHelp.js";
+import { TtHistory } from "./js/TtHistory.js";
+import { TtModal } from "./js/TtModal.js";
+import { TtRingMenu } from "./js/TtRingMenu.js";
+import { TtToolbar } from "./js/TtToolbar.js";
+import { TtTriggerWidget } from "./js/TtTriggerWidget.js";
+
+customElements.define('tt-modal', TtModal);
+customElements.define('tt-help', TtHelp);
+customElements.define('tt-dial', TtDial);
+customElements.define('tt-entry', TtEntry);
+customElements.define('tt-entry-edit', TtEntryEdit);
+customElements.define('tt-config', TtConfig);
+customElements.define('tt-ring-menu', TtRingMenu);
+customElements.define('tt-history', TtHistory);
+customElements.define('tt-toolbar', TtToolbar);
+customElements.define('tt-trigger-widget', TtTriggerWidget);
+customElements.define('tt-app', TtApp);
+  </script>
 </body>
 </html>
