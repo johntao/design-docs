@@ -387,7 +387,7 @@ class TtEntry extends HTMLElement {
         <span class="task-name"></span>
         <span class="times"></span>
         <span class="duration"></span>
-        <button class="delete-btn" title="Delete">✕</button>
+        <button class="delete-btn" title="Delete">🗑</button>
       </div>
     `;
     this.shadowRoot.querySelector('.row').addEventListener('click', (e) => {
@@ -1044,10 +1044,6 @@ class TtTriggerWidget extends HTMLElement {
         }
         .task-trigger:hover { border-color: #d63851; box-shadow: 0 2px 16px rgba(214,56,81,0.15); }
         .task-trigger.tracking { border-color: #d63851; background: #fef2f2; pointer-events: none; opacity: 0.7; }
-        .est-label {
-          font-size: 12px; color: #999; font-family: monospace;
-        }
-        .est-label.hidden { display: none; }
         .timer {
           font-family: monospace; font-size: 32px; color: #333; letter-spacing: 1px;
         }
@@ -1065,11 +1061,10 @@ class TtTriggerWidget extends HTMLElement {
         .controls button.hidden { display: none; }
       </style>
       <div class="task-trigger" id="trigger">Select task…</div>
-      <div class="est-label hidden" id="est-label"></div>
       <div class="timer" id="timer">00:00</div>
       <div class="controls">
         <button id="btn-toggle" title="Start" disabled>▶</button>
-        <button id="btn-discard" title="Discard" class="hidden">✕</button>
+        <button id="btn-discard" title="Discard" class="hidden">🗑</button>
         <button id="btn-merge" title="Merge" class="hidden">⇅</button>
       </div>
     `;
@@ -1098,7 +1093,6 @@ class TtTriggerWidget extends HTMLElement {
     this._selectedTask = task;
     const trigger = this.shadowRoot.getElementById('trigger');
     trigger.textContent = task ? truncate(task.name) : 'Select task…';
-    this._updateEstLabel();
     this._updateButtons();
   }
 
@@ -1125,18 +1119,6 @@ class TtTriggerWidget extends HTMLElement {
       this._showIdleTimer();
     }
 
-    this._updateEstLabel();
-  }
-
-  _updateEstLabel() {
-    const el = this.shadowRoot.getElementById('est-label');
-    const task = this._selectedTask;
-    if (task && task.estimationDuration && !this._tracking) {
-      el.textContent = `est: ${task.estimationDuration}m`;
-      el.classList.remove('hidden');
-    } else {
-      el.classList.add('hidden');
-    }
   }
 
   _showIdleTimer() {
@@ -1156,7 +1138,7 @@ class TtTriggerWidget extends HTMLElement {
   _updateButtons() {
     const toggleBtn = this.shadowRoot.getElementById('btn-toggle');
     if (this._tracking) {
-      toggleBtn.textContent = '⏹';
+      toggleBtn.textContent = '💾';
       toggleBtn.title = 'Stop';
       toggleBtn.disabled = false;
     } else {
