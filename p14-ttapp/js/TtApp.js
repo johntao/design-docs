@@ -155,9 +155,10 @@ export class TtApp extends HTMLElement {
     const sorted = [...entries].sort((a, b) => b.startTime - a.startTime);
     const prev = sorted[0];
     if (prev && prev.taskName === current.taskName) {
-      prev.endTime = Date.now();
-      Store.setEntries(entries.map(e => e.uuid === prev.uuid ? prev : e));
-      Store.setCurrent(null);
+      // Keep running task, adopt previous entry's start time, delete previous entry
+      current.startTime = prev.startTime;
+      Store.setCurrent(current);
+      Store.setEntries(entries.filter(e => e.uuid !== prev.uuid));
       this._refreshState();
     }
   }
