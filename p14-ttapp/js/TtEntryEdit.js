@@ -134,9 +134,9 @@ select { width: 100%; padding: 8px; background: #f5f5f5; color: #333; border: 1p
     this._barLabel = this.shadowRoot.getElementById('bar-label');
     this._barValue = this.shadowRoot.getElementById('bar-value');
 
-    // Build step elements (12 steps, 5 min each = 60 min)
+    // Build step elements ascending: 5m at top → 60m at bottom
     this._stepEls = [];
-    for (let i = 12; i >= 1; i--) {
+    for (let i = 1; i <= 12; i++) {
       const el = document.createElement('div');
       el.className = 'step';
       el.dataset.step = i;
@@ -277,6 +277,7 @@ select { width: 100%; padding: 8px; background: #f5f5f5; color: #333; border: 1p
       btn.setPointerCapture(e.pointerId);
       this._addBarSign = sign;
       this._barSelectedStep = 0;
+      this._barOriginY = e.clientY;
       this._openStepBar(sign);
     });
     btn.addEventListener('pointermove', e => {
@@ -306,25 +307,16 @@ select { width: 100%; padding: 8px; background: #f5f5f5; color: #333; border: 1p
 
   _onBarMove(e) {
     if (!this._addBarActive) return;
-    const rects = this._stepEls.map(el => el.getBoundingClientRect());
-    const y = e.clientY;
 
-    let closest = 0;
-    let minDist = Infinity;
-    for (let i = 0; i < rects.length; i++) {
-      const mid = rects[i].top + rects[i].height / 2;
-      const dist = Math.abs(y - mid);
-      if (dist < minDist) { minDist = dist; closest = i; }
-    }
+    // Delta from the pointer origin (where the button was pressed)
+    const delta = e.clientY - this._barOriginY;
 
-    // If pointer is far above/below the bar, select nothing (0)
-    const barRect = this._stepBar.getBoundingClientRect();
-    if (y < barRect.top - 20 || y > barRect.bottom + 20) {
-      this._barSelectedStep = 0;
-    } else {
-      const stepNum = parseInt(this._stepEls[closest].dataset.step);
-      this._barSelectedStep = stepNum;
-    }
+    // Each step maps to one step-element height (28px as styled)
+    const stepHeight = this._stepEls[0]?.getBoundingClientRect().height || 28;
+
+    // Positive delta (dragging down) = increasing steps
+    const rawStep = Math.floor(delta / stepHeight);
+    this._barSelectedStep = Math.max(0, Math.min(12, rawStep));
 
     this._renderBarHighlight();
   }
@@ -340,7 +332,7 @@ select { width: 100%; padding: 8px; background: #f5f5f5; color: #333; border: 1p
     this._stepEls.forEach(el => {
       const s = parseInt(el.dataset.step);
       el.classList.toggle('active', s === sel && sel > 0);
-      el.classList.toggle('in-range', s < sel && sel > 0);
+      el.classList.toggle('in-range', s > 0 && s < sel);
     });
   }
 

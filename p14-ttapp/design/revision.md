@@ -77,3 +77,9 @@ tweak the UI of vertical step bar
 
 1. display the steps ascendingly from top to bottom (00 to 60)
 2. dragging behavior also starts from top to bottom
+
+please dig into the function _onBarMove
+I believe there should be an offset based on the vertical delta between the top of the vertical bar and the pointer
+current: when users start dragging; the value always jump start from the middle of the vertical bar
+expected: when users start dragging; the value starts from the zero value of the vertical bar
+
