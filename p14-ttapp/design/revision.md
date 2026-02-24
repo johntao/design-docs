@@ -83,3 +83,17 @@ I believe there should be an offset based on the vertical delta between the top 
 current: when users start dragging; the value always jump start from the middle of the vertical bar
 expected: when users start dragging; the value starts from the zero value of the vertical bar
 
+## revision 5
+
+introducing these functions to `tt-config`
+
+add import/ export predefined task config
+make sure to include uuid in the predefined task to avoid duplication (discard duplication on import)
+
+tweak the import/ export logic a bit
+allow users edit data from external editors, so if duplication found, update the current data instead of discard
+allow users to omit uuid by any falsy js values, if omitted, generate a valid uuid automatically
+
+introduce new function:
+load sample data from path `./sample/config.json`
+add a button to the Task Config section "Load Sample Task"

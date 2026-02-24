@@ -45,7 +45,15 @@ export class TtConfig extends HTMLElement {
       <div class="task-list" id="task-list"></div>
       <button class="btn-add" id="btn-add">+ Add Task</button>
 
-      <h4>Data</h4>
+      <h4>Task Config</h4>
+      <div class="io-row">
+        <button class="btn-io" id="btn-export-config">Export Config</button>
+        <button class="btn-io" id="btn-import-config">Import Config</button>
+        <button class="btn-io" id="btn-load-sample">Load Sample Tasks</button>
+      </div>
+      <input type="file" id="file-input-config" accept=".json" style="display:none">
+
+      <h4>Entry Data</h4>
       <div class="io-row">
         <button class="btn-io" id="btn-export">Export Entries</button>
         <button class="btn-io" id="btn-import">Import Entries</button>
@@ -61,11 +69,20 @@ export class TtConfig extends HTMLElement {
       this.shadowRoot.getElementById('file-input').click();
     });
     this.shadowRoot.getElementById('file-input').addEventListener('change', e => this._import(e));
+    this.shadowRoot.getElementById('btn-export-config').addEventListener('click', () => this._exportConfig());
+    this.shadowRoot.getElementById('btn-import-config').addEventListener('click', () => {
+      this.shadowRoot.getElementById('file-input-config').click();
+    });
+    this.shadowRoot.getElementById('file-input-config').addEventListener('change', e => this._importConfig(e));
+    this.shadowRoot.getElementById('btn-load-sample').addEventListener('click', () => this._loadSample());
     this.shadowRoot.getElementById('btn-save').addEventListener('click', () => this._saveConfig());
   }
 
   load() {
-    this._tasks = Store.getTasks().map(t => ({ ...t }));
+    this._tasks = Store.getTasks().map(t => ({
+      ...t,
+      uuid: t.uuid || crypto.randomUUID()
+    }));
     this._renderTasks();
   }
 
@@ -134,7 +151,7 @@ export class TtConfig extends HTMLElement {
 
   _addTask() {
     if (this._tasks.length >= 8) return;
-    this._tasks.push({ name: '', timesegs: null, estimationDuration: null });
+    this._tasks.push({ uuid: crypto.randomUUID(), name: '', timesegs: null, estimationDuration: null });
     this._renderTasks();
   }
 
@@ -163,12 +180,120 @@ export class TtConfig extends HTMLElement {
         const imported = JSON.parse(reader.result);
         if (!Array.isArray(imported)) throw new Error('Invalid format');
         const existing = Store.getEntries();
-        const existingUuids = new Set(existing.map(e => e.uuid));
-        const newEntries = imported.filter(e => e.uuid && !existingUuids.has(e.uuid));
-        Store.setEntries([...existing, ...newEntries]);
-        alert(`Imported ${newEntries.length} new entries (${imported.length - newEntries.length} duplicates skipped).`);
+        const byUuid = new Map(existing.map(e => [e.uuid, e]));
+        let added = 0, updated = 0;
+
+        for (const entry of imported) {
+          if (!entry.uuid) entry.uuid = crypto.randomUUID();
+
+          if (byUuid.has(entry.uuid)) {
+            // Update existing entry in place
+            Object.assign(byUuid.get(entry.uuid), entry);
+            updated++;
+          } else {
+            byUuid.set(entry.uuid, entry);
+            added++;
+          }
+        }
+
+        Store.setEntries([...byUuid.values()]);
+        alert(`Imported: ${added} added, ${updated} updated.`);
       } catch (err) {
         alert('Import failed: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  _exportConfig() {
+    const tasks = this._tasks.filter(t => t.name.trim());
+    const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `task-config-${formatDate(Date.now())}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async _loadSample() {
+    try {
+      const res = await fetch('./sample/config.json');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const imported = await res.json();
+      if (!Array.isArray(imported)) throw new Error('Invalid format');
+
+      const byUuid = new Map(this._tasks.map(t => [t.uuid, t]));
+      let added = 0, updated = 0;
+
+      for (const t of imported) {
+        if (!t.name || typeof t.name !== 'string') continue;
+        if (!t.uuid) t.uuid = crypto.randomUUID();
+
+        const parsed = {
+          uuid: t.uuid,
+          name: String(t.name).slice(0, 20),
+          timesegs: Array.isArray(t.timesegs) ? t.timesegs : null,
+          estimationDuration: typeof t.estimationDuration === 'number' && t.estimationDuration > 0 ? t.estimationDuration : null
+        };
+
+        if (byUuid.has(t.uuid)) {
+          Object.assign(byUuid.get(t.uuid), parsed);
+          updated++;
+        } else {
+          if (this._tasks.length >= 8) continue;
+          this._tasks.push(parsed);
+          byUuid.set(t.uuid, parsed);
+          added++;
+        }
+      }
+
+      this._renderTasks();
+      alert(`Sample loaded: ${added} added, ${updated} updated.`);
+    } catch (err) {
+      alert('Failed to load sample: ' + err.message);
+    }
+  }
+
+  _importConfig(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = JSON.parse(reader.result);
+        if (!Array.isArray(imported)) throw new Error('Invalid format');
+
+        const byUuid = new Map(this._tasks.map(t => [t.uuid, t]));
+        let added = 0, updated = 0;
+
+        for (const t of imported) {
+          if (!t.name || typeof t.name !== 'string') continue;
+          if (!t.uuid) t.uuid = crypto.randomUUID();
+
+          const parsed = {
+            uuid: t.uuid,
+            name: String(t.name).slice(0, 20),
+            timesegs: Array.isArray(t.timesegs) ? t.timesegs : null,
+            estimationDuration: typeof t.estimationDuration === 'number' && t.estimationDuration > 0 ? t.estimationDuration : null
+          };
+
+          if (byUuid.has(t.uuid)) {
+            // Update existing task in place
+            Object.assign(byUuid.get(t.uuid), parsed);
+            updated++;
+          } else {
+            if (this._tasks.length >= 8) continue;
+            this._tasks.push(parsed);
+            byUuid.set(t.uuid, parsed);
+            added++;
+          }
+        }
+
+        this._renderTasks();
+        alert(`Imported: ${added} added, ${updated} updated.`);
+      } catch (err) {
+        alert('Config import failed: ' + err.message);
       }
     };
     reader.readAsText(file);
