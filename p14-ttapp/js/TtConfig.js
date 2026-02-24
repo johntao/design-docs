@@ -8,56 +8,54 @@ export class TtConfig extends HTMLElement {
     this._tasks = [];
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display: block; color: #444; }
-        h3 { color: #d63851; margin-bottom: 12px; font-size: 16px; }
-        .task-list { margin-bottom: 16px; }
-        .task-item {
-          background: #f5f5f5; border-radius: 8px; padding: 10px; margin-bottom: 8px;
-          border: 1px solid #e8e8e8;
-        }
-        .task-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
-        .task-row input[type="text"] {
-          flex: 1; padding: 6px 8px; background: #fff; color: #333; border: 1px solid #ddd;
-          border-radius: 4px; font-size: 13px;
-        }
-        .task-row input[type="number"] {
-          width: 70px; padding: 6px 8px; background: #fff; color: #333; border: 1px solid #ddd;
-          border-radius: 4px; font-size: 13px;
-        }
-        .segs { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
-        .segs label { font-size: 11px; display: flex; align-items: center; gap: 2px; color: #666; }
-        .segs input { accent-color: #d63851; }
-        button {
-          padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
-        }
-        .btn-remove { background: #fde8e8; color: #c02a43; }
-        .btn-move { background: #e8e8e8; color: #666; font-size: 11px; padding: 4px 8px; }
-        .btn-add { background: #d63851; color: #fff; margin-bottom: 16px; }
-        .btn-add:disabled { background: #ddd; color: #999; }
-        h4 { color: #2a7ab5; margin: 16px 0 8px; font-size: 14px; }
-        .io-row { display: flex; gap: 8px; }
-        .btn-io { background: #e8f0fe; color: #2a7ab5; }
-        .btn-io:hover { background: #d4e4fc; }
-        .btn-save-config { background: #d63851; color: #fff; width: 100%; padding: 10px; margin-top: 16px; font-size: 14px; }
-        .btn-save-config:hover { background: #c02a43; }
+:host { display: block; color: #444; }
+h3 { color: #d63851; margin-bottom: 12px; font-size: 16px; }
+.task-list { margin-bottom: 16px; }
+.task-item {
+  background: #f5f5f5; border-radius: 8px; padding: 10px; margin-bottom: 8px;
+  border: 1px solid #e8e8e8;
+}
+.task-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.task-row input[type="text"] {
+  flex: 1; padding: 6px 8px; background: #fff; color: #333; border: 1px solid #ddd;
+  border-radius: 4px; font-size: 13px;
+}
+.task-row input[type="number"] {
+  width: 70px; padding: 6px 8px; background: #fff; color: #333; border: 1px solid #ddd;
+  border-radius: 4px; font-size: 13px;
+}
+.segs { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.segs label { font-size: 11px; display: flex; align-items: center; gap: 2px; color: #666; }
+.segs input { accent-color: #d63851; }
+button {
+  padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+.btn-remove { background: #fde8e8; color: #c02a43; }
+.btn-move { background: #e8e8e8; color: #666; font-size: 11px; padding: 4px 8px; }
+.btn-add { background: #d63851; color: #fff; margin-bottom: 16px; }
+.btn-add:disabled { background: #ddd; color: #999; }
+h4 { color: #2a7ab5; margin: 16px 0 8px; font-size: 14px; }
+.btn-io { background: #e8f0fe; color: #2a7ab5; }
+.btn-io:hover { background: #d4e4fc; }
+.btn-save-config { background: #d63851; color: #fff; width: 100%; padding: 10px; margin-top: 16px; font-size: 14px; }
+.btn-save-config:hover { background: #c02a43; }
+#io-section { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; font-size: 13px; }
+#io-section b { justify-self: start; align-self: center; }
       </style>
       <h3>Predefined Tasks</h3>
       <div class="task-list" id="task-list"></div>
       <button class="btn-add" id="btn-add">+ Add Task</button>
 
-      <h4>Task Config</h4>
-      <div class="io-row">
-        <button class="btn-io" id="btn-export-config">Export Config</button>
-        <button class="btn-io" id="btn-import-config">Import Config</button>
-        <button class="btn-io" id="btn-load-sample">Load Sample Tasks</button>
-      </div>
+<div id="io-section">
+  <b>Task Config</b>
+  <button class="btn-io" id="btn-export-config">Export Config</button>
+  <button class="btn-io" id="btn-import-config">Import Config</button>
+  <button class="btn-io" id="btn-load-sample">Load Sample</button>
+  <b>Entry Data</b>
+  <button class="btn-io" id="btn-export">Export Entries</button>
+  <button class="btn-io" id="btn-import">Import Entries</button>
+</div>
       <input type="file" id="file-input-config" accept=".json" style="display:none">
-
-      <h4>Entry Data</h4>
-      <div class="io-row">
-        <button class="btn-io" id="btn-export">Export Entries</button>
-        <button class="btn-io" id="btn-import">Import Entries</button>
-      </div>
       <input type="file" id="file-input" accept=".json" style="display:none">
 
       <button class="btn-save-config" id="btn-save">Save Configuration</button>
