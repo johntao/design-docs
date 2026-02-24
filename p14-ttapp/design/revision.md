@@ -70,3 +70,10 @@ expected:
 2. the state of the below dial control is changed
 3. users apply changes using the dial control
 4. the red borders is retained; changes to the dial control still reflect to the selected field
+
+## revision 4
+
+tweak the UI of vertical step bar
+
+1. display the steps ascendingly from top to bottom (00 to 60)
+2. dragging behavior also starts from top to bottom

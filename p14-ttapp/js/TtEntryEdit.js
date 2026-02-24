@@ -14,74 +14,74 @@ export class TtEntryEdit extends HTMLElement {
 
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display: block; color: #444; }
-        h3 { color: #d63851; margin-bottom: 14px; font-size: 16px; }
-        .field { margin-bottom: 12px; }
-        label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; }
-        select { width: 100%; padding: 8px; background: #f5f5f5; color: #333; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-        .temporal { display: flex; gap: 10px; margin-bottom: 0; position: relative; }
-        .time-field {
-          flex: 1; text-align: center; padding: 10px 6px; background: #f5f5f5; border-radius: 8px;
-          cursor: pointer; transition: background 0.15s; position: relative; border: 2px solid transparent;
-        }
-        .time-field:hover { background: #eef2ff; }
-        .time-field.active { border-color: #d63851; }
-        .time-field .val { font-size: 18px; font-family: monospace; color: #333; }
-        .time-field .lbl { font-size: 11px; color: #888; }
-        .lock-icon { position: absolute; top: 4px; right: 6px; font-size: 10px; color: #d63851; }
+:host { display: block; color: #444; }
+h3 { color: #d63851; margin-bottom: 14px; font-size: 16px; }
+.field { margin-bottom: 12px; }
+label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; }
+select { width: 100%; padding: 8px; background: #f5f5f5; color: #333; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+.temporal { display: flex; gap: 10px; margin-bottom: 0; position: relative; }
+.time-field {
+  flex: 1; text-align: center; padding: 10px 6px; background: #f5f5f5; border-radius: 8px;
+  cursor: pointer; transition: background 0.15s; position: relative; border: 2px solid transparent;
+}
+.time-field:hover { background: #eef2ff; }
+.time-field.active { border-color: #d63851; }
+.time-field .val { font-size: 18px; font-family: monospace; color: #333; }
+.time-field .lbl { font-size: 11px; color: #888; }
+.lock-icon { position: absolute; top: 4px; right: 6px; font-size: 10px; color: #d63851; }
 
-        /* +/- buttons anchored below duration field */
-        .dur-adjust {
-          display: flex; justify-content: center; gap: 8px; margin: 6px 0 10px;
-        }
-        .dur-adjust button {
-          width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ddd;
-          background: #fff; font-size: 20px; font-weight: bold; color: #555; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.06); touch-action: none; user-select: none;
-          transition: background 0.1s;
-        }
-        .dur-adjust button:hover { background: #f0f0f0; }
-        .dur-adjust button:active { background: #e8e8e8; }
+/* Vertical step bar overlay */
+.step-bar-overlay {
+  display: none; position: fixed; inset: 0; z-index: 3000;
+  touch-action: none; user-select: none;
+}
+.step-bar-overlay.open { display: block; }
+.step-bar-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.15); }
+.step-bar {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 64px; background: #fff; border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15); padding: 8px 0; display: flex;
+  flex-direction: column; align-items: center;
+}
+.step-bar .bar-label {
+  font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 600;
+}
+.step-bar .bar-value {
+  font-size: 16px; font-family: monospace; color: #d63851; font-weight: 700;
+  margin-bottom: 6px;
+}
+.step-bar .step {
+  width: 48px; height: 28px; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-family: monospace; color: #666; border-radius: 4px;
+  transition: background 0.08s;
+}
+.step-bar .step.active { background: #d63851; color: #fff; font-weight: 700; }
+.step-bar .step.in-range { background: #fde8e8; color: #d63851; }
 
-        /* Vertical step bar overlay */
-        .step-bar-overlay {
-          display: none; position: fixed; inset: 0; z-index: 3000;
-          touch-action: none; user-select: none;
-        }
-        .step-bar-overlay.open { display: block; }
-        .step-bar-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.15); }
-        .step-bar {
-          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-          width: 64px; background: #fff; border-radius: 12px;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.15); padding: 8px 0; display: flex;
-          flex-direction: column; align-items: center;
-        }
-        .step-bar .bar-label {
-          font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 600;
-        }
-        .step-bar .bar-value {
-          font-size: 16px; font-family: monospace; color: #d63851; font-weight: 700;
-          margin-bottom: 6px;
-        }
-        .step-bar .step {
-          width: 48px; height: 28px; display: flex; align-items: center; justify-content: center;
-          font-size: 12px; font-family: monospace; color: #666; border-radius: 4px;
-          transition: background 0.08s;
-        }
-        .step-bar .step.active { background: #d63851; color: #fff; font-weight: 700; }
-        .step-bar .step.in-range { background: #fde8e8; color: #d63851; }
-
-        .dial-container { min-height: 0; overflow: hidden; transition: min-height 0.2s; }
-        .dial-container.open { min-height: 240px; }
-        .actions { display: flex; gap: 10px; margin-top: 14px; }
-        .actions button {
-          flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;
-        }
-        .btn-save { background: #d63851; color: #fff; }
-        .btn-save:hover { background: #c02a43; }
-        .btn-cancel { background: #e8e8e8; color: #666; }
-        .btn-cancel:hover { background: #ddd; }
+.dial-container { min-height: 0; overflow: hidden; transition: min-height 0.2s; }
+.dial-container.open { min-height: 240px; }
+.actions { display: flex; gap: 10px; margin-top: 14px; }
+.actions button {
+  flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;
+}
+.btn-save { background: #d63851; color: #fff; }
+.btn-save:hover { background: #c02a43; }
+.btn-cancel { background: #e8e8e8; color: #666; }
+.btn-cancel:hover { background: #ddd; }
+#du-field { position: relative; }
+/* +/- buttons anchored below duration field */
+.dur-adjust {
+  position: absolute; right: 0; margin-top: 6px; display: flex; gap: 8px;
+}
+.dur-adjust button {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ddd;
+  background: #fff; font-size: 20px; font-weight: bold; color: #555; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06); touch-action: none; user-select: none;
+  transition: background 0.1s;
+}
+.dur-adjust button:hover { background: #f0f0f0; }
+.dur-adjust button:active { background: #e8e8e8; }
       </style>
       <h3>Edit Entry</h3>
       <div class="field">
@@ -99,15 +99,16 @@ export class TtEntryEdit extends HTMLElement {
           <div class="val" id="end-val">--:--</div>
           <div class="lbl">End</div>
         </div>
-        <div class="time-field" data-field="duration">
+        <div id="du-field" class="time-field" data-field="duration">
           <div class="val" id="dur-val">--:--</div>
           <div class="lbl">Duration</div>
+          <div class="dur-adjust">
+            <button id="btn-dur-plus" title="Add duration">+</button>
+            <button id="btn-dur-minus" title="Subtract duration">−</button>
+          </div>
         </div>
       </div>
-      <div class="dur-adjust">
-        <button id="btn-dur-minus" title="Subtract duration">−</button>
-        <button id="btn-dur-plus" title="Add duration">+</button>
-      </div>
+      
       <div class="dial-container" id="dial-container">
         <tt-dial></tt-dial>
       </div>
