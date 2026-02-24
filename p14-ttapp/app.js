@@ -889,7 +889,9 @@ class TtRingMenu extends HTMLElement {
       const isActive = i === this._activeIndex;
       html += `<path class="item-arc${isActive ? ' active' : ''}" d="M ${x1i} ${y1i} L ${x1o} ${y1o} A ${outerR} ${outerR} 0 ${largeArc} 1 ${x2o} ${y2o} L ${x2i} ${y2i} A ${innerR} ${innerR} 0 ${largeArc} 0 ${x1i} ${y1i} Z" />`;
       const midAngle = ((i + 0.5) * sliceAngle - 90) * Math.PI / 180;
-      html += `<text class="item-label${isActive ? ' active' : ''}" x="${labelR * Math.cos(midAngle)}" y="${labelR * Math.sin(midAngle)}">${truncate(this._items[i].name)}</text>`;
+      const task = this._items[i];
+      const label = task.estimationDuration ? `[${task.estimationDuration}m] ${task.name}` : task.name;
+      html += `<text class="item-label${isActive ? ' active' : ''}" x="${labelR * Math.cos(midAngle)}" y="${labelR * Math.sin(midAngle)}">${truncate(label)}</text>`;
     }
     this._svg.innerHTML = html;
   }
@@ -1038,10 +1040,14 @@ class TtTriggerWidget extends HTMLElement {
           min-width: 120px; text-align: center; max-width: 220px;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
           touch-action: none; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-          transition: border-color 0.15s, box-shadow 0.15s;
+          transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
         }
         .task-trigger:hover { border-color: #d63851; box-shadow: 0 2px 16px rgba(214,56,81,0.15); }
-        .task-trigger.tracking { border-color: #d63851; background: #fef2f2; }
+        .task-trigger.tracking { border-color: #d63851; background: #fef2f2; pointer-events: none; opacity: 0.7; }
+        .est-label {
+          font-size: 12px; color: #999; font-family: monospace;
+        }
+        .est-label.hidden { display: none; }
         .timer {
           font-family: monospace; font-size: 32px; color: #333; letter-spacing: 1px;
         }
@@ -1059,23 +1065,29 @@ class TtTriggerWidget extends HTMLElement {
         .controls button.hidden { display: none; }
       </style>
       <div class="task-trigger" id="trigger">Select task…</div>
+      <div class="est-label hidden" id="est-label"></div>
       <div class="timer" id="timer">00:00</div>
       <div class="controls">
-        <button id="btn-play" title="Start" disabled>▶</button>
-        <button id="btn-stop" title="Stop" disabled>⏹</button>
+        <button id="btn-toggle" title="Start" disabled>▶</button>
+        <button id="btn-discard" title="Discard" class="hidden">✕</button>
         <button id="btn-merge" title="Merge" class="hidden">⇅</button>
       </div>
     `;
 
     this.shadowRoot.getElementById('trigger').addEventListener('pointerdown', e => {
+      if (this._tracking) return; // disable when tracking
       e.preventDefault();
       this.dispatchEvent(new CustomEvent('ring-menu-open', { bubbles: true, composed: true }));
     });
-    this.shadowRoot.getElementById('btn-play').addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('tracking-start', { bubbles: true, composed: true }));
+    this.shadowRoot.getElementById('btn-toggle').addEventListener('click', () => {
+      if (this._tracking) {
+        this.dispatchEvent(new CustomEvent('tracking-stop', { bubbles: true, composed: true }));
+      } else {
+        this.dispatchEvent(new CustomEvent('tracking-start', { bubbles: true, composed: true }));
+      }
     });
-    this.shadowRoot.getElementById('btn-stop').addEventListener('click', () => {
-      this.dispatchEvent(new CustomEvent('tracking-stop', { bubbles: true, composed: true }));
+    this.shadowRoot.getElementById('btn-discard').addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('tracking-discard', { bubbles: true, composed: true }));
     });
     this.shadowRoot.getElementById('btn-merge').addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('tracking-merge', { bubbles: true, composed: true }));
@@ -1084,7 +1096,9 @@ class TtTriggerWidget extends HTMLElement {
 
   set selectedTask(task) {
     this._selectedTask = task;
-    this.shadowRoot.getElementById('trigger').textContent = task ? truncate(task.name) : 'Select task…';
+    const trigger = this.shadowRoot.getElementById('trigger');
+    trigger.textContent = task ? truncate(task.name) : 'Select task…';
+    this._updateEstLabel();
     this._updateButtons();
   }
 
@@ -1101,18 +1115,55 @@ class TtTriggerWidget extends HTMLElement {
     const mergeBtn = this.shadowRoot.getElementById('btn-merge');
     mergeBtn.classList.toggle('hidden', !showMerge);
 
+    const discardBtn = this.shadowRoot.getElementById('btn-discard');
+    discardBtn.classList.toggle('hidden', !tracking);
+
     if (tracking && currentEntry) {
       this._startTimer();
     } else {
       this._stopTimer();
-      this.shadowRoot.getElementById('timer').textContent = '00:00';
-      this.shadowRoot.getElementById('timer').className = 'timer';
+      this._showIdleTimer();
+    }
+
+    this._updateEstLabel();
+  }
+
+  _updateEstLabel() {
+    const el = this.shadowRoot.getElementById('est-label');
+    const task = this._selectedTask;
+    if (task && task.estimationDuration && !this._tracking) {
+      el.textContent = `est: ${task.estimationDuration}m`;
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  _showIdleTimer() {
+    const timer = this.shadowRoot.getElementById('timer');
+    // Show estimation duration as the idle display if task has one
+    const task = this._selectedTask;
+    if (task && task.estimationDuration) {
+      const ms = task.estimationDuration * 60000;
+      timer.className = 'timer countdown';
+      timer.textContent = formatDuration(ms);
+    } else {
+      timer.className = 'timer';
+      timer.textContent = '00:00';
     }
   }
 
   _updateButtons() {
-    this.shadowRoot.getElementById('btn-play').disabled = !this._selectedTask || this._tracking;
-    this.shadowRoot.getElementById('btn-stop').disabled = !this._tracking;
+    const toggleBtn = this.shadowRoot.getElementById('btn-toggle');
+    if (this._tracking) {
+      toggleBtn.textContent = '⏹';
+      toggleBtn.title = 'Stop';
+      toggleBtn.disabled = false;
+    } else {
+      toggleBtn.textContent = '▶';
+      toggleBtn.title = 'Start';
+      toggleBtn.disabled = !this._selectedTask;
+    }
   }
 
   _startTimer() {
@@ -1206,6 +1257,7 @@ class TtApp extends HTMLElement {
     this._entryEdit = this.shadowRoot.querySelector('tt-entry-edit');
 
     this.shadowRoot.addEventListener('ring-menu-open', () => {
+      if (Store.getCurrent()) return; // block while tracking
       const available = getAvailableTasks(Store.getTasks());
       this._ringMenu.show(available);
     });
@@ -1213,10 +1265,13 @@ class TtApp extends HTMLElement {
     this.shadowRoot.addEventListener('task-selected', e => {
       this._selectedTask = e.detail.task;
       this._trigger.selectedTask = this._selectedTask;
+      // Auto-start tracking on task selection
+      this._startTracking();
     });
 
     this.shadowRoot.addEventListener('tracking-start', () => this._startTracking());
     this.shadowRoot.addEventListener('tracking-stop', () => this._stopTracking());
+    this.shadowRoot.addEventListener('tracking-discard', () => this._discardTracking());
     this.shadowRoot.addEventListener('tracking-merge', () => this._mergeTracking());
 
     this.shadowRoot.addEventListener('open-config', () => {
@@ -1309,6 +1364,13 @@ class TtApp extends HTMLElement {
     entries.push({ uuid: crypto.randomUUID(), taskName: current.taskName, startTime: current.startTime, endTime: Date.now() });
     Store.setEntries(entries);
     Store.setCurrent(null);
+    // Keep selected task loaded (don't clear this._selectedTask)
+    this._refreshState();
+  }
+
+  _discardTracking() {
+    Store.setCurrent(null);
+    // Keep selected task loaded (don't clear this._selectedTask)
     this._refreshState();
   }
 
