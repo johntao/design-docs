@@ -10,18 +10,19 @@ export class TtEntry extends HTMLElement {
       <style>
         :host { display: block; }
         .row {
-          display: flex; align-items: center; padding: 10px 14px; gap: 10px;
+          display: flex; align-items: stretch; padding: 10px 14px;
           background: #fff; border-radius: 8px; margin-bottom: 6px; cursor: pointer;
           transition: background 0.15s; border: 1px solid #e8e8e8;
         }
+        .row>* { align-content: center; }
         .row:hover { background: #f0f4ff; }
         .task-name { flex: 1; font-weight: 600; color: #d63851; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .description { flex: 4; font-size: 11px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none; }
+        .description { flex: 4; font-size: 14px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none; }
         .description.visible { display: block; }
         .times { font-size: 13px; color: #888; font-family: monospace; }
-        .duration { font-size: 13px; color: #2a7ab5; font-family: monospace; min-width: 60px; text-align: right; }
+        .duration { font-size: 13px; color: #2a7ab5; font-family: monospace; text-align: right; margin-left: 12px; }
         .delete-btn {
-          background: none; border: none; color: #bbb; font-size: 16px; cursor: pointer; padding: 2px 6px;
+          background: none; border: none; color: #bbb; font-size: 16px; cursor: pointer; padding-inline: 12px 0;
         }
         .delete-btn:hover { color: #d63851; }
       </style>
@@ -51,7 +52,7 @@ export class TtEntry extends HTMLElement {
     this._entry = val;
     if (!val) return;
     this.shadowRoot.querySelector('.task-name').textContent = truncate(val.taskName);
-    this.shadowRoot.querySelector('.times').textContent = `${formatTime(val.startTime)} – ${formatTime(val.endTime)}`;
+    this.shadowRoot.querySelector('.times').textContent = `${formatTime(val.startTime)}–${formatTime(val.endTime)}`;
     this.shadowRoot.querySelector('.duration').textContent = formatDuration(val.endTime - val.startTime);
     const descEl = this.shadowRoot.querySelector('.description');
     if (val.description) {
