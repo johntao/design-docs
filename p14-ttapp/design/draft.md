@@ -15,73 +15,42 @@ this is achieved by three major features:
 ## tech stack
 
 - vanilla js + web components (no framework)
-- single html file or minimal file structure
+- minimal file structure, modularized into separate js files under `@js/`
 - localStorage for persistence
-- consider reusing a published dial/knob web component if available
+- light theme
 
 ## layout
 
 - single page, vertical layout
-- toolbar at top (fixed)
+- floating toolbar: a '⋮' symbol at the top-right of the screen
+  - tap to show config '🔧' and help '?' buttons
+  - tap elsewhere to hide
+- trigger widget: fixed in the center of the screen (horizontally and vertically)
 - history list below (scrollable)
 - modal popups for configuration, entry editing, and help
 
 ---
 
-## toolbar
+## three major modules
 
-### structure (left to right)
+the app is composed of three major modules, each built from smaller components:
 
-1. ring menu trigger (task selector)
-2. timer display
-3. playback buttons: play '▶' / stop '⏹'
-4. merge button '⇅' (conditional)
-5. config button '🔧'
-6. help button '?'
-
-### ring menu trigger
-
-- displays the currently selected task name (truncated with ellipsis at 20 chars)
-- tap/hold to open the ring menu overlay
-- when no task is selected: show placeholder text
-
-### timer display
-
-- when idle: show "00:00"
-- when tracking (count up): show elapsed time ticking (mm:ss, then h:mm:ss)
-- when tracking (countdown): show remaining time ticking down
-  - when countdown reaches zero: play sound + send browser Notification
-
-### playback buttons
-
-- play '▶': start tracking the selected task; disabled when no task selected
-- stop '⏹': end current entry, save to history; disabled when idle
-- play and stop are always visible; enabled/disabled based on state
-
-### merge button '⇅'
-
-- visible only when ALL conditions are met:
-  - currently tracking (not idle)
-  - previous entry in history exists
-  - previous entry's taskName matches current entry's taskName
-- action: merge silently (no confirmation)
-  - set previous entry's endTime to current time
-  - discard current tracking entry
-  - continue in idle state
-- use case: user accidentally tapped stop then play, wants to undo the split
-
-### config and help buttons
-
-- '🔧' opens configuration modal
-- '?' opens help modal
+1. **trigger** — start / stop a task (ring menu, timer, playback controls, merge)
+2. **time entry editor** — edit saved entries (temporal fields, timespan, dial control)
+3. **predefined tasks config** — manage task definitions and import/export
 
 ---
+
+# module 1: trigger
+
+the trigger widget is fixed in the center of the screen. it contains the ring menu, timer display, playback button, discard button, and merge button.
 
 ## ring menu
 
 - full circle layout, 8 items max
 - items evenly distributed around the circle (360° / item count)
 - each item displays the predefined task name (truncated with ellipsis at 20 chars)
+  - tasks with estimationDuration are prefixed by `[est dur]` in the ring menu
 - only tasks available in the current time segment are shown
 - if no tasks are available for current segment: ring menu is empty (show message)
 
@@ -90,7 +59,8 @@ this is achieved by three major features:
 - hold to open the menu; release to close
 - menu opens immediately on tap (no threshold delay)
 - drag pointer to an item, then release to activate
-- the selected task becomes the active task in the toolbar
+- selecting a task from the ring menu immediately starts tracking (a running task begins)
+- must work on touch devices (iPhone): drag-and-release activates items; no text selection triggered
 
 ### visual feedback
 
@@ -99,38 +69,51 @@ this is achieved by three major features:
   - dragging to center and releasing cancels the selection
   - visual indicator for cancel zone (e.g. dimmed center area)
 
+## timer display
+
+- when idle: show "00:00"
+- when tracking (count up): show elapsed time ticking (mm:ss, then h:mm:ss)
+- when tracking (countdown): show remaining time ticking down
+  - when countdown reaches zero: play sound + send browser Notification
+
+## playback button (combined play/stop)
+
+a single button that toggles between play and stop:
+
+- shows '💾' if there's a running task
+  - click to save the current running task to the history
+  - reset to the status where a predefined task is loaded
+  - display the estimation duration if defined
+- shows '▶' if there isn't any running task
+  - click to start tracking the selected task
+  - disabled when no task is selected
+
+users cannot change the task name while a task is running.
+
+## discard button '🗑'
+
+- visible when there's a running task
+- click to discard the current running task (no save)
+- reset to the status where a predefined task is loaded
+- display the estimation duration if defined
+
+## merge button '⇅'
+
+- visible only when ALL conditions are met:
+  - currently tracking (not idle)
+  - previous entry in history exists
+  - previous entry's taskName matches current entry's taskName
+- action: merge silently (no confirmation)
+  - keep the current running task
+  - set the current task's start time to the previous entry's start time
+  - discard the previous entry
+- use case: user accidentally tapped stop then play, wants to undo the split
+
 ---
 
-## predefined tasks
+# module 2: time entry editor
 
-- each task has:
-  - name (required): label shown in ring menu and history; max 20 chars
-  - timesegs (optional): list of time segment enums; defaults to null (all-day)
-  - estimationDuration (optional): duration in minutes; defaults to null (count up)
-- timesegs controls when a task appears in the ring menu
-  - only tasks whose timesegs include the current segment are shown
-  - null means the task is always shown
-- estimationDuration replaces elapsed timer with countdown when task is started
-  - timer notifies user when countdown reaches zero
-
----
-
-## time segments
-
-five segments covering the full 24-hour day:
-
-| enum | range                        | label     |
-|------|------------------------------|-----------|
-| seg0 | 00:00–06:00 & 22:00–23:59   | night     |
-| seg1 | 06:00–10:00                  | morning   |
-| seg2 | 10:00–14:00                  | midday    |
-| seg3 | 14:00–18:00                  | afternoon |
-| seg4 | 18:00–22:00                  | evening   |
-
-- the current segment is determined by the current wall-clock time
-- seg0 wraps around midnight (two disjoint ranges)
-
----
+opened by tapping an entry in the history list.
 
 ## history list
 
@@ -140,18 +123,16 @@ five segments covering the full 24-hour day:
 - tap an entry row to open the entry edit modal
 - swipe or button to delete an entry
 
----
-
 ## entry edit modal
-
-opened by tapping an entry in the history list
 
 ### task name field
 
 - select from predefined tasks (dropdown or similar)
 - displays current task name; tap to change
 
-### temporal fields
+### temporal fields (TtTimespan)
+
+the three temporal values (startTime, endTime, duration) are encapsulated into a timespan object, managed by the `<tt-timespan>` component.
 
 displays three values: startTime, endTime, duration
 
@@ -170,21 +151,50 @@ displays three values: startTime, endTime, duration
 
 #### interaction flow
 
-- tap a temporal field (startTime, endTime, or duration) to open the dial control
+- tap a temporal field (startTime, endTime, or duration) to select it
 - the dial operates in time mode or duration mode depending on which field was tapped
 - when the locked field is tapped, it stays locked and opens in time mode (user can still view/adjust it, but the lock determines which other field recalculates)
+
+#### focus retention
+
+- a red border appears when users click on any temporal field
+- the dial control state changes to reflect the selected field
+- users apply changes using the dial control
+- the red border is retained after changes; the dial remains linked to the selected field
+- (focus persists until another field is tapped or the modal is closed)
+
+### duration field: assignment and additive ops
+
+#### single tap → assignment mode (via dial)
+
+- minute hand initialized at current duration value (minute portion)
+- drag clockwise; crossing 12 marker accumulates hours
+- result = dial value directly (absolute assignment)
+- on release: set duration to dial value
+
+#### additive ops (via +/− buttons)
+
+- two buttons '+' and '−' are docked directly below the duration field (using CSS anchor positioning)
+- tap and hold a button to show a vertical step bar
+  - 12 steps, 5 minutes per step (0 to 60 minutes)
+  - steps displayed ascendingly from top to bottom (00 to 60)
+  - dragging behavior starts from top to bottom
+  - on drag start, value begins from the zero position of the bar (not the middle)
+- release the button to apply the additive/subtractive delta to the duration
+
+#### duration validation
+
+- final duration must be positive (> 0)
+- if result would be zero or negative: reject change, revert
 
 ### save and cancel
 
 - save: apply changes and close modal
 - cancel: discard changes and close modal
 
----
-
 ## dial control
 
 a shared dial-like user control used for both time editing and duration editing
-do not reinvent the wheel — reuse a published web component if a suitable one exists
 
 ### visual design
 
@@ -213,33 +223,37 @@ do not reinvent the wheel — reuse a published web component if a suitable one 
 - validation: startTime must not surpass endTime; endTime must not precede startTime
   - if invalid: reject change, revert to previous value
 
-### duration mode (editing duration)
-
-two sub-modes activated by how the user taps the duration field:
-
-#### single tap → additive mode
-
-- minute hand initialized at 12 marker (representing +0)
-- drag clockwise to add time
-- drag counter-clockwise to subtract time
-- crossing 12 marker accumulates hours (same as time mode)
-- result = current duration + dial delta
-- on release: apply delta to duration
-
-#### double tap → assignment mode
-
-- minute hand initialized at current duration value (minute portion)
-- can only drag clockwise (counter-clockwise movement is ignored)
-- crossing 12 marker accumulates hours
-- result = dial value directly (absolute assignment)
-- on release: set duration to dial value
-
-#### duration validation
-
-- final duration must be positive (> 0)
-- if result would be zero or negative: reject change, revert
-
 ---
+
+# module 3: predefined tasks config
+
+## predefined tasks
+
+- each task has:
+  - uuid: unique identifier for dedup on import/export
+  - name (required): label shown in ring menu and history; max 20 chars
+  - timesegs (optional): list of time segment enums; defaults to null (all-day)
+  - estimationDuration (optional): duration in minutes; defaults to null (count up)
+- timesegs controls when a task appears in the ring menu
+  - only tasks whose timesegs include the current segment are shown
+  - null means the task is always shown
+- estimationDuration replaces elapsed timer with countdown when task is started
+  - timer notifies user when countdown reaches zero
+
+## time segments
+
+five segments covering the full 24-hour day:
+
+| enum | range                        | label     |
+|------|------------------------------|-----------|
+| seg0 | 00:00–06:00 & 22:00–23:59   | night     |
+| seg1 | 06:00–10:00                  | morning   |
+| seg2 | 10:00–14:00                  | midday    |
+| seg3 | 14:00–18:00                  | afternoon |
+| seg4 | 18:00–22:00                  | evening   |
+
+- the current segment is determined by the current wall-clock time
+- seg0 wraps around midnight (two disjoint ranges)
 
 ## configuration modal
 
@@ -254,13 +268,21 @@ two sub-modes activated by how the user taps the duration field:
   - timesegs: multi-select checkboxes for seg0–seg4; unchecked = null (all-day)
   - estimationDuration: number input in minutes; empty = null (count up)
 
-### data export
+### predefined task import/export
 
-- export time entries only (not predefined task config)
+- export predefined task config as JSON (includes uuid per task)
+- import predefined task config from JSON
+  - each task must have a uuid; if uuid is falsy, generate one automatically
+  - if a uuid already exists locally, update the existing task (not discard)
+- "Load Sample Task" button: loads sample data from `./sample/config.json`
+
+### time entry export
+
+- export time entries (separate from task config)
 - format: JSON array of time entry objects
 - trigger: export button → browser file download
 
-### data import
+### time entry import
 
 - import time entries from JSON file
 - entries deduplicated by uuid (existing uuids are skipped)
@@ -269,8 +291,7 @@ two sub-modes activated by how the user taps the duration field:
 ### config persistence
 
 - predefined task config stored separately in localStorage
-- config is not included in entry export/import
-- to transfer config: use a separate config export/import mechanism
+- time entries stored separately in localStorage
 
 ---
 
@@ -309,12 +330,14 @@ two sub-modes activated by how the user taps the duration field:
 
 ```json
 {
+  "uuid": "string",
   "name": "string",
   "timesegs": ["seg1", "seg2"],
   "estimationDuration": 50
 }
 ```
 
+- uuid: crypto.randomUUID() on creation; used for dedup on import
 - name: max 20 chars
 - timesegs: array of seg enum strings, or null for all-day
 - estimationDuration: number (minutes), or null for count-up
@@ -343,17 +366,33 @@ two sub-modes activated by how the user taps the duration field:
 
 ## web components
 
+organized by module:
+
+### module 1: trigger
+| component        | responsibility                                              |
+|------------------|-------------------------------------------------------------|
+| `<tt-trigger>`   | trigger widget: ring menu, timer, playback, merge, discard  |
+| `<tt-ring-menu>` | circular gesture-driven task selector (8 items, full circle)|
+
+### module 2: time entry editor
+| component        | responsibility                                              |
+|------------------|-------------------------------------------------------------|
+| `<tt-history>`   | scrollable list of time entries                             |
+| `<tt-entry>`     | single entry row in the list (tap to edit)                  |
+| `<tt-entry-edit>`| entry editing form: task name selector + timespan + dial    |
+| `<tt-timespan>`  | encapsulates startTime/endTime/duration editing logic       |
+| `<tt-dial>`      | shared dial control for time and duration editing           |
+
+### module 3: predefined tasks config
+| component        | responsibility                                              |
+|------------------|-------------------------------------------------------------|
+| `<tt-config>`    | configuration form: task management + import/export         |
+
+### shared
 | component        | responsibility                                              |
 |------------------|-------------------------------------------------------------|
 | `<tt-app>`       | top-level shell, owns app state, coordinates modals         |
-| `<tt-toolbar>`   | toolbar layout: ring menu, timer, playback, merge, buttons  |
-| `<tt-ring-menu>` | circular gesture-driven task selector (8 items, full circle)|
-| `<tt-history>`   | scrollable list of time entries                             |
-| `<tt-entry>`     | single entry row in the list (tap to edit)                  |
 | `<tt-modal>`     | reusable modal popup shell (backdrop, close behavior)       |
-| `<tt-entry-edit>`| entry editing form: task name selector + temporal fields    |
-| `<tt-dial>`      | shared dial control for time and duration editing           |
-| `<tt-config>`    | configuration form: task management + import/export         |
 | `<tt-help>`      | help text content                                           |
 
 ### component communication
@@ -365,9 +404,9 @@ two sub-modes activated by how the user taps the duration field:
 
 ### event flow examples
 
-- ring menu selects task → `tt-ring-menu` dispatches `task-selected` → `tt-toolbar` updates display → `tt-app` updates selected task
-- play pressed → `tt-toolbar` dispatches `tracking-start` → `tt-app` creates currentEntry
-- stop pressed → `tt-toolbar` dispatches `tracking-stop` → `tt-app` finalizes entry, saves to entries
-- merge pressed → `tt-toolbar` dispatches `tracking-merge` → `tt-app` merges with previous entry
+- ring menu selects task → `tt-ring-menu` dispatches `task-selected` → `tt-trigger` starts tracking → `tt-app` creates currentEntry
+- stop pressed → `tt-trigger` dispatches `tracking-stop` → `tt-app` finalizes entry, saves to entries
+- discard pressed → `tt-trigger` dispatches `tracking-discard` → `tt-app` discards currentEntry
+- merge pressed → `tt-trigger` dispatches `tracking-merge` → `tt-app` merges with previous entry
 - entry tapped → `tt-entry` dispatches `entry-edit` → `tt-app` opens entry edit modal
-- dial released → `tt-dial` dispatches `dial-commit` with value → `tt-entry-edit` applies to temporal field
+- dial released → `tt-dial` dispatches `dial-commit` with value → `tt-timespan` applies to temporal field
