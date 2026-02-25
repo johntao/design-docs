@@ -123,6 +123,7 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
     this.shadowRoot.getElementById('btn-delete-tab').addEventListener('click', () => this._deleteTab());
     this.shadowRoot.getElementById('btn-export').addEventListener('click', () => this._export());
     this.shadowRoot.getElementById('btn-import').addEventListener('click', () => {
+      if (Store.getEntries().length > 0 && !confirm('This will replace all task sets. Make sure you\'ve already saved a copy!')) return;
       this.shadowRoot.getElementById('file-input').click();
     });
     this.shadowRoot.getElementById('file-input').addEventListener('change', e => this._import(e));
