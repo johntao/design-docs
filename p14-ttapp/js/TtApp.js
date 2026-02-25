@@ -1,4 +1,4 @@
-import { Store, getAvailableTasks } from "./shared.js";
+import { Store } from "./shared.js";
 
 // ─── <tt-app> ───────────────────────────────────────────────────────────────
 export class TtApp extends HTMLElement {
@@ -32,7 +32,7 @@ export class TtApp extends HTMLElement {
 
     this.shadowRoot.addEventListener('ring-menu-open', () => {
       if (Store.getCurrent()) return; // block while tracking
-      const available = getAvailableTasks(Store.getTasks());
+      const available = Store.getTasks();
       this._ringMenu.show(available);
       this._trigger._ringMenu = this._ringMenu;  // allow trigger to forward pointer events
     });
@@ -54,11 +54,6 @@ export class TtApp extends HTMLElement {
       this._configModal.open();
     });
     this.shadowRoot.addEventListener('open-help', () => this._helpModal.open());
-
-    this.shadowRoot.addEventListener('config-saved', () => {
-      this._configModal.close();
-      this._refreshState();
-    });
 
     this.shadowRoot.addEventListener('entry-edit', e => {
       const entry = Store.getEntries().find(en => en.uuid === e.detail.uuid);
