@@ -97,3 +97,12 @@ allow users to omit uuid by any falsy js values, if omitted, generate a valid uu
 introduce new function:
 load sample data from path `./sample/config.json`
 add a button to the Task Config section "Load Sample Task"
+
+## revision 6
+
+refer to file @./test1.html
+this is a file that replicate the TtRingMenu component
+the difference is that this file does works on an iPhone device while the current implementation in TtRingMenu doesn't
+current: drag and release the pointer doesn't activate any menu item and close it; also, text selection were triggered
+expected: drag and release the pointer activate a menu item and close it; doesn't trigger text selection
+please compare the difference and apply the changes
