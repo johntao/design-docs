@@ -1,5 +1,22 @@
 # revision
 
+the prompt to merge revision into draft:
+
+```
+refer to file @design/revision.md
+we've gradually introduced a few more fix sequentially
+merge these new fix into draft file @design/draft.md
+
+lastly, we now have the big picture of this app
+there are three major module composed by several smaller components
+these are the three major module
+1. the trigger (to start/ stop a task)
+2. the time entry editor
+3. the predefined tasks config modal
+
+I am expecting to make a few changes to the second and third module in the upcoming session
+```
+
 ## v1
 
 please do the following visual update

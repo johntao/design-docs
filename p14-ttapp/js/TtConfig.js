@@ -96,7 +96,7 @@ h4 { color: #2a7ab5; margin: 16px 0 8px; font-size: 14px; }
           <input type="number" min="0" value="${task.estimationDuration || ''}" data-idx="${i}" class="est-input" placeholder="min" title="Estimation (minutes)">
           <button class="btn-move" data-dir="up" data-idx="${i}">▲</button>
           <button class="btn-move" data-dir="down" data-idx="${i}">▼</button>
-          <button class="btn-remove" data-idx="${i}">✕</button>
+          <button class="btn-remove" data-idx="${i}">🗑</button>
         </div>
         <div class="segs">
           ${TIME_SEGMENTS.map(seg => `
