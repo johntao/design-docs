@@ -351,7 +351,7 @@ two sub-modes activated by how the user taps the duration field:
 | `<tt-history>`   | scrollable list of time entries                             |
 | `<tt-entry>`     | single entry row in the list (tap to edit)                  |
 | `<tt-modal>`     | reusable modal popup shell (backdrop, close behavior)       |
-| `<tt-entry-edit>`| entry editing form: task name selector + temporal fields     |
+| `<tt-entry-edit>`| entry editing form: task name selector + temporal fields    |
 | `<tt-dial>`      | shared dial control for time and duration editing           |
 | `<tt-config>`    | configuration form: task management + import/export         |
 | `<tt-help>`      | help text content                                           |
