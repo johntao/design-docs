@@ -10,8 +10,7 @@
     body { padding: 20px; }
     h1 { font-size: 18px; margin-bottom: 8px; }
     p.subtitle { font-size: 13px; color: #888; margin-bottom: 20px; }
-    .output { margin-top: 16px; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 8px; font-family: monospace; font-size: 13px; color: #555; }
-    .output div { margin-bottom: 4px; }
+    tt-timespan2 { position: fixed; width: 300px; left: 200px; top: 400px; }
   </style>
 </head>
 <body>
@@ -19,13 +18,7 @@
 <h1>Timespan Editor — Component Test</h1>
 <p class="subtitle">Tap start/end/duration to edit via dial. Use +/− buttons for quick duration adjust.</p>
 
-<tt-timespan id="editor"></tt-timespan>
-
-<div class="output" id="output">
-  <div id="out-start">start: --</div>
-  <div id="out-end">end: --</div>
-  <div id="out-dur">duration: --</div>
-</div>
+<tt-timespan2 id="editor"></tt-timespan2>
 
 <script>
 
@@ -100,6 +93,33 @@ class TtDial extends HTMLElement {
     this._cancelled = false;
     this._dragging = false;
     this._render();
+  }
+
+  /** Start external drag (no pointer capture). */
+  beginDrag() {
+    this._dragging = true;
+    this._cancelled = false;
+  }
+
+  /** Feed an external pointermove into the dial. Uses e.clientX/clientY. */
+  trackMove(e) {
+    this._onPointerMove(e);
+  }
+
+  /** End external drag, fires dial-commit or dial-cancel. */
+  endDrag() {
+    if (!this._dragging) return;
+    this._dragging = false;
+    if (this._cancelled) {
+      this.dispatchEvent(new CustomEvent('dial-cancel', { bubbles: true, composed: true }));
+      return;
+    }
+    const minutes = this._currentStep * 5;
+    const hours = this._hourAccum;
+    this.dispatchEvent(new CustomEvent('dial-commit', {
+      bubbles: true, composed: true,
+      detail: { mode: this._mode, hours, minutes, totalMinutes: hours * 60 + minutes }
+    }));
   }
 
   _stepToAngle(step) { return (step * 30 - 90) * Math.PI / 180; }
@@ -206,7 +226,7 @@ customElements.define('tt-dial', TtDial);
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// <tt-timespan> — Standalone timespan editor
+// <tt-timespan2> — Self-contained timespan bar editor
 //
 // External API:
 //   .timespan = { startTime, endTime }   ← set
@@ -214,7 +234,7 @@ customElements.define('tt-dial', TtDial);
 //   Emits 'timespan-change' with detail: { startTime, endTime }
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class TtTimespan extends HTMLElement {
+class TtTimespan2 extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -223,57 +243,72 @@ class TtTimespan extends HTMLElement {
     this._endTime = 0;
     this._locked = 'start';      // 'start' | 'end'
     this._dialTarget = null;     // 'start' | 'end' | 'duration' | null
+    this._dialActive = false;    // true while dial overlay is shown
     this._addBarActive = false;
     this._addBarSign = 1;
     this._barSelectedStep = 0;
-    this._barOriginY = 0;
 
     this.shadowRoot.innerHTML = `
       <style>
-:host { display: block; color: #444; }
-.temporal { display: flex; gap: 10px; position: relative; }
-.time-field {
-  flex: 1; text-align: center; padding: 10px 6px; background: #f5f5f5; border-radius: 8px;
-  cursor: pointer; transition: background 0.15s; position: relative; border: 2px solid transparent;
-}
-.time-field:hover { background: #eef2ff; }
-.time-field.active { border-color: #d63851; }
-.time-field .val { font-size: 18px; font-family: monospace; color: #333; }
-.time-field .lbl { font-size: 11px; color: #888; }
-.lock-icon { position: absolute; top: 4px; right: 6px; font-size: 10px; color: #d63851; }
+:host { display: block; color: #444; max-width: 320px; margin-inline: auto; }
 
-#du-field { position: relative; }
-.dur-adjust {
-  position: absolute; right: 0; margin-top: 6px; display: flex; gap: 8px;
+/* ── Bar line ── */
+.bar-line { height: 3px; background: #d63851; border-radius: 2px; position: relative; }
+.bar-line::before, .bar-line::after {
+  content: ''; position: absolute; top: 50%; width: 9px; height: 9px;
+  background: #d63851; border-radius: 50%; transform: translateY(-50%);
 }
-.dur-adjust button {
-  width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ddd;
-  background: #fff; font-size: 20px; font-weight: bold; color: #555; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06); touch-action: none; user-select: none;
-  transition: background 0.1s;
+.bar-line::before { left: 0; }
+.bar-line::after { right: 0; }
+.bar-lock {
+  position: absolute; top: 50%; font-size: 12px; line-height: 1;
+  transform: translate(-50%, -130%); transition: left 0.2s;
 }
-.dur-adjust button:hover { background: #f0f0f0; }
-.dur-adjust button:active { background: #e8e8e8; }
+.bar-lock.left { left: 0; }
+.bar-lock.right { left: 100%; }
 
-.dial-container { min-height: 0; overflow: hidden; transition: min-height 0.2s; }
-.dial-container.open { min-height: 240px; }
+/* ── Bar labels ── */
+.bar-labels { display: flex; align-items: center; margin-top: 6px; gap: 4px; }
+.bar-labels span {
+  font-family: monospace; font-size: 13px; color: #555;
+  cursor: pointer; user-select: none; touch-action: none;
+  padding: 4px 8px; border-radius: 6px; background: #fff; border: 1px solid #ddd;
+  transition: background 0.1s, color 0.1s;
+}
+.bar-labels span:hover { background: #eef2ff; color: #d63851; }
+.bar-labels span:active { background: #d63851; color: #fff; }
+.bar-labels .bar-time { flex: none; }
+.bar-labels .bar-sign {
+  flex: 1; text-align: center; font-size: 18px; font-weight: bold;
+  color: #999; padding: 2px 0;
+}
+.bar-labels .bar-sign:hover { color: #d63851; }
+.bar-labels .bar-sign:active { background: #d63851; color: #fff; }
+.bar-labels .bar-dur { flex: none; color: #888; }
 
-/* Step bar overlay */
-.step-bar-overlay {
+/* ── Shared overlay base ── */
+.overlay {
   display: none; position: fixed; inset: 0; z-index: 3000;
   touch-action: none; user-select: none;
 }
-.step-bar-overlay.open { display: block; }
-.step-bar-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.15); }
+.overlay.open { display: block; }
+.overlay-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.15); }
+
+/* ── Dial overlay ── */
+.dial-panel {
+  position: absolute; transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* ── Step bar overlay ── */
 .step-bar {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  position: absolute; transform: translateX(-50%);
   width: 64px; background: #fff; border-radius: 12px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.15); padding: 8px 0; display: flex;
   flex-direction: column; align-items: center;
 }
-.step-bar .bar-label { font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 600; }
-.step-bar .bar-value { font-size: 16px; font-family: monospace; color: #d63851; font-weight: 700; margin-bottom: 6px; }
+.step-bar .sb-label { font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 600; }
+.step-bar .sb-value { font-size: 16px; font-family: monospace; color: #d63851; font-weight: 700; margin-bottom: 6px; }
 .step-bar .step {
   width: 48px; height: 28px; display: flex; align-items: center; justify-content: center;
   font-size: 12px; font-family: monospace; color: #666; border-radius: 4px;
@@ -283,48 +318,47 @@ class TtTimespan extends HTMLElement {
 .step-bar .step.in-range { background: #fde8e8; color: #d63851; }
       </style>
 
-      <div class="temporal">
-        <div class="time-field" data-field="start">
-          <span class="lock-icon">🔒</span>
-          <div class="val" id="start-val">--:--</div>
-          <div class="lbl">Start</div>
-        </div>
-        <div class="time-field" data-field="end">
-          <span class="lock-icon" style="display:none">🔒</span>
-          <div class="val" id="end-val">--:--</div>
-          <div class="lbl">End</div>
-        </div>
-        <div id="du-field" class="time-field" data-field="duration">
-          <div class="val" id="dur-val">--:--</div>
-          <div class="lbl">Duration</div>
-          <div class="dur-adjust">
-            <button id="btn-dur-plus" title="Add duration">+</button>
-            <button id="btn-dur-minus" title="Subtract duration">−</button>
-          </div>
+      <!-- Bar visualization -->
+      <div class="bar-line">
+        <span class="bar-lock left" id="bar-lock">🔒</span>
+      </div>
+      <div class="bar-labels">
+        <span id="lbl-start" class="bar-time" data-field="start">--:--</span>
+        <span id="lbl-minus" class="bar-sign" data-sign="-1">−</span>
+        <span id="lbl-dur" class="bar-dur" data-field="duration">--:--</span>
+        <span id="lbl-plus" class="bar-sign" data-sign="1">+</span>
+        <span id="lbl-end" class="bar-time" data-field="end">--:--</span>
+      </div>
+
+      <!-- Dial overlay (hold to show) -->
+      <div class="overlay" id="dial-overlay">
+        <div class="overlay-backdrop"></div>
+        <div class="dial-panel">
+          <tt-dial></tt-dial>
         </div>
       </div>
 
-      <div class="dial-container" id="dial-container">
-        <tt-dial></tt-dial>
-      </div>
-
-      <div class="step-bar-overlay" id="step-bar-overlay">
-        <div class="step-bar-backdrop"></div>
+      <!-- Step bar overlay (hold to show) -->
+      <div class="overlay" id="stepbar-overlay">
+        <div class="overlay-backdrop"></div>
         <div class="step-bar" id="step-bar">
-          <div class="bar-label" id="bar-label">+</div>
-          <div class="bar-value" id="bar-value">0:00</div>
+          <div class="sb-label" id="sb-label">+</div>
+          <div class="sb-value" id="sb-value">0:00</div>
         </div>
       </div>
     `;
 
     this._dial = this.shadowRoot.querySelector('tt-dial');
-    this._dialContainer = this.shadowRoot.getElementById('dial-container');
-    this._stepBarOverlay = this.shadowRoot.getElementById('step-bar-overlay');
+    this._dialOverlay = this.shadowRoot.getElementById('dial-overlay');
+    this._stepBarOverlay = this.shadowRoot.getElementById('stepbar-overlay');
     this._stepBar = this.shadowRoot.getElementById('step-bar');
-    this._barLabel = this.shadowRoot.getElementById('bar-label');
-    this._barValue = this.shadowRoot.getElementById('bar-value');
+    this._sbLabel = this.shadowRoot.getElementById('sb-label');
+    this._sbValue = this.shadowRoot.getElementById('sb-value');
+    this._lockEl = this.shadowRoot.getElementById('bar-lock');
+    this._dialPanel = this.shadowRoot.querySelector('.dial-panel');
+    this._holdTimer = null;
 
-    // Build step elements ascending: 5m at top → 60m at bottom
+    // Build step elements ascending: 5m → 60m
     this._stepEls = [];
     for (let i = 1; i <= 12; i++) {
       const el = document.createElement('div');
@@ -335,20 +369,20 @@ class TtTimespan extends HTMLElement {
       this._stepEls.push(el);
     }
 
-    // Field taps
-    this.shadowRoot.querySelectorAll('.time-field').forEach(el => {
-      el.addEventListener('click', () => this._onFieldTap(el.dataset.field));
-    });
+    // ── Wire dial label buttons (start / duration / end) ──
+    this._setupDialButton(this.shadowRoot.getElementById('lbl-start'), 'start');
+    this._setupDialButton(this.shadowRoot.getElementById('lbl-dur'), 'duration');
+    this._setupDialButton(this.shadowRoot.getElementById('lbl-end'), 'end');
 
-    // Dial events
+    // ── Wire +/− sign buttons ──
+    this._setupSignButton(this.shadowRoot.getElementById('lbl-minus'), -1);
+    this._setupSignButton(this.shadowRoot.getElementById('lbl-plus'), 1);
+
+    // Dial commit / cancel
     this._dial.addEventListener('dial-commit', e => this._onDialCommit(e.detail));
-    this._dial.addEventListener('dial-cancel', () => this._rearmDial());
+    this._dial.addEventListener('dial-cancel', () => {}); // cancel = no-op, overlay stays
 
-    // +/− button hold gesture
-    this._setupDurButton(this.shadowRoot.getElementById('btn-dur-plus'), 1);
-    this._setupDurButton(this.shadowRoot.getElementById('btn-dur-minus'), -1);
-
-    // Step bar pointer tracking (fallback for overlay)
+    // Step bar overlay fallback listeners
     this._stepBarOverlay.addEventListener('pointermove', e => this._onBarMove(e));
     this._stepBarOverlay.addEventListener('pointerup', e => this._onBarRelease(e));
     this._stepBarOverlay.addEventListener('pointercancel', e => this._onBarRelease(e));
@@ -365,24 +399,18 @@ class TtTimespan extends HTMLElement {
     this._endTime = endTime;
     this._locked = 'start';
     this._dialTarget = null;
-    this._dialContainer.classList.remove('open');
-    this._updateFields();
+    this._dialActive = false;
+    this._dialOverlay.classList.remove('open');
+    this._updateDisplay();
   }
 
-  // ─── Field display ─────────────────────────────────────────────────────────
+  // ─── Display ───────────────────────────────────────────────────────────────
 
-  _updateFields() {
-    this.shadowRoot.getElementById('start-val').textContent = formatTime(this._startTime);
-    this.shadowRoot.getElementById('end-val').textContent = formatTime(this._endTime);
-    this.shadowRoot.getElementById('dur-val').textContent = formatDuration(this._endTime - this._startTime);
-
-    this.shadowRoot.querySelector('[data-field="start"] .lock-icon').style.display = this._locked === 'start' ? '' : 'none';
-    this.shadowRoot.querySelector('[data-field="end"] .lock-icon').style.display = this._locked === 'end' ? '' : 'none';
-
-    this.shadowRoot.querySelectorAll('.time-field').forEach(el => el.classList.remove('active'));
-    if (this._dialTarget) {
-      this.shadowRoot.querySelector(`[data-field="${this._dialTarget}"]`)?.classList.add('active');
-    }
+  _updateDisplay() {
+    this.shadowRoot.getElementById('lbl-start').textContent = formatTime(this._startTime);
+    this.shadowRoot.getElementById('lbl-end').textContent = formatTime(this._endTime);
+    this.shadowRoot.getElementById('lbl-dur').textContent = formatDuration(this._endTime - this._startTime);
+    this._lockEl.className = `bar-lock ${this._locked === 'start' ? 'left' : 'right'}`;
   }
 
   _emitChange() {
@@ -392,29 +420,97 @@ class TtTimespan extends HTMLElement {
     }));
   }
 
-  // ─── Field tap → dial ──────────────────────────────────────────────────────
+  // ─── Dial hold gesture (start / duration / end labels) ─────────────────────
 
-  _onFieldTap(field) {
+  _setupDialButton(btn, field) {
+    const hasThreshold = field === 'start' || field === 'end';
+
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      btn.setPointerCapture(e.pointerId);
+
+      // Always set lock immediately for start / end
+      if (field === 'start') this._locked = 'start';
+      else if (field === 'end') this._locked = 'end';
+      this._updateDisplay();
+
+      // Stash pointer origin for positioning
+      this._dialPointerX = e.clientX;
+      this._dialPointerY = e.clientY;
+
+      if (hasThreshold) {
+        // Delay dial open — quick tap = lock only
+        this._holdTimer = setTimeout(() => {
+          this._holdTimer = null;
+          this._openDialAt(field, this._dialPointerX, this._dialPointerY);
+        }, 300);
+      } else {
+        this._openDialAt(field, e.clientX, e.clientY);
+      }
+    });
+
+    btn.addEventListener('pointermove', e => {
+      // Update stashed position so the dial opens at latest pointer pos
+      this._dialPointerX = e.clientX;
+      this._dialPointerY = e.clientY;
+      if (!this._dialActive) return;
+      this._dial.trackMove(e);
+    });
+
+    btn.addEventListener('pointerup', e => {
+      btn.releasePointerCapture(e.pointerId);
+      // If timer still pending, it was a quick tap — just lock, no dial
+      if (this._holdTimer) {
+        clearTimeout(this._holdTimer);
+        this._holdTimer = null;
+        return;
+      }
+      if (!this._dialActive) return;
+      this._dial.endDrag();
+      this._closeDial();
+    });
+
+    btn.addEventListener('pointercancel', e => {
+      btn.releasePointerCapture(e.pointerId);
+      if (this._holdTimer) { clearTimeout(this._holdTimer); this._holdTimer = null; }
+      if (!this._dialActive) return;
+      this._closeDial();
+    });
+  }
+
+  _openDialAt(field, x, y) {
+    this._dialTarget = field;
+    this._configureDial(field);
+    this._dialActive = true;
+    // Position dial centered on pointer
+    this._dialPanel.style.left = `${x}px`;
+    this._dialPanel.style.top = `${y}px`;
+    this._dialOverlay.classList.add('open');
+    this._dial.beginDrag();
+  }
+
+  _configureDial(field) {
     if (field === 'start') {
-      this._locked = 'start';
-      this._dialTarget = 'start';
       const d = new Date(this._startTime);
       this._dial.configure('time', d.getHours(), d.getMinutes());
     } else if (field === 'end') {
-      this._locked = 'end';
-      this._dialTarget = 'end';
       const d = new Date(this._endTime);
       this._dial.configure('time', d.getHours(), d.getMinutes());
     } else if (field === 'duration') {
-      this._dialTarget = 'duration';
       const totalMin = Math.floor((this._endTime - this._startTime) / 60000);
       this._dial.configure('duration-assignment', Math.floor(totalMin / 60), totalMin % 60);
     }
-    this._dialContainer.classList.add('open');
-    this._updateFields();
+  }
+
+  _closeDial() {
+    this._dialActive = false;
+    this._dialTarget = null;
+    this._dialOverlay.classList.remove('open');
+    this._updateDisplay();
   }
 
   _onDialCommit(detail) {
+    if (!this._dialTarget) return;
     const { hours, minutes, totalMinutes } = detail;
 
     if (this._dialTarget === 'start' || this._dialTarget === 'end') {
@@ -423,46 +519,32 @@ class TtTimespan extends HTMLElement {
       const d = new Date(this[key]);
       d.setHours(h, minutes, 0, 0);
       const newTime = d.getTime();
-      if (key === '_startTime' && newTime >= this._endTime) { this._rearmDial(); return; }
-      if (key === '_endTime' && newTime <= this._startTime) { this._rearmDial(); return; }
+      // Reject invalid: start >= end
+      if (key === '_startTime' && newTime >= this._endTime) { this._configureDial(this._dialTarget); return; }
+      if (key === '_endTime' && newTime <= this._startTime) { this._configureDial(this._dialTarget); return; }
       this[key] = newTime;
     } else if (this._dialTarget === 'duration') {
       const newDurMs = totalMinutes * 60000;
-      if (newDurMs <= 0) { this._rearmDial(); return; }
+      if (newDurMs <= 0) { this._configureDial(this._dialTarget); return; }
       if (this._locked === 'start') this._endTime = this._startTime + newDurMs;
       else this._startTime = this._endTime - newDurMs;
     }
 
-    this._updateFields();
+    this._updateDisplay();
     this._emitChange();
-    this._rearmDial();
+    // Re-arm dial so continued dragging works from updated value
+    this._configureDial(this._dialTarget);
   }
 
-  _rearmDial() {
-    if (!this._dialTarget) return;
-    if (this._dialTarget === 'start') {
-      const d = new Date(this._startTime);
-      this._dial.configure('time', d.getHours(), d.getMinutes());
-    } else if (this._dialTarget === 'end') {
-      const d = new Date(this._endTime);
-      this._dial.configure('time', d.getHours(), d.getMinutes());
-    } else if (this._dialTarget === 'duration') {
-      const totalMin = Math.floor((this._endTime - this._startTime) / 60000);
-      this._dial.configure('duration-assignment', Math.floor(totalMin / 60), totalMin % 60);
-    }
-    this._updateFields();
-  }
+  // ─── Step bar hold gesture (+/− sign labels) ──────────────────────────────
 
-  // ─── +/− button hold → vertical step bar ──────────────────────────────────
-
-  _setupDurButton(btn, sign) {
+  _setupSignButton(btn, sign) {
     btn.addEventListener('pointerdown', e => {
       e.preventDefault();
       btn.setPointerCapture(e.pointerId);
       this._addBarSign = sign;
       this._barSelectedStep = 0;
-      this._barOriginY = e.clientY;
-      this._openStepBar(sign);
+      this._openStepBar(sign, e.clientX, e.clientY);
     });
     btn.addEventListener('pointermove', e => {
       if (!this._addBarActive) return;
@@ -480,21 +562,33 @@ class TtTimespan extends HTMLElement {
     });
   }
 
-  _openStepBar(sign) {
+  _openStepBar(sign, x, y) {
     this._addBarActive = true;
     this._barSelectedStep = 0;
-    this._barLabel.textContent = sign > 0 ? '+' : '−';
-    this._barValue.textContent = '0:00';
+    this._sbLabel.textContent = sign > 0 ? '+' : '−';
+    this._sbValue.textContent = '0:00';
     this._stepEls.forEach(el => el.classList.remove('active', 'in-range'));
+    // Position step bar: top-center at pointer
+    this._stepBar.style.left = `${x}px`;
+    this._stepBar.style.top = `${y}px`;
     this._stepBarOverlay.classList.add('open');
   }
 
   _onBarMove(e) {
     if (!this._addBarActive) return;
-    const delta = e.clientY - this._barOriginY;
-    const stepHeight = this._stepEls[0]?.getBoundingClientRect().height || 28;
-    const rawStep = Math.floor(delta / stepHeight);
-    this._barSelectedStep = Math.max(0, Math.min(12, rawStep));
+    // Hit-test against step elements directly
+    const y = e.clientY;
+    let selected = 0;
+    for (const el of this._stepEls) {
+      const rect = el.getBoundingClientRect();
+      if (y >= rect.top && y < rect.bottom) {
+        selected = parseInt(el.dataset.step);
+        break;
+      }
+      // If pointer is below this step, it's at least this far
+      if (y >= rect.bottom) selected = parseInt(el.dataset.step);
+    }
+    this._barSelectedStep = Math.max(0, Math.min(12, selected));
     this._renderBarHighlight();
   }
 
@@ -504,7 +598,7 @@ class TtTimespan extends HTMLElement {
     const h = Math.floor(totalMin / 60);
     const m = totalMin % 60;
     const sign = this._addBarSign > 0 ? '+' : '−';
-    this._barValue.textContent = sel === 0 ? '0:00' : `${sign}${h}:${String(m).padStart(2, '0')}`;
+    this._sbValue.textContent = sel === 0 ? '0:00' : `${sign}${h}:${String(m).padStart(2, '0')}`;
     this._stepEls.forEach(el => {
       const s = parseInt(el.dataset.step);
       el.classList.toggle('active', s === sel && sel > 0);
@@ -528,12 +622,11 @@ class TtTimespan extends HTMLElement {
     if (this._locked === 'start') this._endTime = this._startTime + newDur;
     else this._startTime = this._endTime - newDur;
 
-    this._updateFields();
+    this._updateDisplay();
     this._emitChange();
-    if (this._dialTarget === 'duration') this._rearmDial();
   }
 }
-customElements.define('tt-timespan', TtTimespan);
+customElements.define('tt-timespan2', TtTimespan2);
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -546,16 +639,6 @@ const editor = document.getElementById('editor');
 const now = new Date();
 const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0);
 editor.timespan = { startTime: start.getTime(), endTime: start.getTime() + 3600000 };
-
-function updateOutput() {
-  const ts = editor.timespan;
-  document.getElementById('out-start').textContent = `start: ${formatTime(ts.startTime)} (${ts.startTime})`;
-  document.getElementById('out-end').textContent = `end: ${formatTime(ts.endTime)} (${ts.endTime})`;
-  document.getElementById('out-dur').textContent = `duration: ${formatDuration(ts.endTime - ts.startTime)}`;
-}
-
-updateOutput();
-editor.addEventListener('timespan-change', updateOutput);
 
 </script>
 </body>
