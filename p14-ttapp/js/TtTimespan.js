@@ -354,9 +354,15 @@ export class TtTimespan extends HTMLElement {
     this._sbLabel.textContent = sign > 0 ? '+' : '−';
     this._sbValue.textContent = '0:00';
     this._stepEls.forEach(el => el.classList.remove('active', 'in-range'));
-    const pos = this._getCenteredPos(x, y);
-    this._stepBar.style.left = `${pos.x}px`;
-    this._stepBar.style.top = `${pos.y}px`;
+    if (this._isSmallScreen()) {
+      this._stepBar.style.left = '50%';
+      this._stepBar.style.top = '50%';
+      this._stepBar.style.transform = 'translate(-50%, -50%)';
+    } else {
+      const pos = this._getCenteredPos(x, y);
+      this._stepBar.style.left = `${pos.x}px`;
+      this._stepBar.style.top = `${pos.y}px`;
+    }
     this._stepBarOverlay.classList.add('open');
   }
 
