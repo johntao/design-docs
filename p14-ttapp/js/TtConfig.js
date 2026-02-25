@@ -290,6 +290,9 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
       tasks.push({ uuid: crypto.randomUUID(), name, estimationDuration: est });
       this._persist();
       this._renderTasks();
+      // Re-focus the blank name input
+      const blankName = this.shadowRoot.querySelector('.blank-name');
+      if (blankName) blankName.focus();
     };
 
     addBtn.addEventListener('click', doAdd);
