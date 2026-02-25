@@ -25,7 +25,7 @@ textarea { width: -moz-available; width: -webkit-fill-available; width: stretch;
 .btn-save:hover { background: #c02a43; }
 .btn-cancel { background: #e8e8e8; color: #666; }
 .btn-cancel:hover { background: #ddd; }
-tt-timespan { margin-block: 20px; }
+tt-timespan { margin-block: 1.5rem; }
       </style>
       <h3>Edit Entry</h3>
       <div class="field">
