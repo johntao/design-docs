@@ -158,6 +158,13 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
     return this._tasksets.some(ts => ts.tasks && ts.tasks.length > 0);
   }
 
+  _toast(message, opts) {
+    this.dispatchEvent(new CustomEvent('show-toast', {
+      bubbles: true, composed: true,
+      detail: { message, ...opts }
+    }));
+  }
+
   _render() {
     this._renderTabstrip();
     this._renderDescription();
@@ -225,10 +232,19 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
 
   _deleteTab() {
     if (this._tasksets.length <= 1) return;
-    this._tasksets.splice(this._activeTab, 1);
+    const removedIdx = this._activeTab;
+    const [removed] = this._tasksets.splice(this._activeTab, 1);
     if (this._activeTab >= this._tasksets.length) this._activeTab = this._tasksets.length - 1;
     this._persist();
     this._render();
+    this._toast('Tab deleted.', {
+      undo: () => {
+        this._tasksets.splice(removedIdx, 0, removed);
+        this._activeTab = removedIdx;
+        this._persist();
+        this._render();
+      }
+    });
   }
 
   // ── Description ─────────────────────────────────────────────────────────────
@@ -346,9 +362,16 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
     delBtn.textContent = '🗑';
     delBtn.title = 'Delete task';
     delBtn.addEventListener('click', () => {
-      this._tasksets[this._activeTab].tasks.splice(idx, 1);
+      const [removed] = this._tasksets[this._activeTab].tasks.splice(idx, 1);
       this._persist();
       this._renderTasks();
+      this._toast('Task deleted.', {
+        undo: () => {
+          this._tasksets[this._activeTab].tasks.splice(idx, 0, removed);
+          this._persist();
+          this._renderTasks();
+        }
+      });
     });
 
     div.appendChild(handle);
@@ -457,8 +480,8 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
       try {
         const imported = JSON.parse(reader.result);
         if (!Array.isArray(imported)) throw new Error('Invalid format');
-        const existing = Store.getEntries();
-        const byUuid = new Map(existing.map(e => [e.uuid, e]));
+        const oldEntries = Store.getEntries();
+        const byUuid = new Map(oldEntries.map(e => [e.uuid, e]));
         let added = 0, updated = 0;
 
         for (const entry of imported) {
@@ -473,9 +496,11 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
         }
 
         Store.setEntries([...byUuid.values()]);
-        alert(`Imported: ${added} added, ${updated} updated.`);
+        this._toast(`Imported: ${added} added, ${updated} updated.`, {
+          undo: () => { Store.setEntries(oldEntries); }
+        });
       } catch (err) {
-        alert('Import failed: ' + err.message);
+        this._toast('Import failed: ' + err.message);
       }
     };
     reader.readAsText(file);
@@ -499,6 +524,8 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
       try {
         const imported = JSON.parse(reader.result);
         if (!Array.isArray(imported)) throw new Error('Invalid format: expected array of tasksets');
+        const oldTasksets = JSON.parse(JSON.stringify(this._tasksets));
+        const oldTab = this._activeTab;
         this._tasksets = imported.map(ts => ({
           description: ts.description || '',
           tasks: (ts.tasks || []).map(t => ({
@@ -511,9 +538,16 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
         this._activeTab = 0;
         this._persist();
         this._render();
-        alert('Config imported.');
+        this._toast('Config imported.', {
+          undo: () => {
+            this._tasksets = oldTasksets;
+            this._activeTab = oldTab;
+            this._persist();
+            this._render();
+          }
+        });
       } catch (err) {
-        alert('Config import failed: ' + err.message);
+        this._toast('Config import failed: ' + err.message);
       }
     };
     reader.readAsText(file);
@@ -527,6 +561,8 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const imported = await res.json();
       if (!Array.isArray(imported)) throw new Error('Invalid format');
+      const oldTasksets = JSON.parse(JSON.stringify(this._tasksets));
+      const oldTab = this._activeTab;
       this._tasksets = imported.map(ts => ({
         description: ts.description || '',
         tasks: (ts.tasks || []).map(t => ({
@@ -539,9 +575,16 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
       this._activeTab = 0;
       this._persist();
       this._render();
-      alert('Sample loaded.');
+      this._toast('Sample loaded.', {
+        undo: () => {
+          this._tasksets = oldTasksets;
+          this._activeTab = oldTab;
+          this._persist();
+          this._render();
+        }
+      });
     } catch (err) {
-      alert('Failed to load sample: ' + err.message);
+      this._toast('Failed to load sample: ' + err.message);
     }
   }
 }
