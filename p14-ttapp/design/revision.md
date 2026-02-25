@@ -106,3 +106,12 @@ the difference is that this file does works on an iPhone device while the curren
 current: drag and release the pointer doesn't activate any menu item and close it; also, text selection were triggered
 expected: drag and release the pointer activate a menu item and close it; doesn't trigger text selection
 please compare the difference and apply the changes
+
+## revision 7
+
+refer to file @./test2.html
+this is a file to extract a new web component from @./js/TtEntryEdit.js
+
+please replace the existing logic in @./js/TtEntryEdit.js by the newly introduced file @./js/TtTimespan.js
+noted that the three temporal "startTime, endTime, duration" are now encapsulated into a timespan object
+and the new component TtTimespan use the encapsulated object to interop
