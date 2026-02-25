@@ -12,12 +12,12 @@ export class TtConfig extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
 :host { display: block; color: #444; }
-h3 { color: #d63851; margin-bottom: 12px; font-size: 16px; }
+h3 { color: #d63851; margin-block: 0 12px; font-size: 16px; }
 
 /* ── Tabstrip ── */
 .tabstrip { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
 .tabstrip .tab {
-  width: 32px; height: 32px; border-radius: 6px; border: 1px solid #ddd;
+  width: 32px; height: 32px; line-height: 32px; border-radius: 6px; border: 1px solid #ddd;
   background: #f5f5f5; font-size: 13px; font-weight: 600; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.1s, border-color 0.1s;
@@ -34,7 +34,8 @@ h3 { color: #d63851; margin-bottom: 12px; font-size: 16px; }
 
 /* ── Tab description ── */
 .tab-desc {
-  width: 100%; padding: 6px 8px; background: #f5f5f5; color: #333; border: 1px solid #ddd;
+  width: -moz-available; width: -webkit-fill-available; width: stretch;
+  padding: 6px 8px; background: #f5f5f5; color: #333; border: 1px solid #ddd;
   border-radius: 6px; font-size: 13px; font-family: inherit; resize: vertical;
   min-height: 36px; margin-bottom: 12px;
 }
@@ -127,7 +128,7 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
     this.shadowRoot.getElementById('file-input').addEventListener('change', e => this._import(e));
     this.shadowRoot.getElementById('btn-export-config').addEventListener('click', () => this._exportConfig());
     this.shadowRoot.getElementById('btn-import-config').addEventListener('click', () => {
-      if (this._hasTasks() && !confirm('This will replace all task sets. Save a copy first?')) return;
+      if (this._hasTasks() && !confirm('This will replace all task sets. Make sure you\'ve already saved a copy!')) return;
       this.shadowRoot.getElementById('file-input-config').click();
     });
     this.shadowRoot.getElementById('file-input-config').addEventListener('change', e => this._importConfig(e));
@@ -517,7 +518,7 @@ button { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; f
   }
 
   async _loadSample() {
-    if (this._hasTasks() && !confirm('This will replace all task sets. Save a copy first?')) return;
+    if (this._hasTasks() && !confirm('This will replace all task sets. Make sure you\'ve already saved a copy!')) return;
     try {
       const res = await fetch('./sample/config.json');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

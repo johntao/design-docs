@@ -11,11 +11,12 @@ export class TtEntryEdit extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
 :host { display: block; color: #444; }
-h3 { color: #d63851; margin-bottom: 14px; font-size: 16px; }
+h3 { color: #d63851; margin-block: 0 12px; font-size: 16px; }
 .field { margin-bottom: 12px; }
 label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; }
 select { width: 100%; padding: 8px; background: #f5f5f5; color: #333; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-textarea { width: 100%; padding: 8px; background: #f5f5f5; color: #333; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 48px; }
+textarea { width: -moz-available; width: -webkit-fill-available; width: stretch;
+  padding: 8px; background: #f5f5f5; color: #333; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 48px; }
 .actions { display: flex; gap: 10px; margin-top: 14px; }
 .actions button {
   flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;
