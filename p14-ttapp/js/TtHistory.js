@@ -64,7 +64,7 @@ export class TtHistory extends HTMLElement {
     if (!val || val.length === 0) {
       const hasTasks = Store.getTasksets().some(ts => ts.tasks && ts.tasks.length > 0);
       if (hasTasks) {
-        list.innerHTML = '<div class="empty">No entries yet. Start tracking!</div>';
+        list.innerHTML = '<div class="empty">No entries yet. Start tracking!<br>Or tap 🔧 to configure tasks</div>';
       } else {
         list.innerHTML = '';
         const empty = document.createElement('div');
