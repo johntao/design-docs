@@ -16,10 +16,10 @@ export class TtEntry extends HTMLElement {
         }
         .row:hover { background: #f0f4ff; }
         .task-name { flex: 1; font-weight: 600; color: #d63851; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .description { flex: 4; font-size: 11px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none; }
+        .description.visible { display: block; }
         .times { font-size: 13px; color: #888; font-family: monospace; }
         .duration { font-size: 13px; color: #2a7ab5; font-family: monospace; min-width: 60px; text-align: right; }
-        .description { font-size: 11px; color: #999; padding: 2px 14px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none; }
-        .description.visible { display: block; }
         .delete-btn {
           background: none; border: none; color: #bbb; font-size: 16px; cursor: pointer; padding: 2px 6px;
         }
@@ -27,11 +27,11 @@ export class TtEntry extends HTMLElement {
       </style>
       <div class="row">
         <span class="task-name"></span>
+        <span class="description"></span>
         <span class="times"></span>
         <span class="duration"></span>
         <button class="delete-btn" title="Delete">🗑</button>
       </div>
-      <div class="description"></div>
     `;
     this.shadowRoot.querySelector('.row').addEventListener('click', (e) => {
       if (e.target.closest('.delete-btn')) return;
