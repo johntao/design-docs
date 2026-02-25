@@ -18,6 +18,8 @@ export class TtEntry extends HTMLElement {
         .task-name { flex: 1; font-weight: 600; color: #d63851; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .times { font-size: 13px; color: #888; font-family: monospace; }
         .duration { font-size: 13px; color: #2a7ab5; font-family: monospace; min-width: 60px; text-align: right; }
+        .description { font-size: 11px; color: #999; padding: 2px 14px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none; }
+        .description.visible { display: block; }
         .delete-btn {
           background: none; border: none; color: #bbb; font-size: 16px; cursor: pointer; padding: 2px 6px;
         }
@@ -29,6 +31,7 @@ export class TtEntry extends HTMLElement {
         <span class="duration"></span>
         <button class="delete-btn" title="Delete">🗑</button>
       </div>
+      <div class="description"></div>
     `;
     this.shadowRoot.querySelector('.row').addEventListener('click', (e) => {
       if (e.target.closest('.delete-btn')) return;
@@ -50,5 +53,13 @@ export class TtEntry extends HTMLElement {
     this.shadowRoot.querySelector('.task-name').textContent = truncate(val.taskName);
     this.shadowRoot.querySelector('.times').textContent = `${formatTime(val.startTime)} – ${formatTime(val.endTime)}`;
     this.shadowRoot.querySelector('.duration').textContent = formatDuration(val.endTime - val.startTime);
+    const descEl = this.shadowRoot.querySelector('.description');
+    if (val.description) {
+      descEl.textContent = val.description;
+      descEl.classList.add('visible');
+    } else {
+      descEl.textContent = '';
+      descEl.classList.remove('visible');
+    }
   }
 }

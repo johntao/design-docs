@@ -136,7 +136,7 @@ export class TtApp extends HTMLElement {
     const current = Store.getCurrent();
     if (!current) return;
     const entries = Store.getEntries();
-    entries.push({ uuid: crypto.randomUUID(), taskName: current.taskName, startTime: current.startTime, endTime: Date.now() });
+    entries.push({ uuid: crypto.randomUUID(), taskName: current.taskName, startTime: current.startTime, endTime: Date.now(), description: '' });
     Store.setEntries(entries);
     Store.setCurrent(null);
     // Keep selected task loaded (don't clear this._selectedTask)
