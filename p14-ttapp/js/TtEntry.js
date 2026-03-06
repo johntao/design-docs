@@ -20,19 +20,21 @@ export class TtEntry extends HTMLElement {
 .description { color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none; }
 .description.visible { display: block; }
 .times { color: #888; font-family: monospace; }
-.duration { color: #2a7ab5; font-family: monospace; text-align: right; }
+.duration { color: #2a7ab5; text-align: right; min-width: 7ch; }
 .delete-btn { background: none; border: none; color: #bbb; cursor: pointer; padding-right: 0; }
 .delete-btn:hover { color: #d63851; }
 
 .task-name { flex: 1; }
 .description { flex: 3; }
 .row>* { font-size: 11px; }
-.duration { margin-left: 6px; }
-.delete-btn { padding-left: 10px; }
+.times { font-size: 10px; font-family: inherit; }
+.duration { font-family: inherit; }
+.delete-btn { padding-left: 8px; }
 @media (min-width: 769px) {
   .description { flex: 4; }
   .row>* { font-size: 14px; }
-  .duration { margin-left: 12px; }
+  .duration { margin-left: 12px; font-family: monospace; }
+  .times { font-size: 14px; font-family: monospace; }
   .delete-btn { padding-left: 12px; }
 }
 

@@ -7,16 +7,21 @@ export class TtHistory extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display: block; flex: 1; overflow-y: auto; padding: 10px 12px; }
-        .empty { text-align: center; color: #aaa; padding: 40px 0; font-size: 14px; }
-        .empty .hint { margin-top: 8px; font-size: 12px; color: #bbb; }
-        .btn-demo {
-          margin-top: 12px; padding: 8px 20px; border: none; border-radius: 8px;
-          background: #d63851; color: #fff; font-size: 13px; cursor: pointer;
-        }
-        .btn-demo:hover { background: #c02a43; }
-        .date-header { color: #2a7ab5; font-size: 12px; font-weight: 600; padding: 8px 4px 4px; margin-top: 8px; }
-        .date-header:first-child { margin-top: 0; }
+:host { display: block; flex: 1; overflow-y: auto; padding-block: 10px; }
+.empty { text-align: center; color: #aaa; padding: 40px 0; font-size: 14px; }
+.empty .hint { margin-top: 8px; font-size: 12px; color: #bbb; }
+.btn-demo {
+  margin-top: 12px; padding: 8px 20px; border: none; border-radius: 8px;
+  background: #d63851; color: #fff; font-size: 13px; cursor: pointer;
+}
+.btn-demo:hover { background: #c02a43; }
+.date-header { color: #2a7ab5; font-size: 12px; font-weight: 600; padding: 8px 4px 4px; margin-top: 8px; }
+.date-header:first-child { margin-top: 0; }
+
+:host { padding-inline: 6px; }
+@media (min-width: 769px) {
+  :host { padding-inline: 12px; }
+}
       </style>
       <div id="list"></div>
     `;
