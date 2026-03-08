@@ -1,73 +1,182 @@
 # design draft for feat#03: logs
 
-motivation:
-I need a minimal way to evaluate the progress of each project while keeping users stay in the main track without frequently context switching
-counting files (creation) is one of the easiest metric to evaluate the progress of a project
+## motivation
 
-solution:
-introduce a new command to duplicate a block of content to the targeting project
-this command will keep users in their current context
+a minimal way to evaluate project progress without context switching.
+counting file creation is an easy progress metric.
+introduce a command that duplicates a block of content to a target project,
+keeping the user in their current context (the main track).
 
-folder structure
+## folder structure
+
 ```
-data (the root folder)
-- 000-journal
-  - 0logs (the main track)
-- p01-apple
-  - 0logs (the p01 track)
-- p02-bee
-  - 0logs (the p02 track)
+data/
+- 000-journal/
+  - 0logs/          ← main track (subfolder per month)
+    - 2603/
+      - 05.md
+- p01-apple/
+  - 0logs/          ← project track (flat naming)
+    - 260305.md
+- p02-bee/
+  - 0logs/
+    - 260305.md
 ```
-sync direction: from main to p01; from main to p02
 
-log files are created in daily-basis and name after current locale date
+naming schemes are intentionally different:
+- main track: `0logs/YYMM/DD.md` (e.g. `0logs/2603/05.md`)
+- project track: `0logs/YYMMDD.md` (e.g. `0logs/260305.md`)
 
-such as `/000-journal/0logs/2603/05.md` or `/p02-apple/0logs/260305.md`
+## command syntax
 
-files are written in markdown format
+```
+␅lp01types of apples
+```
 
-the syntax looks like this `␅lp01types of apples`
-'l' stands for logs, then followed by 'p01' which is the project you wish to duplicate content into (i.e. `p01-apple` in this case)
-then followed by '...' which denotes arbitrary text content
+- `l` = command-id for "log"
+- `p01` = project prefix (matches `p01-*` folder under data root)
+- `types of apples` = heading text (rendered as h2 with AP-style title case)
 
-the command is executed on saving the file to the disk
-after execution the snippets are removed from the file
-this commands always operates on a h2 heading, thus, it apply title case transform automatically
+executed on file save, same as feat#02. always renders as an h2 heading.
 
-## algorithm details
+### examples
 
-there are two more important mechanism of this command
-the first thing is to make this command useful, it duplicate a block of text into the targeting project, instead of a single line
+```
+input:  ␅lp01types of apples
+output: ## Types of Apples
+        ;;/p01-apple/0logs/260305.md#741
 
-a block may define like this:
-- the command first render text into title case '## Types of Apples'
-- then, the block starts from '## Types of Apples'; ends by the next h2 headings or the end of the file
-- note that `␅l` command always render into a h2 heading, thus, it is also considered as a breakpoint
+(and the block is duplicated to /p01-apple/0logs/260305.md)
+```
 
-the second thing is to make sure the two blocks are synchronized for future edits
-this one is trickier, we should think through this one carefully, and find the most reasonable solution
+## block definition
 
-here's my plan:
-- after duplicating contents at the targeting location, spawn a file-binding statement right below the h2 heading
-  - append the block of content at the end of the destination file
-- the syntax looks like this `;;/p02-apple/0logs/260305.md#7411d4c`
-  - given `/000-journal/0logs/2603/05.md` as main track; `/p02-apple/0logs/260305.md` as project track; `## Types of Apples` as the h2 heading
-  - spawn `;;/p02-apple/0logs/260305.md#7411d4c` below h2 for main track
-  - spawn `;;/000-journal/0logs/2603/05.md#7411d4c` below h2 for project track
-- where ';;' is a prefix for additional attributes of the current heading block
-- '/p02-apple/0logs/260305.md' is the destination to duplicate content
-- '#' is a delimiter for next token
-- '7411d4c' is a random hash to help distinct different block bindings in a same file
+a "block" is the content between two h2 boundaries:
+- **starts** at the h2 heading line (inclusive)
+- **ends** at the next h2 heading or EOF (exclusive of the next h2)
+- a `␅l` command line is itself an h2 boundary (it renders into one)
 
-how synchronization work:
-- after all `␅` commands are executed: parse all h2 heading blocks and list all diff hunks (both order by starting position)
-  - for each heading block, we have `hasExtraAttr`, `startLn`, `endLn`, `isDirty`, `syncDest`
-  - hasExtraAttr (bool): means this block contains ';;' attribute
-  - startLn (number): means the line number of the starting position
-  - endLn (number): means the line number of the end position
-  - isDirty (bool): true if the content has changed
-  - syncDest (string): the path of the file to be synchronized
-- iterate through heading blocks, skip the block that `!hasExtraAttr`
-  - an algorithm to check if the block intersect with the hunks
-  - if true, then, mark the heading block isDirty
-- for each dirty block, update `syncDest` with latest content
+## first-time execution (duplication)
+
+when a `␅l` command is processed during save:
+
+1. render the command into `## Title Case Heading`
+2. determine the block content (from this h2 to the next h2 or EOF)
+3. resolve the destination file path:
+   - find the folder matching the project prefix (e.g. `p01` → `p01-apple/`)
+   - derive the date-based filename from today's date
+   - create the file and parent directories if they don't exist
+4. append the block at the end of the destination file
+5. insert binding lines below the h2 in both files:
+   - main track gets: `;;/p01-apple/0logs/260305.md#<hash>`
+   - project track gets: `;;/000-journal/0logs/2603/05.md#<hash>`
+6. the `;;` line is always the first line after the h2 heading
+
+## binding syntax
+
+```
+;;<relative-path>#<hash>
+```
+
+- `;;` = prefix marking a block attribute (not rendered as visible content)
+- `<relative-path>` = path from data root to the paired file
+- `#` = delimiter
+- `<hash>` = random 3-char hex string, shared by both sides of the binding
+
+the hash distinguishes multiple bindings in the same file.
+
+## bidirectional sync
+
+edits on either side (main or project) sync to the other on save.
+
+### detecting dirty blocks
+
+diff source: compare on-disk file (before save) vs buffer (about to be saved).
+
+on `BufWritePre`:
+
+```
+1. read the on-disk version of the file
+2. parse h2 blocks from both on-disk and buffer versions
+3. for each block with a ;; binding:
+   - compare block content (excluding the ;; line) between on-disk and buffer
+   - if different → mark as dirty
+```
+
+### sync algorithm
+
+```
+for each dirty block with a ;; binding:
+  dest_path = parse path from ;; line
+  hash = parse hash from ;; line
+  open dest file (read from disk)
+  find the h2 block in dest that has a ;; line with matching hash
+  replace that block's content with the dirty block's content
+  write dest file to disk
+```
+
+### sync edge cases
+
+- dest file doesn't exist: warn the user, skip sync for that block
+- matching hash not found in dest: warn the user, skip sync
+- dest file is the current buffer: not possible (main ≠ project path)
+- both sides edited simultaneously: last save wins (acceptable for single-user)
+- block has no ;; line: not a synced block, skip entirely
+- ;; line itself is never synced (each side keeps its own pointer)
+
+## error handling
+
+follows feat#02 conventions:
+- if `␅l` line has invalid syntax (no project prefix, no text): abort save, alert user
+- if the project prefix doesn't match any folder: abort save, alert user
+
+## data structures
+
+```lua
+-- parsed h2 block
+{
+  heading    = "## Types of Apples",
+  start_ln   = 10,       -- 1-indexed, line of the h2
+  end_ln     = 25,       -- 1-indexed, last line of the block
+  binding    = {          -- nil if no ;; line
+    path = "/p01-apple/0logs/260305.md",
+    hash = "741",
+    ln   = 11,           -- line number of the ;; line
+  },
+  body_lines = { ... },  -- content lines (excluding h2 and ;; lines)
+  is_dirty   = false,
+}
+```
+
+## execution order within feat#02 pipeline
+
+```
+on BufWritePre:
+  1. run feat#02 command dispatch (process all ␅ lines, including ␅l)
+     - ␅l renders into h2 + inserts ;; binding + duplicates block to dest
+  2. run sync pass (detect dirty bound blocks, push changes to paired files)
+  3. save proceeds
+```
+
+step 1 handles new commands. step 2 handles edits to existing bound blocks.
+both run in the same BufWritePre callback, sequentially.
+
+## file structure
+
+```
+lua/noapp/
+  commands/
+    heading.lua       # feat#02 heading command
+    log.lua           # feat#03 log command (first-time duplication)
+  exec.lua            # command dispatch (shared by feat#02 and feat#03)
+  sync.lua            # bidirectional sync logic
+  block.lua           # h2 block parser (shared utility)
+  init.lua            # scope check
+  hotstring.lua       # feat#01
+```
+
+## future considerations
+
+- sync conflict detection could show a diff to the user instead of last-write-wins
+- the `;;` attribute line could carry additional metadata (e.g. last-sync timestamp)
+- batch sync: if multiple blocks point to the same dest file, batch the writes
