@@ -1,4 +1,4 @@
-# design draft for feat#03: logs
+# design draft for feat#04: logs
 
 ## motivation
 
