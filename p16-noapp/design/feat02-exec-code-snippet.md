@@ -3,7 +3,7 @@
 ## overview
 
 users embed executable code snippets in markdown notes.
-lines starting with `␅` are commands that transform into rendered output on file save.
+lines starting with `␅` are commands that transform into rendered output.
 after execution, all `␅` lines are replaced with their output — no traces remain.
 
 files are centralized in a `data` folder:
@@ -30,14 +30,20 @@ a line starting with `␅` is a command. general form:
 ```
 
 the system dispatches by `<command-id>` to a handler function.
-unrecognized or malformed `␅` lines **abort the save** and alert the user.
 
 ## command: heading (`␅<N>text`)
 
 `<command-id>` = a single digit 1–6
 `<argument>` = the heading text
 
+**trigger:** onEnter (feat#04). the heading renders immediately when the user
+presses enter, instead of waiting for the next file save.
+
 **transform:** renders N hashtags + space + AP-style title case text
+
+**special case for h1 (`␅1`):** also inserts a `;;{GUID}` line below the
+rendered h1 heading, and creates a file record in the metadata db (feat#03).
+headings `␅2` through `␅6` do not get GUIDs.
 
 ### AP-style title case rules
 - capitalize the first and last word always
@@ -51,6 +57,7 @@ output: ### Random Title
 
 input:  ␅1the art of the deal
 output: # The Art of the Deal
+        ;;5106bda3ce7c91946a2a577b6c045653358d47ea
 
 input:  ␅2war and peace
 output: ## War and Peace
@@ -58,31 +65,27 @@ output: ## War and Peace
 
 ## error handling
 
-on save, scan all lines for `␅` prefix. if ANY `␅` line does not match a known command:
-1. **abort the save** — the file is NOT written to disk
-2. **show an error message** identifying the offending line number and content
-3. the user must fix or remove the invalid line before saving again
+on entering a newline, if `␅` present and does not match a known command:
+1. the newline still inserts (no blocking)
+2. show an error message identifying the offending line number and content
+3. the user may choose to fix it and trigger it again,
+   or just remove the command
 
 ## execution flow
 
 ```
-on BufWritePre:
-  if buffer not in scope → skip
-  lines = all buffer lines
-  collect indices of lines starting with ␅
-  if none found → allow save (no-op)
+on <CR> in insert mode (feat#04 onEnter):
+  line = current line text
+  if line does not start with ␅ → normal <CR>
 
-  for each ␅ line:
-    parse command-id and argument
-    if unrecognized → abort save, notify user, return
+  parse command-id and argument
+  if unrecognized → show error, insert newline, return
 
-  for each ␅ line (in reverse order to preserve indices):
-    replace line with command output
-
-  buffer is now modified with rendered output → save proceeds
+  result_lines = execute command handler
+  replace current line with result_lines
+  move cursor to end of last result line
+  insert newline
 ```
-
-processing in reverse order ensures line indices stay valid during replacement.
 
 ## extensibility
 
@@ -105,29 +108,31 @@ a command may return multiple lines (e.g. a table generator).
 
 same rationale as feat#01 — native to NeoVim, no dependencies.
 
-### hook: `BufWritePre` autocmd
+### hook: onEnter `<CR>` keymap (feat#04)
 
-fires before the file is written. this allows:
-- inspecting and transforming buffer content before it hits disk
-- aborting the save on error via `vim.cmd("echoerr ...")` + setting `vim.b.abort`
+the heading command was originally on `BufWritePre` (onSave).
+it has been migrated to onEnter for instant rendering on enter.
+the `BufWritePre` path is retained only for commands that need
+batch processing (e.g. sync in feat#05).
 
 ### file structure
 
-reuses the existing `lua/hotstring/` module (rename to `lua/noapp/` if scope grows):
 ```
 lua/
   noapp/
     init.lua          # shared scope check
     hotstring.lua     # feat#01 transform
-    exec.lua          # feat#02 command dispatch + execution
+    on_enter.lua      # feat#04 onEnter dispatch
+    exec.lua          # feat#02 onSave dispatch (retained for sync)
+    db.lua            # feat#03 metadata db
     commands/
       heading.lua     # heading command handler
 ```
 
 ## edge cases
 
-- empty argument after digit (`␅3`): invalid — abort save
-- digit outside 1–6 (`␅9title`): invalid — abort save
-- multiple `␅` lines in one file: all processed in single pass
-- undo after save: standard vim undo restores the `␅` lines
+- empty argument after digit (`␅3`): invalid — show error, allow newline
+- digit outside 1–6 (`␅9title`): invalid — show error, allow newline
+- multiple `␅` lines in one file: each processed individually on its own enter
+- undo after execution: standard vim undo restores the `␅` line
 - the `␅` character in non-first-column positions: ignored, not a command
