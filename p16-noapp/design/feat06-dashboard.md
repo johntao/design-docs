@@ -36,16 +36,18 @@ word
 
 ### observer spec
 
-iterate subfolders of the root
-
-a subfolder is only observed if it contains an `_index.spec` file;
+a folder is observed only if it contains an `_index.spec` file;
 folders without one are skipped entirely
 
-the observer scan recursively, excluding:
-- `_index*`
-- `.*` (dot files and folders)
-- `.html` `.css` `.js` (web source code)
-- `.ods` `.odt` `.pdf` (commonly seen document type)
+discovery: scan `~/Desktop/data/` for `_index.spec` files in **immediate subfolders only**
+(i.e. `~/Desktop/data/p01-foo/_index.spec` — not nested deeper)
+
+file counting within each observed folder is **recursive** (descends into subfolders),
+excluding:
+- `_index*` files
+- `.*` (dot files and dot folders, and everything inside them)
+- `*.html` `*.css` `*.js` (web source code)
+- `*.ods` `*.odt` `*.pdf` (document files)
 
 ## _index.db
 
@@ -54,7 +56,8 @@ raw cumulative snapshots stored as TSV
 - header row is generated from `_index.spec`: `date` followed by metric names in spec order
 - each subsequent row is one daily snapshot
 - date format: `YYMMDD`
-  - the date value equals to the timestamp when the background service triggered (trim time portion)
+  - the date value is **today** relative to when the background service runs
+    (e.g. service runs at 01:00 on 260315 → date recorded is `260315`)
 - values are absolute (cumulative) numbers
 - rows are appended in chronological order; no row is ever overwritten
 
@@ -103,8 +106,7 @@ cross-project progression view showing how daily work is distributed
 
 ### column definitions
 
-- `date` — `YYMMDD`
-  - the date value equals to the timestamp when the background service triggered (trim time portion)
+- `date` — `YYMMDD` (today, same rule as `_index.db`)
 - `total` — sum of all per-folder `word` deltas for that date (i.e. total new words across all projects)
 - one column per observed project — the project's share of `total` as a percentage
 
@@ -123,7 +125,11 @@ for each observed folder:
 3. each project's percentage = `project_word_delta / total * 100`, rounded to nearest integer
 4. if `total` is 0 for a date, all percentages are `0%`
 
-this file is NOT **regenerated in full** on each run (just append a row in daily basis)
+this file is NOT regenerated in full on each run (just append a row daily)
+
+when a new project appears (new `_index.spec` created), add the new column to the header
+and backfill previous rows with `0%` for that column;
+when a project is removed, drop its column — this is a rare manual operation, not handled automatically for now
 
 example:
 ```tsv
@@ -144,11 +150,12 @@ Raku script located at `~/Desktop/data/p16-noapp/script/dashboard-snapshot.raku`
 
 - run via cron, daily
 - preferred window: `01:00 - 05:00 GMT+8`
-- the snapshot date is **yesterday** (`today - 1`), so a run at 01:00 on Mar 15 records data for Mar 14
+- the snapshot date is **today**, however, it runs in the window when the user is most likely sleeping
+  - so, a run at 01:00 on Mar 15 records data for Mar 14 (before the user sleep)
 
 ### execution steps
 
-1. scan `~/Desktop/data/` recursively for all `_index.spec` files
+1. scan immediate subfolders of `~/Desktop/data/` for `_index.spec` files
 2. for each spec found:
    a. read the spec to determine metrics
    b. calculate metrics for the containing folder
