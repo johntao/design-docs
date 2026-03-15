@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>poc#01 showDirectoryPicker</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #333; }
+  button { padding: 0.5rem 1rem; cursor: pointer; }
+  .file { border: 1px solid #ccc; border-radius: 4px; margin: 1rem 0; padding: 1rem; }
+  .file h3 { margin: 0 0 0.5rem; font-size: 0.95rem; color: #555; }
+  .file pre { margin: 0; white-space: pre-wrap; background: #f5f5f5; padding: 0.5rem; border-radius: 2px; }
+  #status { color: #888; margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+
+<h1>poc#01 showDirectoryPicker</h1>
+<button id="btn">Pick a folder</button>
+<div id="status"></div>
+<div id="list"></div>
+
+<script>
+const btn = document.getElementById('btn');
+const list = document.getElementById('list');
+const status = document.getElementById('status');
+
+btn.addEventListener('click', async () => {
+  try {
+    const dirHandle = await window.showDirectoryPicker();
+    list.innerHTML = '';
+    let count = 0;
+
+    for await (const [name, handle] of dirHandle.entries()) {
+      if (handle.kind !== 'file') continue;
+
+      const file = await handle.getFile();
+      const text = await file.text();
+      count++;
+
+      const div = document.createElement('div');
+      div.className = 'file';
+      div.innerHTML = `<h3>${esc(name)}</h3><pre>${esc(text)}</pre>`;
+      list.appendChild(div);
+    }
+
+    status.textContent = `${count} file(s) found`;
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      status.textContent = 'Cancelled';
+    } else {
+      status.textContent = 'Error: ' + e.message;
+    }
+  }
+});
+
+function esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+</script>
+
+</body>
+</html>
