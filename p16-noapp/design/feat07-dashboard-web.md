@@ -1,28 +1,47 @@
 # feat#07 dashboard web charts
 
-this feature extends the previously implemented dashboard to display dataviews as charts in a static web page
+display dashboard dataviews (from feat#06) as charts in a static web page
 
-here are the requirements:
-- implement in a standalone web page
-- no need to use any framework, vanilla js is sufficient
-- no need to use fancy styles, prefer light theme
-- use the most popular library to draw charts
-	- prefer mature one
-	- prefer CDN script without `npm install`
-- use `showDirectoryPicker` API to load dataviews into the web page
-	- prefer using hardcoded paths for the dataviews (no need to traverse the folder recursively)
-	- currently available paths:
-		- /_index (the root)
-		- /002-relation/_index
-		- /p07-vimkeys-game/_index
-		- /p13-mandala/_index
-		- /p14-ttapp/_index
-		- /p16-noapp/_index
-	- place three charts per row (2rows x 3cols)
-	- place the root dataview at (0,0)
-- create the web page inside this folder `@src/main/`
+## requirements
 
-## the root dataview
+- standalone web page at `src/main/index.html`
+- vanilla JS, light theme, minimal styles
+- chart library: **Chart.js** via CDN (no npm)
+- use `showDirectoryPicker` API to load data
+
+## data loading
+
+user picks the root folder (`~/Desktop/data/`) via `showDirectoryPicker`
+
+files are read using hardcoded relative paths (no recursive traversal):
+
+| slot  | path                      | chart type   |
+| ----- | ------------------------- | ------------ |
+| (0,0) | `_index`                  | root (mixed) |
+| (0,1) | `002-relation/_index`     | project      |
+| (0,2) | `p07-vimkeys-game/_index` | project      |
+| (1,0) | `p13-mandala/_index`      | project      |
+| (1,1) | `p14-ttapp/_index`        | project      |
+| (1,2) | `p16-noapp/_index`        | project      |
+
+all files are TSV; parse with `split("\t")`
+
+skip the first data row in every file (it represents the initial absolute snapshot, not a true delta)
+
+## layout
+
+grid: 2 rows x 3 cols
+
+each cell contains one `<canvas>` for Chart.js;
+chart title = the project name (derived from the path, e.g. `p13-mandala`)
+root chart title = `root`
+
+## x-axis (shared)
+
+- values from the `date` column (`YYMMDD`)
+- display as-is (no reformatting)
+
+## root chart (mixed: grouped bar + line)
 
 example data:
 ```tsv
@@ -33,17 +52,15 @@ date	total	p01-foo	p02-bar
 260304	2000	60%	40%
 ```
 
-x-axis display date
-y-axis display grouped column x line chart:
-- display p01-foo, p02-bar... as grouped columns
-- display total as line chart
-- line chart and grouped columns use separated y-axis
-  - the y-axis for grouped column is 0-100%
-  - the y-axis for line is 0-MAX(total)
+datasets:
+- each project column (`p01-foo`, `p02-bar`, ...) → **bar**, grouped; values are percentages (strip `%`, parse as int)
+- `total` → **line**, drawn on top of bars
 
-skip the first record (i.e. exclude record 260301 in this example)
+y-axes:
+- left axis (bars): fixed range `0–100`, label `%`
+- right axis (line): range `0–max(total)`, label `words`
 
-## the project dataview
+## project chart (grouped bar)
 
 example data:
 ```tsv
@@ -54,9 +71,18 @@ date	file	line	word
 260304	3	180	1200
 ```
 
-x-axis display date
-y-axis display grouped column chart:
-- display file, line and word as grouped columns
-- file, line and word use separated y-axis
+datasets:
+- `file`, `line`, `word` → **bar**, grouped
 
-skip the first record (i.e. exclude record 260301 in this example)
+y-axes:
+- left axis: for `file`, range `0–max(file)`
+- right axis: for `word`, range `0–max(word)`
+
+## flow
+
+1. page loads → show a single "Load data" button
+2. user clicks → `showDirectoryPicker()` opens
+3. for each hardcoded path, resolve via `dirHandle.getDirectoryHandle()` / `getFileHandle()`
+4. read each `_index` file, parse TSV, skip first data row
+5. render all 6 charts into the grid
+6. if a file is missing, show placeholder text in that cell
