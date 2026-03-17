@@ -4,10 +4,12 @@
 !/p13-mandala/
 !/p14-ttapp/
 !/p16*/
+/p16-noapp/src/main/data.js
 /p07-vimkeys-game/material/
 [._]*
 *.ods
 *.zip
+
 # /p07-vimkeys-game/*
 # !/p07-vimkeys-game/design.md
 # !/p07-vimkeys-game/design-tw.md
