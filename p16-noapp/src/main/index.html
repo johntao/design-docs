@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>feat#07 dashboard charts</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 1rem; color: #333; }
+  h1 { font-size: 1.2rem; margin: 0 0 1rem; }
+  #btn { padding: 0.5rem 1rem; cursor: pointer; }
+  #grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+  .cell { border: 1px solid #ddd; border-radius: 4px; padding: 0.75rem; min-height: 220px; display: flex; align-items: center; justify-content: center; }
+  .cell canvas { width: 100% !important; height: 200px !important; }
+  .placeholder { color: #aaa; font-style: italic; }
+</style>
+</head>
+<body>
+
+<h1>feat#07 dashboard charts</h1>
+<button id="btn">Load data</button>
+<div id="grid"></div>
+
+<script>
+const SLOTS = [
+  { path: '_index',                  type: 'root',    title: 'root' },
+  { path: '002-relation/_index',     type: 'project', title: '002-relation' },
+  { path: 'p07-vimkeys-game/_index', type: 'project', title: 'p07-vimkeys-game' },
+  { path: 'p13-mandala/_index',      type: 'project', title: 'p13-mandala' },
+  { path: 'p14-ttapp/_index',        type: 'project', title: 'p14-ttapp' },
+  { path: 'p16-noapp/_index',        type: 'project', title: 'p16-noapp' },
+];
+
+const COLORS = ['#4dc9f6','#f67019','#f53794','#537bc4','#acc236','#166a8f','#00a950','#58595b'];
+
+document.getElementById('btn').addEventListener('click', async () => {
+  try {
+    const rootHandle = await window.showDirectoryPicker();
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+
+    for (const slot of SLOTS) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      grid.appendChild(cell);
+
+      try {
+        const text = await readFile(rootHandle, slot.path);
+        const data = parseTSV(text);
+        const canvas = document.createElement('canvas');
+        cell.appendChild(canvas);
+
+        if (slot.type === 'root') {
+          renderRootChart(canvas, data, slot.title);
+        } else {
+          renderProjectChart(canvas, data, slot.title);
+        }
+      } catch {
+        cell.innerHTML = `<span class="placeholder">${slot.title}: no data</span>`;
+      }
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') alert('Error: ' + e.message);
+  }
+});
+
+async function readFile(rootHandle, path) {
+  const parts = path.split('/');
+  let dirHandle = rootHandle;
+  for (const part of parts.slice(0, -1)) {
+    dirHandle = await dirHandle.getDirectoryHandle(part);
+  }
+  const fileHandle = await dirHandle.getFileHandle(parts.at(-1));
+  const file = await fileHandle.getFile();
+  return file.text();
+}
+
+function parseTSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split('\t');
+  // skip header and first data row
+  const rows = lines.slice(2).map(line => line.split('\t'));
+  return { headers, rows };
+}
+
+function renderRootChart(canvas, data, title) {
+  const labels = data.rows.map(r => r[0]);
+  const totalIdx = data.headers.indexOf('total');
+  const projectCols = data.headers.slice(2); // skip date, total
+
+  const datasets = [];
+
+  // bar datasets for each project (percentage)
+  projectCols.forEach((name, i) => {
+    const colIdx = i + 2;
+    datasets.push({
+      type: 'bar',
+      label: name,
+      data: data.rows.map(r => parseInt(r[colIdx]) || 0),
+      backgroundColor: COLORS[i % COLORS.length] + 'aa',
+      yAxisID: 'yPct',
+      order: 2,
+    });
+  });
+
+  // line dataset for total
+  datasets.push({
+    type: 'line',
+    label: 'total',
+    data: data.rows.map(r => parseInt(r[totalIdx]) || 0),
+    borderColor: '#333',
+    backgroundColor: '#33333322',
+    borderWidth: 2,
+    pointRadius: 3,
+    fill: false,
+    yAxisID: 'yTotal',
+    order: 1,
+  });
+
+  new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: { title: { display: true, text: title } },
+      scales: {
+        x: { display: true },
+        yPct: {
+          position: 'left',
+          min: 0, max: 100,
+          title: { display: true, text: '%' },
+        },
+        yTotal: {
+          position: 'right',
+          min: 0,
+          title: { display: true, text: 'words' },
+          grid: { drawOnChartArea: false },
+        },
+      },
+    },
+  });
+}
+
+function renderProjectChart(canvas, data, title) {
+  const labels = data.rows.map(r => r[0]);
+  const fileIdx = data.headers.indexOf('file');
+  const wordIdx = data.headers.indexOf('word');
+
+  const datasets = [];
+
+  if (fileIdx !== -1) {
+    datasets.push({
+      label: 'file',
+      data: data.rows.map(r => parseInt(r[fileIdx]) || 0),
+      backgroundColor: COLORS[0] + 'aa',
+      yAxisID: 'yFile',
+    });
+  }
+
+  if (wordIdx !== -1) {
+    datasets.push({
+      label: 'word',
+      data: data.rows.map(r => parseInt(r[wordIdx]) || 0),
+      backgroundColor: COLORS[1] + 'aa',
+      yAxisID: 'yWord',
+    });
+  }
+
+  new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: { title: { display: true, text: title } },
+      scales: {
+        x: { display: true },
+        yFile: {
+          position: 'left',
+          min: 0,
+          title: { display: true, text: 'file' },
+        },
+        yWord: {
+          position: 'right',
+          min: 0,
+          title: { display: true, text: 'word' },
+          grid: { drawOnChartArea: false },
+        },
+      },
+    },
+  });
+}
+</script>
+
+</body>
+</html>
