@@ -44,7 +44,7 @@ document.getElementById('btn').addEventListener('click', async () => {
         cell.appendChild(canvas);
 
         if (slot.type === 'root') {
-          renderRootChart(canvas, data, slot.title);
+          renderRootChart(canvas, data);
         } else {
           renderProjectChart(canvas, data, slot.title);
         }
@@ -76,20 +76,24 @@ function parseTSV(text) {
   return { headers, rows };
 }
 
-function renderRootChart(canvas, data, title) {
+function renderRootChart(canvas, data) {
   const labels = data.rows.map(r => r[0]);
   const totalIdx = data.headers.indexOf('total');
-  const projectCols = data.headers.slice(2); // skip date, total
 
   const datasets = [];
 
   // bar datasets for each project (percentage)
+  // const tmp = data.headers.slice(2);
+  const setA = new Set(data.headers.slice(2));
+  const setB = new Set(SLOTS.map(q => q.title));
+  const projectCols = [...setA.intersection(setB)];
   projectCols.forEach((name, i) => {
-    const colIdx = i + 2;
+    const idx = data.headers.indexOf(name);
+    debugger;
     datasets.push({
       type: 'bar',
       label: name,
-      data: data.rows.map(r => parseInt(r[colIdx]) || 0),
+      data: data.rows.map(r => parseInt(r[idx]) || 0),
       backgroundColor: COLORS[i % COLORS.length] + 'aa',
       yAxisID: 'yPct',
       order: 2,
@@ -115,7 +119,7 @@ function renderRootChart(canvas, data, title) {
     data: { labels, datasets },
     options: {
       responsive: true,
-      plugins: { title: { display: true, text: title } },
+      plugins: { title: { display: true, text: 'root' } },
       scales: {
         x: { display: true },
         yPct: {
