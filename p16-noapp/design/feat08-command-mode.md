@@ -15,26 +15,28 @@ feat04 (onEnter) remains but no longer dispatches `␅` commands
 
 hit `:` to enter NeoVim command-line mode
 
-NeoVim user commands must start with an uppercase letter;
-register a command `]` is not possible directly
+the command uses customized grammar — whitespace between `]` and the argument is
+not significant and should not be inserted:
 
-**approach:** register a user command (e.g. `J`) and alias `]` to it via `cabbrev`:
+- correct: `:]3some title`
+- incorrect: `:] 3some title`
+
+**approach:** hook into the `CmdUndefined` event — when a user types a command that
+NeoVim does not recognize, the event fires and we intercept it:
 
 ```
-cabbrev ] J
-command! -nargs=1 J lua require('noapp.command').run(<q-args>)
+autocmd CmdUndefined ] lua require('noapp.command').run(...)
 ```
 
-so `:] 3some title` becomes `:J 3some title` and dispatches to Lua
+if the input matches a user-defined command, dispatch it;
+otherwise, `print("Unknown command: " .. ev.match)`
 
-### scope
+since we use a custom parser via `CmdUndefined`, there is no need to follow
+NeoVim's convention that user commands must start with an uppercase letter;
+`]` is used directly as the command prefix
 
-same activation rules as feat01/feat02:
-- file is under `~/Desktop/data/`
-- file extension is `.md`
-- filename does not start with `_`
-
-the `J` command and `]` abbreviation are only registered for buffers matching these rules
+commands require explicit user invocation, so there is no need to scope them
+under activation rules (unlike feat01/feat02 which triggered on `TextChangedI`)
 
 ## commands
 
@@ -43,12 +45,12 @@ the `J` command and `]` abbreviation are only registered for buffers matching th
 `<N>` = single digit 1–6
 `<text>` = heading text (rest of the argument)
 
-example: `:] 3some title` → inserts below cursor:
+example: `:]3some title` → inserts below cursor:
 ```
 ### Some Title
 ```
 
-example: `:] 1the art of the deal` → inserts below cursor:
+example: `:]1the art of the deal` → inserts below cursor:
 ```
 # The Art of the Deal
 ;;{generated GUID}
@@ -72,8 +74,8 @@ h2–h6 do not get GUIDs
 
 #### error handling
 
-- missing text after digit (e.g. `:] 3`): show error message, no insertion
-- digit outside 1–6 (e.g. `:] 9title`): show error message, no insertion
+- missing text after digit (e.g. `:]3`): show error message, no insertion
+- digit outside 1–6 (e.g. `:]9title`): show error message, no insertion
 
 ### synced block
 
@@ -86,7 +88,7 @@ register in a dispatch table in `command.lua`; each entry is a pattern + handler
 ## file structure
 
 ```
-plugin/command.lua              # registers J command + ] abbreviation on BufEnter
+plugin/command.lua              # hooks CmdUndefined, sets up ] interception
 lua/noapp/command.lua           # dispatcher: parse args, match pattern, call handler
 lua/noapp/commands/heading.lua  # heading expansion + GUID logic
 ```
