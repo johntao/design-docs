@@ -28,14 +28,14 @@ reasons:
 
 main track (journal):
 ```
-~/Desktop/data/001-journal/0logs/YYMM/DD.md
+001-journal/0logs/YYMM/DD.md
 ```
 
 project track:
 ```
-~/Desktop/data/<project>/0logs/YYMMDD.md
+<project>/0logs/YYMMDD.md
 ```
-
+note that the two example paths share a same root that is already added to the path config (a VIM config for `gf` command)
 project prefix resolves to folder: `p16` → `p16-noapp`
 date is derived from the current file's path, or today's date as fallback
 
@@ -63,7 +63,18 @@ line 3
 
 all commands use feat08 command mode (`:]<args>`)
 
-### 1. create project block (`:]l<prefix><title>`)
+### 1. gf improved
+
+normal mode command `gf` currently tries to open a file under the cursor
+here are the improved version:
+- check if the file path is valid
+- if not, no-op and notify users for failure
+- check if there are already two vertical windows existing
+  - if true, switch focus to the other vertical window
+  - if not, create a new vertical window
+- read the file into the current focused vertical window
+
+### 2. create project block (`:]l<prefix><title>`)
 
 `<prefix>` = project prefix (e.g., `p16`)
 `<title>` = block title text
@@ -72,6 +83,7 @@ example: `:]lp16types of apple`
 
 steps:
 1. resolve `<prefix>` to project folder (e.g., `p16` → `p16-noapp`)
+   - prefix length is fixed to 3 characters
 2. derive date from current file's path (fallback: today)
 3. derive project track path: `<project>/0logs/YYMMDD.md`
 4. insert in current buffer at cursor:
@@ -79,14 +91,11 @@ steps:
    ## Types of Apple
    ;;p16-noapp/0logs/260320.md
    ```
-5. if project track file does not exist, create it with h1 date heading (e.g., `# 260320`)
-6. append to project track file:
-   ```
-   # Types of Apple
-   ;;001-journal/0logs/2603/20.md
-   ```
-7. open project track file in vsplit
-8. focus the vsplit window
+5. if project track file does not exist, create it
+   - append to project track file: `# Types of Apple\n;;001-journal/0logs/2603/20.md`
+   - if the file already exist, append to project track file: `## Types of Apple\n;;001-journal/0logs/2603/20.md`
+6. open project track file in vsplit
+   - reuse the improved `gf` logic such that it doesn't create the 3rd vertical window
 
 title case: AP-style, same rules as feat08 heading command
 
@@ -94,7 +103,7 @@ errors:
 - prefix doesn't match any folder: show error, no insertion
 - current file is not a recognized log file: show error
 
-### 2. update title (`:]u<title>`)
+### 3. update title (`:]u<title>`)
 
 cursor must be on a block heading line (h1 or h2) with a `;;path` metadata line below it
 
@@ -104,6 +113,7 @@ steps:
 1. read the heading at cursor, read `;;path` on the line below
 2. update the heading in current buffer to title-cased `<title>` (preserve heading level)
 3. open the linked file (from `;;path`)
+   - reuse the improved `gf` logic such that it doesn't create the 3rd vertical window
 4. search for old title text in that file
 5. update the matching heading (preserve its heading level too)
 6. save the linked file
@@ -113,30 +123,32 @@ errors:
 - line below heading is not a `;;path` metadata line: show error
 - matching heading not found in linked file: show error
 
-### 3. jump to main (`:]j`)
+### 4. jump to main (`:]j`)
 
 cursor must be on or inside a project track block that has a `;;path` metadata line
 
 example: `:]j`
 
 steps:
-1. scan upward from cursor to find the nearest heading (h1 or h2)
+1. scan upward from cursor to find the nearest h1 heading
 2. read the `;;path` metadata line below it
 3. open the main track file
+   - reuse the improved `gf` logic such that it doesn't create the 3rd vertical window
 4. search for the block title text in that file
 
 errors:
 - no heading found above cursor: show error
 - no `;;path` metadata below heading: show error
 
-### 4. move content to project (`:]m<prefix><title>`)
+### 5. move content to project (`:]m<prefix><title>`)
 
 visual selection required
 
-example: select lines, then `:]mp16types of apple`
+example: select lines, then `:'<,'>]mp16types of apple`
 
 steps:
 1. resolve `<prefix>` to project folder
+   - prefix length is fixed to 3 characters
 2. derive date, derive project track path
 3. capture the selected lines, then remove them from current buffer
 4. insert at the original selection position in current buffer:
@@ -144,14 +156,11 @@ steps:
    ## Types of Apple
    ;;p16-noapp/0logs/260320.md
    ```
-5. if project track file does not exist, create it with h1 date heading
-6. append to project track file:
-   ```
-   # Types of Apple
-   ;;001-journal/0logs/2603/20.md
-   <moved content>
-   ```
-7. open project track file in vsplit (do NOT focus the vsplit window)
+5. if project track file does not exist, create it
+   - append to project track file: `# Types of Apple\n;;001-journal/0logs/2603/20.md\n<moved content>`
+   - if the file already exist, append to project track file `## Types of Apple\n;;001-journal/0logs/2603/20.md\n<moved content>`
+6. open project track file in vsplit
+   - reuse the improved `gf` logic such that it doesn't create the 3rd vertical window
 
 errors:
 - no visual selection: show error
