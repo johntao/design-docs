@@ -1,79 +1,184 @@
 # feat10 WMY review
 
-this feature aims to enhance the existing main log track
+weekly, monthly, and yearly review file generation for the main journal log track
 
-a new cron job is registered
+## overview
 
-which runs a Raku script on a daily basis (at 01:00 GMT+8)
+a daily cron job (01:00 GMT+8) runs a Raku script
+on Mondays, it generates review files based on ISO 8601 week calendar (Monday = first day)
+all files live under `001-journal/0logs/`
 
-the script checks the day of the week, the ISO weeks calendar, and generate files accordingly
-- two files are created, the first file is dataview that concat group of files into a single file
-- the second file is a template file for users to comment retrospective summary
+each review level produces two files:
+- **dataview** (`*v.md`): static concatenation of source files (read-only reference)
+- **review** (`*.md`): template for user-written retrospective (never overwritten if exists)
 
-if the day of the week equals Monday, then, generate a weekly review file
-- a file is created at `data/001-journal/0logs/2603/23-w13v.md`
-  - 2603 stands as YYMM (year and month)
-  - 23 stands as dd (date of the month)
-  - w13 stands as the week of the year
-  - v stands as dataview
-  - concatenate log files of the previous week into this file
-    - i.e. concate `(16..22).md` file content into `23-w13v.md`
-    - use ISO weeks
-- a file is created at `data/001-journal/0logs/2603/23-w13.md`
-  - insert text `# w13: 03-16..03-22` in the start of the file
+## schedule
 
-if the current week contains the 1st date of a month, then, generate a monthly review file
-- example 1
-  - a file is created at `data/001-journal/0logs/2602/23-m02v.md` on date 2026-02-23
-  - 2602 stands as YYMM (year and month)
-  - 23 stands as dd (date of the month)
-  - m02 stands as the month
-  - v stands as dataview
-  - concatenate previous weekly log files into this file
-    - the range starts from the week (exclusive) contains the 1st date of a month (previous iteration); ends by the week (inclusive) contains the 1st date of a month (current iteration)
-    - 2602/02-w06 2602/09-w07 2602/16-w08 2602/23-w09
-    - concate the above md files into `23-m02v.md`
-  - a file is created at `data/001-journal/0logs/2602/23-m02.md`
-  - insert text `# m02: 01-26..02-22` in the start of the file
-- example 2
-  - a file is created at `data/001-journal/0logs/2603/30-m03v.md` on date 2026-03-30
-  - concatenate previous weekly log files into this file
-    - 2603/02-w10 2603/09-w11 2603/16-w12 2603/23-w13 2603/30-w14
-    - concate the above md files into `30-m03v.md`
-  - a file is created at `data/001-journal/0logs/2603/30-m03.md`
-  - insert text `# m03: 02-23..03-29` in the start of the file
-- example 3
-  - a file is created at `data/001-journal/0logs/2604/27-m04v.md` on date 2026-04-27
-  - concatenate previous weekly log files into this file
-    - 2604/06-w15 2604/13-w16 2604/20-w17 2604/27-w18
-    - concate the above md files into `27-m04v.md`
-  - a file is created at `data/001-journal/0logs/2604/27-m04.md`
-  - insert text `# m04: 03-30..04-26` in the start of the file
+cron: daily at 01:00 GMT+8
+trigger: Monday only (script exits on other days)
 
-if the current week contains the 1st date of a year, then, generate a yearly review file
-- example 1
-  - a file is created at `data/001-journal/0logs/2512/29-y25v.md` on date 2025-12-29
-  - 2512 stands as YYMM (year and month)
-  - 29 stands as dd (date of the month)
-  - y25 stands as the year 2025
-  - v stands as dataview
-  - concatenate previous monthly log files into this file
-    - regex pattern: `25([01]\d)/[0-3]\d-m\1.md`
-    - match files: `2510/27-m10.md`, `2512/01-m11.md`, `2512/29-m12.md`...etc
-      - note that the monthly report of November in 2025 is created in folder `2512/` instead of `2511/`
-      - this happens when the 1st date of a month is also Monday (the first day of a week)
-    - concate the above md files into `2512/29-y25v.md`
-  - a file is created at `data/001-journal/0logs/2512/29-y25.md`
-  - insert text `# y25: 241230..251228` in the start of the file
-- example 2
-  - a file is created at `data/001-journal/0logs/2612/28-y26v.md` on date 2026-12-28
-  - 2612 stands as YYMM (year and month)
-  - 28 stands as dd (date of the month)
-  - y26 stands as the year 2026
-  - v stands as dataview
-  - concatenate previous monthly log files into this file
-    - regex pattern: `26([01]\d)/[0-3]\d-m\1.md`
-    - match files: `2602/23-m02.md`, `2603/30-m03.md`, `2604/27-m04.md`...etc
-    - concate the above md files into `2612/28-y26v.md`
-  - a file is created at `data/001-journal/0logs/2612/28-y26.md`
-  - insert text `# y26: 251229..261227` in the start of the file
+on every Monday:
+1. always generate weekly review
+2. if the ISO week (Mon–Sun) contains the 1st of a new month → also generate monthly review
+3. if the ISO week (Mon–Sun) contains Jan 1 → also generate yearly review
+
+## path conventions
+
+all paths relative to `data/001-journal/0logs/`
+
+| type    | dataview          | review           |
+| ------- | ----------------- | ---------------- |
+| weekly  | `YYMM/DD-wWWv.md` | `YYMM/DD-wWW.md` |
+| monthly | `YYMM/DD-mMMv.md` | `YYMM/DD-mMM.md` |
+| yearly  | `YYMM/DD-yYYv.md` | `YYMM/DD-yYY.md` |
+
+- `YYMM` = year+month of the trigger Monday
+- `DD` = day-of-month of the trigger Monday
+- `WW` = ISO week number (zero-padded)
+- `MM` = month of the trigger Monday (zero-padded)
+- `YY` = year being reviewed
+
+## weekly review
+
+trigger: every Monday
+source: previous week's daily log files (Mon–Sun, 7 files)
+
+dataview — concatenate into `DD-wWWv.md`:
+
+    source files: (DD-7).md .. (DD-1).md  (may span two YYMM folders)
+
+review — create `DD-wWW.md` with heading:
+
+    # wWW: MM-DD..MM-DD
+
+range = previous Monday .. previous Sunday
+
+example: Monday 2026-03-23 (w13)
+- dataview source: `2603/16.md` .. `2603/22.md`
+- dataview output: `2603/23-w13v.md`
+- review heading: `# w13: 03-16..03-22`
+- review output: `2603/23-w13.md`
+
+## monthly review
+
+trigger: Monday of the ISO week that contains the 1st of a new month
+the review is named `mMM` where MM is the trigger Monday's month
+
+source: weekly **review** files between two consecutive monthly boundaries
+
+### range logic
+
+- previous boundary: the Monday that triggered the last monthly review
+- current boundary: today (the Monday triggering this review)
+- collect: all `DD-wWW.md` where Monday ∈ (previous boundary, current boundary)
+
+the heading date range is derived from the collected weekly reviews:
+first day covered by the first weekly review .. last day covered by the last weekly review
+
+dataview — concatenate collected weekly review files into `DD-mMMv.md`
+review — create `DD-mMM.md` with heading: `# mMM: MM-DD..MM-DD`
+
+### examples
+
+example 1: Monday 2026-02-23 → week Feb 23–Mar 1 contains Mar 1 → m02
+- collected: `2602/02-w06.md` `2602/09-w07.md` `2602/16-w08.md` `2602/23-w09.md`
+- dataview: `2602/23-m02v.md`
+- heading: `# m02: 01-26..02-22`
+- review: `2602/23-m02.md`
+
+example 2: Monday 2026-03-30 → week Mar 30–Apr 5 contains Apr 1 → m03
+- collected: `2603/02-w10.md` `2603/09-w11.md` `2603/16-w12.md` `2603/23-w13.md` `2603/30-w14.md`
+- dataview: `2603/30-m03v.md`
+- heading: `# m03: 02-23..03-29`
+- review: `2603/30-m03.md`
+
+example 3: Monday 2026-04-27 → week Apr 27–May 3 contains May 1 → m04
+- collected: `2604/06-w15.md` `2604/13-w16.md` `2604/20-w17.md` `2604/27-w18.md`
+- dataview: `2604/27-m04v.md`
+- heading: `# m04: 03-30..04-26`
+- review: `2604/27-m04.md`
+
+## yearly review
+
+trigger: Monday of the ISO week that contains Jan 1
+the review is named `yYY` where YY is the year being reviewed
+
+source: monthly **review** files for the reviewed year
+
+### collection
+
+find all files matching `YY[01]\d/[0-3]\d-m[01]\d.md` under `0logs/`
+
+note: a monthly review may reside in a different month's folder when the
+1st of a month falls on Monday (e.g. `2512/01-m11.md` — November review
+created Dec 1 because the week of Dec 1 contains Dec 1 as the new month)
+
+sort collected files chronologically before concatenation
+
+the heading date range uses YYMMDD format (cross-year span):
+first day covered by first monthly review .. last day covered by last monthly review
+
+dataview — concatenate into `DD-yYYv.md`
+review — create `DD-yYY.md` with heading: `# yYY: YYMMDD..YYMMDD`
+
+### examples
+
+example 1: Monday 2025-12-29 → week Dec 29–Jan 4 contains Jan 1 → y25
+- pattern: `25[01]\d/[0-3]\d-m[01]\d.md`
+- dataview: `2512/29-y25v.md`
+- heading: `# y25: 241230..251228`
+- review: `2512/29-y25.md`
+
+example 2: Monday 2026-12-28 → week Dec 28–Jan 3 contains Jan 1 → y26
+- pattern: `26[01]\d/[0-3]\d-m[01]\d.md`
+- dataview: `2612/28-y26v.md`
+- heading: `# y26: 251229..261227`
+- review: `2612/28-y26.md`
+
+## algorithm
+
+```
+today = current date
+exit unless today.day-of-week == Monday
+
+yy, mm, dd = today formatted
+ww = ISO week number
+
+# 1. weekly review (always)
+prev_week = (today-7 .. today-1)
+daily_files = prev_week.map -> YYMM/DD.md
+write dataview: YYMM/DD-wWWv.md ← concat(daily_files)
+write review:   YYMM/DD-wWW.md  ← "# wWW: {prev_week.first}..{prev_week.last}"
+
+# 2. monthly review (if week contains 1st of a new month)
+if (today .. today+6).any: .day == 1
+    find previous monthly boundary (last Monday that triggered monthly)
+    collect wWW.md files in (prev_boundary .. today)
+    derive heading range from collected reviews' coverage
+    write dataview: YYMM/DD-mMMv.md ← concat(weekly_reviews)
+    write review:   YYMM/DD-mMM.md  ← "# mMM: {range}"
+
+# 3. yearly review (if week contains Jan 1)
+if (today .. today+6).any: .month == 1 and .day == 1
+    reviewed_year = if today.month == 12 then today.year else today.year - 1
+    collect mMM.md files matching YY pattern
+    derive heading range from collected reviews' coverage
+    write dataview: YYMM/DD-yYYv.md ← concat(monthly_reviews)
+    write review:   YYMM/DD-yYY.md  ← "# yYY: {range}"
+```
+
+## file structure
+
+```
+scripts/wmy-review.raku    # generation script
+001-journal/0logs/YYMM/    # all output files
+```
+
+## notes
+
+- all week boundaries follow ISO 8601 (Monday–Sunday)
+- dataview files are always regenerated; review files are created only if absent
+- source files are concatenated in chronological order
+- when daily files span two YYMM folders (e.g. month boundary), collect from both
+- the "previous monthly boundary" for the very first run must be seeded or derived
+  from the earliest available weekly review file
