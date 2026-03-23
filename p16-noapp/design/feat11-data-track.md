@@ -1,50 +1,128 @@
 # feat11 data track
 
-we previously introduced logs track which also stands as "prose" (i.e. free-form writing)
+introduces structural data tracks alongside the existing prose (logs) track
 
-now, let's introduce a structural track (i.e. data track)
+## context
 
-I've made a few KTV song data records with several fields
+KTV song records sit in `data/m02-artifact/ktv/`
+each file groups songs by era/category (e.g. `1990`, `2000`, `en`)
+each line is one record with semicolon-delimited fields:
 
-these records sit in folder `data/m02-artifact/ktv/`
+    score1;score2;score3;year;title;singer;tags
 
-now, here are the requirements (implement in Raku scripts)
+files and directories prefixed with `_` are generated or internal — excluded from collection
 
-## concat all songs
+## implementation
 
-concat direct children files `data/m02-artifact/ktv/*` into file `data/m02-artifact/ktv/_all`
+two Raku scripts, both located at `data/p16-noapp/script/`
+both are idempotent (safe to re-run; output files are fully regenerated each time)
 
-make sure the file `_all` is not included in the second run
+## script 1: concat all songs
 
-it is safe to exclude file name starts with underscore '_' from the children file collection
+script: `ktv-all.raku`
+output: `data/m02-artifact/ktv/_all`
 
-the result should looks like this:
+collect all direct children **files** under `data/m02-artifact/ktv/`
+skip entries starting with `_`
+sort files alphabetically
+
+output format:
+
 ```
-KTV songs [total record count]
-[file1 name] [file1 line count]
-[file1 content]
-[file2 name] [file2 line count]
-[file2 content]
-[file3 name] [file3 line count]
-[file3 content]
+KTV songs {total_record_count}
+{file1_name} {file1_line_count}
+{file1_content}
+{file2_name} {file2_line_count}
+{file2_content}
+...
 ```
 
-## list of singers
+- `total_record_count` = sum of all non-empty lines across all files
+- `file_line_count` = non-empty line count per file
+- `file_content` = raw content of the file (preserved as-is)
+- files are separated by their header line (`name count`), no extra blank lines
 
-concat direct children files `data/m02-artifact/ktv/*` into file `data/m02-artifact/ktv/_singer`
+example (truncated):
 
-the result should looks like this:
 ```
-KTV singers [total record count]
-[file1 name] [file1 line count]
-[file1 unique singer]
-[file2 name] [file2 line count]
-[file2 unique singer]
-[file3 name] [file3 line count]
-[file3 unique singer]
+KTV songs 97
+1970 9
+2;2;2;1975;乎你啦;陳小雲;
+2;1;2;1976;心事誰人知;沈文程;
+...
+1980 16
+3;3;3;1985;大約在冬季;齊秦;^
+2;1;1;1988;是否;蘇芮;
+...
 ```
-the file content use semicolon ';' to separate fields
-you can parse the singer from the 5th field (zero-indexed)
 
-note that a singer might appear in multiple files, in such case, make sure keep only the first occurrence
-the expected result is to having unique singer records in file `data/m02-artifact/ktv/_singer`
+## script 2: list of singers
+
+script: `ktv-singer.raku`
+output: `data/m02-artifact/ktv/_singer`
+
+collect the same source files as script 1
+parse field index 5 (zero-indexed, semicolon-delimited) as the singer name
+
+produce a **globally unique** singer list:
+- process files in alphabetical order
+- within each file, process lines top-to-bottom
+- if a singer has already appeared in a previous file (or earlier in the same file),
+  skip that line
+- a "unique singer" for a file = singers appearing for the first time in that file
+
+output format:
+
+```
+KTV singers {total_unique_singer_count}
+{file1_name} {file1_unique_count}
+{singer_a}
+{singer_b}
+{file2_name} {file2_unique_count}
+{singer_c}
+...
+```
+
+- `total_unique_singer_count` = number of distinct singers across all files
+- each file section lists only the singers first encountered in that file
+- singer names are listed one per line, in order of first appearance
+
+example (truncated):
+
+```
+KTV singers 78
+1970 9
+陳小雲
+沈文程
+鄧麗君
+鳳飛飛
+蔡琴
+青山
+劉文正
+余天
+林慧萍
+1980 14
+齊秦
+蘇芮
+...
+```
+
+## scheduling
+
+both scripts are intended for manual or on-demand execution (no cron)
+they can be wired into a save hook or run ad-hoc after editing song files
+
+## file structure
+
+```
+p16-noapp/script/ktv-all.raku       # concat all songs
+p16-noapp/script/ktv-singer.raku    # unique singer list
+m02-artifact/ktv/_all               # generated output
+m02-artifact/ktv/_singer            # generated output
+m02-artifact/ktv/1970               # source data
+m02-artifact/ktv/1980               # source data
+m02-artifact/ktv/1990               # source data
+m02-artifact/ktv/2000               # source data
+m02-artifact/ktv/2010               # source data
+m02-artifact/ktv/en                 # source data
+```
