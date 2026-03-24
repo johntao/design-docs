@@ -1,56 +1,117 @@
 # feat12 chronicle track
 
-chronicle track is something similar to data track
+structured date-prefixed records, similar to data track (feat11)
+every line starts with a `YYMMDD` date, fields separated by semicolons
 
-the only difference is that the first field is always a YYMMdd date
+records live in `data/007-chronicle/*.txt`
+files/directories prefixed with `_` are generated — excluded from collection
 
-it also use semicolon for field separation
+## write command
 
-here are the requirements:
+nvim command to insert a chronicle record from the journal
 
-## write
+syntax: `:]c{name}{date} {text}`
 
-commands to insert chronicle records from the main track `data/001-journal/0logs` to the folder `data/007-chronicle/`
+### name (optional, 3 alpha chars)
 
-command syntax `:]c{file name}{date} {arbitrary text}`
+- exactly 3 lowercase letters, matched against filenames from the start
+- `rhy` → matches `rhythm.txt`, `pod` → matches `podcast.txt`
+- error if zero or multiple files match
+- omit → defaults to `any.txt`
 
-given input file name "rhy" which then insert a record into file `data/007-chronicle/rhythm.txt`
-- file name is omittable
-  - then `data/007-chronicle/any.txt` is used
-- a fixed format string of three letters long (alphbet only, no digit)
-- match file name from the start
-  - no-op and notify errors if zero or mutiple files matches
+### date (optional, digits + trailing dashes)
 
-given input date "260322" which stands for 2026-03-22
-- date is omittable (current date is used)
-- "26--" renders to 260000
-- "2603-" renders to 260300
-- "22" renders to 260322 (current year and month)
-- "0122" renders to 260122 (current year)
+- omit → current date (YYMMDD)
+- `YYMMDD` (6 digits) → as-is
+- `MMDD` (4 digits) → prepend current YY
+- `DD` (2 digits) → prepend current YYMM
+- `YY--` (2 digits + 2 dashes) → YY0000
+- `YYMM-` (4 digits + 1 dash) → YYMM00
 
-the record is inserted at the beginning of the file
-- the record goes `260322;arbitrary text\n`
+dashes are placeholders for `0` in approximate/partial dates
 
-## read
+### behavior
 
-create a web standalone web page that use `<input type="file" webkitdirectory>` to read a folder
-then, display all the chronicle records into a grid
-the first column should be the file name
-there should be a list of checkboxes to filter records by file name
-the chronicle record use semicolon as field separator, make sure these fields get parsed into grid columns properly
-note that some of the files may contains more columns than the others
+1. resolve target file from name (or default to `any.txt`)
+2. resolve date to 6-char YYMMDD
+3. prepend `YYMMDD;text\n` to the target file (insert at line 1)
 
-implement the web page in vanilla js, minimal style, light theme
+### examples
 
-## move
+```
+:]crhy260322 you are my radar detector
+  → prepend "260322;you are my radar detector" to rhythm.txt
 
-create or extend (`/home/jt/.config/nvim/lua/noapp/commands/log_move.lua`) a move command
+:]crhy22 something
+  → date "22" → 260322 (current YYMM + 22)
+  → prepend "260322;something" to rhythm.txt
 
-command syntax: `:]m{prefix}/{file name}`
+:]c some note
+  → no name (default any.txt), no date (default today)
+  → prepend "260324;some note" to any.txt
 
-this command works on a selected range
+:]cgod26-- found something
+  → prepend "260000;found something" to god.txt
+```
 
-given `:'<,'>]m007/rhy` which move the selected content to file `data/007-chronicle/rhythm.txt` at the beginning of the file
+### implementation
 
-- no-op and throw errors if zero or multiple files matches
-- if move successfully, insert `## Insert Data Records\n;;data/007-chronicle/rhythm.txt` at the original selection range
+new file: `lua/noapp/commands/chronicle.lua`
+pattern: `^c(.+)$` — parse name, date, text in handler
+register in `command.lua` dispatcher
+
+## read (web viewer)
+
+standalone HTML page to browse chronicle records
+
+location: `p16-noapp/src/chronicle/index.html`
+
+### features
+
+- `<input type="file" webkitdirectory>` to pick the `007-chronicle/` folder
+- reads all `.txt` files (skip `_`-prefixed)
+- parses each line as semicolon-delimited fields
+- displays records in a grid/table:
+  - first column: source filename (without `.txt`)
+  - remaining columns: parsed fields (date, text, ...)
+  - files may have different column counts — pad shorter rows
+- checkbox list to filter records by filename
+- sort by date (first field) descending by default
+- vanilla JS, minimal CSS, light theme
+
+## move command
+
+visual-mode command to move selected content to a chronicle file
+
+syntax: `:'<,'>]m{prefix}/{name}`
+
+example: `:'<,'>]m007/rhy`
+
+### behavior
+
+1. resolve `007` to folder `007-chronicle` (prefix match, same as project resolution)
+2. resolve `rhy` to `rhythm.txt` (3-letter start match, same as write command)
+3. error if zero or multiple matches at either step
+4. prepend selected lines to the target file (insert at beginning)
+5. replace the selection in the journal with:
+
+```
+## Insert Data Records
+;;007-chronicle/rhythm.txt
+```
+
+6. open the target file in vsplit (reuse `open_in_vsplit`)
+
+### implementation
+
+new file: `lua/noapp/commands/chronicle_move.lua`
+pattern: `^m(%w%w%w)/(%a%a%a)$` — does not conflict with log_move's `^m(%w%w%w)$`
+register in `command.lua` dispatcher (before log_move for first-match ordering)
+
+## file structure
+
+```
+~/.config/nvim/lua/noapp/commands/chronicle.lua       # :]c write command
+~/.config/nvim/lua/noapp/commands/chronicle_move.lua   # :]m move command
+p16-noapp/src/chronicle/index.html                     # web viewer
+```
