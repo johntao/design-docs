@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chronicle Viewer</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 20px; background: #fff; color: #333; }
+  h1 { font-size: 1.4em; margin: 0 0 12px; }
+  #controls { margin-bottom: 16px; }
+  #filters { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+  #filters label { cursor: pointer; font-size: 14px; }
+  #count { margin-top: 8px; font-size: 13px; color: #888; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { border: 1px solid #ddd; padding: 3px 8px; text-align: left; }
+  th { background: #f5f5f5; position: sticky; top: 0; }
+  tr:hover { background: #f9f9f9; }
+  .file-col { font-weight: 600; color: #666; }
+</style>
+</head>
+<body>
+
+<h1>Chronicle Viewer</h1>
+<div id="controls">
+  <input type="file" id="picker" webkitdirectory>
+  <div id="filters"></div>
+  <div id="count"></div>
+</div>
+<table id="grid">
+  <thead><tr></tr></thead>
+  <tbody></tbody>
+</table>
+
+<script>
+let allRecords = [];
+let fileNames = [];
+let maxCols = 0;
+
+document.getElementById('picker').addEventListener('change', async (e) => {
+  const files = [...e.target.files]
+    .filter(f => f.name.endsWith('.txt') && !f.name.startsWith('_') && !f.webkitRelativePath.includes('/_'))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  allRecords = [];
+  fileNames = [];
+  maxCols = 0;
+
+  for (const file of files) {
+    const name = file.name.replace(/\.txt$/, '');
+    fileNames.push(name);
+    const text = await file.text();
+    for (const line of text.split('\n')) {
+      if (!line.trim()) continue;
+      const fields = line.split(';');
+      maxCols = Math.max(maxCols, fields.length);
+      allRecords.push({ file: name, fields });
+    }
+  }
+
+  allRecords.sort((a, b) => (b.fields[0] || '').localeCompare(a.fields[0] || ''));
+  buildFilters();
+  render();
+});
+
+function buildFilters() {
+  const div = document.getElementById('filters');
+  div.innerHTML = '';
+  for (const name of fileNames) {
+    const label = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = true;
+    cb.value = name;
+    cb.addEventListener('change', render);
+    label.append(cb, ' ' + name);
+    div.appendChild(label);
+  }
+}
+
+function render() {
+  const active = new Set(
+    [...document.querySelectorAll('#filters input:checked')].map(cb => cb.value)
+  );
+
+  const thead = document.querySelector('#grid thead tr');
+  thead.innerHTML = '<th>file</th>';
+  for (let i = 0; i < maxCols; i++) {
+    const th = document.createElement('th');
+    th.textContent = i === 0 ? 'date' : 'col' + i;
+    thead.appendChild(th);
+  }
+
+  const tbody = document.querySelector('#grid tbody');
+  tbody.innerHTML = '';
+  let shown = 0;
+
+  for (const rec of allRecords) {
+    if (!active.has(rec.file)) continue;
+    shown++;
+    const tr = document.createElement('tr');
+    const td0 = document.createElement('td');
+    td0.className = 'file-col';
+    td0.textContent = rec.file;
+    tr.appendChild(td0);
+    for (let i = 0; i < maxCols; i++) {
+      const td = document.createElement('td');
+      td.textContent = rec.fields[i] || '';
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+
+  document.getElementById('count').textContent =
+    shown + ' / ' + allRecords.length + ' records';
+}
+</script>
+</body>
+</html>
